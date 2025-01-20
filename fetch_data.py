@@ -105,12 +105,12 @@ def main():
         "fields": ",".join(FIELDS),
         "filters": "[has_image:true],[object_names:maleri],[public_domain:true]",
         "offset": 0,
-        "rows": 5,
+        "rows": 500,
     }
 
     API_URL = f"{BASE_URL}?{urlencode(QUERY_PARAMS)}"
-    SAVE_DIR = "data/images2"
-    CSV_FILE = "data/meta_data2.csv"
+    SAVE_DIR = "data/images"
+    CSV_FILE = "data/meta_data.csv"
 
     # Check if the metadata file already exists
     check_file_exists(CSV_FILE)
@@ -120,7 +120,6 @@ def main():
 
     print("Fetching data from the API...")
     data = fetch_data(API_URL)
-    breakpoint()
 
     print("Processing items and downloading images...")
     metadata = process_items(data, SAVE_DIR)
