@@ -3,6 +3,15 @@ from PIL import Image
 import clip
 import torch
 import numpy as np
+import time
+
+
+def get_confimation():
+    """Ask for user confirmation before proceeding."""
+    print("This script will generate embeddings for images in the metadata.")
+    response = input("Do you want to proceed? (y/n): ")
+    if response.lower() != "y":
+        exit()
 
 
 def load_metadata(csv_path: str) -> pd.DataFrame:
@@ -24,8 +33,9 @@ def generate_embeddings(
 ) -> np.ndarray:
     """Generate embeddings for images specified in the metadata."""
     embeddings = []
-
+    count = 0
     for _, row in data.iterrows():
+        start_time = time.time()
         image_path = row.get('image_path')
         if not image_path:
             print(f"No image path specified for row: {row}")
@@ -34,6 +44,7 @@ def generate_embeddings(
 
         try:
             # Load and preprocess the image
+            start_time = time.time()
             image = preprocess(Image.open(image_path)).unsqueeze(0).to(device)
 
             # Generate embedding
@@ -43,6 +54,13 @@ def generate_embeddings(
         except Exception as e:
             print(f"Error processing {image_path}: {e}")
             embeddings.append(None)  # Add None for failed images
+
+        embed_time = time.time() - start_time
+
+        if count % 10 == 0:
+            print(f"Embedded {count} images")
+            print(f"Time taken for embedding: {embed_time:.2f} seconds")
+        count += 1
 
     # Filter out None values and convert to NumPy array
     return np.array([emb for emb in embeddings if emb is not None])
@@ -58,9 +76,12 @@ def save_embeddings(embeddings: np.ndarray, output_path: str):
 
 
 def main():
+    # Confirm before proceeding
+    get_confimation()
+
     # Configuration
-    csv_path = "data/meta_data.csv"
-    output_path = "data/embeddings2.npy"
+    csv_path = "data/metadata.csv"
+    output_path = "data/embeddings.npy"
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
