@@ -1,0 +1,396 @@
+Path: search_service.py
+--------------------------------------------------------------------------------
+from qdrant_client import QdrantClient
+from clip_embedder import CLIPEmbedder
+
+
+class SearchService:
+    def __init__(
+        self, qdrant_client: QdrantClient, embedder: CLIPEmbedder, collection_name: str
+    ):
+        self.qdrant_client = qdrant_client
+        self.embedder = embedder
+        self.collection_name = collection_name
+
+    def search_text(self, query: str, limit: int = 5) -> list[dict]:
+        """Search for similar items based on a text query."""
+        query_vector = self.embedder.generate_text_embedding(query)
+        hits = self.qdrant_client.query_points(
+            collection_name=self.collection_name,
+            query=query_vector,
+            limit=limit,
+        )
+        return [
+            {
+                "score": hit.score,
+                "title": hit.payload['titles'][0]['title'],
+                "artist": hit.payload['artist'],
+                "thumbnail_url": hit.payload['thumbnail_url'],
+            }
+            for hit in hits.points
+        ]
+
+    def search_similar_images(self, object_number: str, limit: int = 5) -> list[dict]:
+        """Search for similar items based on an image embedding."""
+        query_vector = self.embedder.generate_thumbnail_embedding(
+            object_number=object_number
+        )
+        hits = self.qdrant_client.query_points(
+            collection_name=self.collection_name,
+            query=query_vector,
+            limit=limit,
+        )
+        return [
+            {
+                "score": hit.score,
+                "title": hit.payload['titles'][0]['title'],
+                "artist": hit.payload['artist'],
+                "thumbnail_url": hit.payload['thumbnail_url'],
+            }
+            for hit in hits.points
+        ]
+
+
+Path: text_search.py
+--------------------------------------------------------------------------------
+from search_service import SearchService
+from utils import get_qdrant_client, get_clip_embedder
+
+
+def interactive_search(search_service: SearchService):
+    while True:
+        query = input("Enter your query (or type 'exit' to quit): ")
+        if query.lower() == 'exit':
+            print("Exiting the program. Goodbye!")
+            break
+        results = search_service.search_text(query)
+        for result in results:
+            print("------------")
+            print(f"Score: {result['score']}")
+            print(f"Title: {result['title']}")
+            print(f"Artist: {result['artist']}")
+            print(f"Thumbnail: {result['thumbnail_url']}")
+
+
+def main():
+    qdrant_client = get_qdrant_client()
+    embedder = get_clip_embedder()
+    search_service = SearchService(
+        qdrant_client, embedder, collection_name="smk_artworks"
+    )
+    interactive_search(search_service)
+
+
+if __name__ == "__main__":
+    main()
+
+
+Path: config.py
+--------------------------------------------------------------------------------
+import os
+from dotenv import load_dotenv
+import torch
+
+# Load environment variables
+load_dotenv()
+
+
+class Config:
+    QDRANT_URL = os.getenv("QDRANT_URL")
+    QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
+    COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME")
+    DEVICE = os.getenv("DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
+
+
+Path: clip_embedder.py
+--------------------------------------------------------------------------------
+from PIL import Image
+from io import BytesIO
+import requests
+import clip
+import torch
+import os
+
+
+class CLIPEmbedder:
+    """A class for generating image embeddings using OpenAI's CLIP model."""
+
+    def __init__(
+        self,
+        model_name: str = "ViT-B/32",
+        device: str = None,
+        cache_dir: str = "data/images",
+    ):
+        """
+        Initialize the CLIPEmbedder with the specified model, device, and cache
+        directory.
+
+        Args:
+            model_name (str): The name of the CLIP model to load (default: "ViT-B/32").
+            device (str): Device to run the model on ("cuda" or "cpu"). If None, it is
+            auto-detected.
+            cache_dir (str): Directory to store cached images.
+        """
+        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.model, self.preprocess = clip.load(model_name, device=self.device)
+        self.cache_dir = cache_dir
+
+    def _get_local_image_path(self, object_number: str) -> str:
+        """Return the local file path for a cached image."""
+        return os.path.join(self.cache_dir, f"{object_number}.jpg")
+
+    def _download_image(self, url: str, save_path: str) -> Image.Image:
+        """Download an image from a URL and save it locally."""
+        response = requests.get(url)
+        response.raise_for_status()
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        with open(save_path, "wb") as f:
+            f.write(response.content)
+        return Image.open(BytesIO(response.content)).convert("RGB")
+
+    def _load_image(self, thumbnail_url: str, object_number: str) -> Image.Image:
+        """Load an image from the cache or download it."""
+        local_path = self._get_local_image_path(object_number)
+
+        if os.path.exists(local_path):
+            print(f"Using cached image: {local_path}")
+            return Image.open(local_path).convert("RGB")
+        else:
+            print(f"Downloading image from URL: {thumbnail_url}")
+            return self._download_image(thumbnail_url, local_path)
+
+    def generate_thumbnail_embedding(
+        self, thumbnail_url: str, object_number: str
+    ) -> list[float] | None:
+        """
+        Generate an image embedding from a URL or cached image.
+
+        Args:
+            thumbnail_url (str): URL of the thumbnail image.
+            object_number (str): Object number associated with the image.
+
+        Returns:
+            list[float]: The embedding vector as a list, or None if an error occurs.
+        """
+        try:
+            img = self._load_image(thumbnail_url, object_number)
+            image_tensor = self.preprocess(img).unsqueeze(0).to(self.device)
+            with torch.no_grad():
+                embedding = (
+                    self.model.encode_image(image_tensor).cpu().numpy().flatten()
+                )
+            return embedding.tolist()
+        except Exception as e:
+            print(f"Error generating embedding for object {object_number}: {e}")
+            return None
+
+    def generate_text_embedding(self, query: str) -> list[float]:
+        """
+        Generate a text embedding from a given query string.
+
+        Args:
+            text (str): The input text to encode.
+
+        Returns:
+            list[float]: The text embedding as a list.
+        """
+        text = clip.tokenize([query]).to(self.device)
+        with torch.no_grad():
+            return self.model.encode_text(text).cpu().numpy().flatten().tolist()
+
+
+Path: get_similar_images.py
+--------------------------------------------------------------------------------
+from search_service import SearchService
+from utils import get_qdrant_client, get_clip_embedder
+
+
+def interactive_search(search_service: SearchService):
+    while True:
+        query = input("Enter artwork's object number (or type 'exit' to quit): ")
+        if query.lower() == 'exit':
+            print("Exiting the program. Goodbye!")
+            break
+        results = search_service.search_similar_images(query)
+        for result in results:
+            print("------------")
+            print(f"Score: {result['score']}")
+            print(f"Title: {result['title']}")
+            print(f"Artist: {result['artist']}")
+            print(f"Thumbnail: {result['thumbnail_url']}")
+
+
+def main():
+    qdrant_client = get_qdrant_client()
+    embedder = get_clip_embedder()
+    search_service = SearchService(
+        qdrant_client, embedder, collection_name="smk_artworks"
+    )
+    interactive_search(search_service)
+
+
+if __name__ == "__main__":
+    main()
+
+
+Path: utils.py
+--------------------------------------------------------------------------------
+from qdrant_client import QdrantClient
+from clip_embedder import CLIPEmbedder
+from config import Config
+
+
+def get_qdrant_client() -> QdrantClient:
+    return QdrantClient(url=Config.QDRANT_URL, api_key=Config.QDRANT_API_KEY)
+
+
+def get_clip_embedder() -> CLIPEmbedder:
+    return CLIPEmbedder(device=Config.DEVICE)
+
+
+Path: upload_to_qdrant.py
+--------------------------------------------------------------------------------
+"""
+This script fetches data from the SMK API, processes it, and uploads it to a
+Qdrant collection.
+"""
+
+import os
+import requests
+from qdrant_client import QdrantClient
+from qdrant_client.http.models import PointStruct
+from urllib.parse import urlencode
+from typing import Any, Dict, List
+import dotenv
+from clip_embedder import CLIPEmbedder
+import uuid
+from utils import get_clip_embedder, get_qdrant_client
+
+dotenv.load_dotenv()
+
+
+def get_user_confirmation() -> None:
+    """Prompt the user for confirmation before proceeding."""
+    response = input("Do you want to proceed? (y/n): ")
+    if response.lower() != "y":
+        print("Exiting the program.")
+        exit()
+    print("Proceeding with the program...")
+
+
+def fetch_data(api_url: str) -> Dict[str, Any]:
+    """Fetch data from the SMK API and return it as JSON."""
+    response = requests.get(api_url)
+    response.raise_for_status()
+    return response.json()
+
+
+def process_items(data: Dict[str, Any], embedder: CLIPEmbedder) -> List[PointStruct]:
+    """Process items from SMK API data and return a list of Qdrant PointStruct."""
+    points = []
+    for idx, item in enumerate(data.get("items", [])):
+        try:
+            # Prepare metadata for Qdrant payload
+            payload = {
+                "object_number": item["object_number"],
+                "titles": item.get("titles", []),
+                "object_names": item.get("object_names", []),
+                "artist": item.get("artist", []),
+                "production_date_start": item.get("production_date")[0]
+                .get("start")
+                .split("-")[0],
+                "production_date_end": item.get("production_date")[0]
+                .get("end")
+                .split("-")[0],
+                "thumbnail_url": item["image_thumbnail"],
+            }
+            # Make vector embedding from the thumbnail URL
+            vector = embedder.generate_thumbnail_embedding(
+                item["image_thumbnail"], item["object_number"]
+            )
+            if vector is not None:
+                points.append(
+                    PointStruct(id=str(uuid.uuid4()), payload=payload, vector=vector)
+                )
+            else:
+                print(
+                    f"Skipping item {item['object_number']} due to embedding failure."
+                )
+        except KeyError as e:
+            print(f"Missing key in item: {e}")
+    return points
+
+
+def main():
+    BASE_URL = "https://api.smk.dk/api/v1/art/search/"
+    FIELDS = [
+        "titles",
+        "artist",
+        "object_names",
+        "production_date",
+        "object_number",
+        "image_thumbnail",
+    ]
+    START_DATE = "1000-01-01T00:00:00.000Z"
+    END_DATE = "2026-12-31T23:59:59.999Z"
+    QUERY_PARAMS = {
+        "keys": "*",
+        "fields": ",".join(FIELDS),
+        "filters": "[has_image:true],[object_names:maleri],[public_domain:true]",
+        "range": f"[production_dates_end:{{{START_DATE};{END_DATE}}}]",
+        "offset": 0,
+        "rows": 250,  # Max is 2000
+    }
+
+    # Initialize Qdrant client
+    qdrant_client = get_qdrant_client()
+
+    # Initialize CLIP embedder
+    embedder = get_clip_embedder()
+
+    # Ensure the collection exists
+    COLLECTION_NAME = "smk_artworks"
+    qdrant_client.recreate_collection(
+        collection_name=COLLECTION_NAME,
+        vectors_config={
+            "size": 512,
+            "distance": "Cosine",
+        },
+    )
+    offset = 0
+    total_points = 0
+
+    while True:
+        QUERY_PARAMS["offset"] = offset
+        API_URL = f"{BASE_URL}?{urlencode(QUERY_PARAMS)}"
+        data = fetch_data(API_URL)
+
+        # Check if there are any items in the response
+        if not data.get("items"):
+            break
+
+        # Process and upload points to Qdrant
+        print(f"Processing items for offset {offset}...")
+        points = process_items(data, embedder)
+
+        # Bulk upsert to Qdrant
+        if points:
+            qdrant_client.upsert(collection_name=COLLECTION_NAME, points=points)
+
+        total_points += len(points)
+
+        # Check if we've retrieved all the data
+        if offset + QUERY_PARAMS["rows"] >= data["found"]:
+            break
+
+        # Update offset for the next batch
+        offset += QUERY_PARAMS["rows"]
+
+    print(f"Total points uploaded: {total_points}")
+
+
+if __name__ == "__main__":
+    get_user_confirmation()
+    main()
+
+

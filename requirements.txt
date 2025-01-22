@@ -8,5 +8,5 @@ pillow
 requests
 pandas
 numpy
-# install sklearn
 scikit-learn
+qdrant-client

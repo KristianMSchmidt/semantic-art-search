@@ -3,3 +3,7 @@ venv
 data
 noter.txt
 .vscode
+path
+qdrant_storage
+project_export
+__pycache__
