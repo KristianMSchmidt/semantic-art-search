@@ -1,6 +1,6 @@
 from qdrant_client import QdrantClient
-from clip_embedder import CLIPEmbedder
-from config import Config
+from src.services.clip_embedder import CLIPEmbedder
+from src.config import Config
 
 
 def get_qdrant_client() -> QdrantClient:

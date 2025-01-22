@@ -1,8 +1,9 @@
-from search_service import SearchService
-from utils import get_qdrant_client, get_clip_embedder
+from src.services.qdrant_search_service import QdrantSearchService
+from src.services.smk_api_client import SMKAPIClient
+from src.utils import get_qdrant_client, get_clip_embedder
 
 
-def interactive_search(search_service: SearchService):
+def interactive_search(search_service: QdrantSearchService):
     while True:
         query = input("Enter your query (or type 'exit' to quit): ")
         if query.lower() == 'exit':
@@ -20,8 +21,9 @@ def interactive_search(search_service: SearchService):
 def main():
     qdrant_client = get_qdrant_client()
     embedder = get_clip_embedder()
-    search_service = SearchService(
-        qdrant_client, embedder, collection_name="smk_artworks"
+    smk_api_client = SMKAPIClient()
+    search_service = QdrantSearchService(
+        qdrant_client, embedder, smk_api_client, collection_name="smk_artworks"
     )
     interactive_search(search_service)
 

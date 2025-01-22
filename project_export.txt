@@ -4,7 +4,7 @@ from qdrant_client import QdrantClient
 from clip_embedder import CLIPEmbedder
 
 
-class SearchService:
+class QdrantSearch:
     def __init__(
         self, qdrant_client: QdrantClient, embedder: CLIPEmbedder, collection_name: str
     ):
@@ -53,11 +53,11 @@ class SearchService:
 
 Path: text_search.py
 --------------------------------------------------------------------------------
-from search_service import SearchService
+from search_service import QdrantSearch
 from utils import get_qdrant_client, get_clip_embedder
 
 
-def interactive_search(search_service: SearchService):
+def interactive_search(search_service: QdrantSearch):
     while True:
         query = input("Enter your query (or type 'exit' to quit): ")
         if query.lower() == 'exit':
@@ -75,7 +75,7 @@ def interactive_search(search_service: SearchService):
 def main():
     qdrant_client = get_qdrant_client()
     embedder = get_clip_embedder()
-    search_service = SearchService(
+    search_service = QdrantSearch(
         qdrant_client, embedder, collection_name="smk_artworks"
     )
     interactive_search(search_service)
@@ -201,11 +201,11 @@ class CLIPEmbedder:
 
 Path: get_similar_images.py
 --------------------------------------------------------------------------------
-from search_service import SearchService
+from search_service import QdrantSearch
 from utils import get_qdrant_client, get_clip_embedder
 
 
-def interactive_search(search_service: SearchService):
+def interactive_search(search_service: QdrantSearch):
     while True:
         query = input("Enter artwork's object number (or type 'exit' to quit): ")
         if query.lower() == 'exit':
@@ -223,7 +223,7 @@ def interactive_search(search_service: SearchService):
 def main():
     qdrant_client = get_qdrant_client()
     embedder = get_clip_embedder()
-    search_service = SearchService(
+    search_service = QdrantSearch(
         qdrant_client, embedder, collection_name="smk_artworks"
     )
     interactive_search(search_service)
