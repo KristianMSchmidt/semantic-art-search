@@ -8,9 +8,9 @@ from qdrant_client.http.models import PointStruct
 from urllib.parse import urlencode
 from typing import Any, Dict, List
 import dotenv
-from clip_embedder import CLIPEmbedder
+from src.services.clip_embedder import CLIPEmbedder
 import uuid
-from utils import get_clip_embedder, get_qdrant_client
+from src.utils import get_clip_embedder, get_qdrant_client
 
 dotenv.load_dotenv()
 
