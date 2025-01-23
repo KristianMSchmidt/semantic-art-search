@@ -10,5 +10,3 @@ pandas
 numpy
 scikit-learn
 qdrant-client
-juypyter
-matplotlib
