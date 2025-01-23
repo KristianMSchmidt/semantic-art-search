@@ -1,6 +1,5 @@
-# Targets for each script
-run-similar-images:
-	python -m scripts.similar_images
+find-similar-images:
+	python -m scripts.find_similar_images
 
 run-text-search:
 	python -m scripts.text_search
@@ -8,7 +7,6 @@ run-text-search:
 run-upload-to-qdrant:
 	python -m scripts.upload_to_qdrant
 
-# Help target to display available commands
 help:
 	@echo "Available commands:"
 	@echo "  make run-similar-images    - Run the similar_images script as a module"
