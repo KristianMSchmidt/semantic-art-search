@@ -4,6 +4,8 @@ import requests
 import clip
 import torch
 import os
+from src.utils import get_configured_session
+from src.config import Config
 
 
 class CLIPEmbedder:
@@ -12,22 +14,25 @@ class CLIPEmbedder:
     def __init__(
         self,
         model_name: str = "ViT-B/32",
-        device: str = None,
         cache_dir: str = "data/images",
+        http_session: requests.Session = None,
+        device: str = None,
     ):
         """
-        Initialize the CLIPEmbedder with the specified model, device, and cache
-        directory.
+        Initialize the CLIPEmbedder with the specified model, device, cache
+        directory, and HTTP session.
 
         Args:
             model_name (str): The name of the CLIP model to load (default: "ViT-B/32").
             device (str): Device to run the model on ("cuda" or "cpu"). If None, it is
             auto-detected.
             cache_dir (str): Directory to store cached images.
+            http_session (requests.Session): Shared HTTP session for all requests.
         """
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device or Config.DEVICE
         self.model, self.preprocess = clip.load(model_name, device=self.device)
         self.cache_dir = cache_dir
+        self.http_session = http_session or get_configured_session()
 
     def _get_local_image_path(self, object_number: str) -> str:
         """Return the local file path for a cached image."""
@@ -35,11 +40,12 @@ class CLIPEmbedder:
 
     def _download_image(self, url: str, save_path: str) -> Image.Image:
         """Download an image from a URL and save it locally."""
-        response = requests.get(url)
+        response = self.http_session.get(url, stream=True)
         response.raise_for_status()
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         with open(save_path, "wb") as f:
-            f.write(response.content)
+            for chunk in response.iter_content(8192):
+                f.write(chunk)
         return Image.open(BytesIO(response.content)).convert("RGB")
 
     def _load_image(self, thumbnail_url: str, object_number: str) -> Image.Image:

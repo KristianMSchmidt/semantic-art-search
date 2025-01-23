@@ -1,56 +1,82 @@
 """
-This script fetches data from the SMK API, processes it, and uploads it to a
-Qdrant collection.
+This script fetches data from the SMK API, processes it, and uploads it
+to a Qdrant collection.
 """
 
 import requests
 from qdrant_client.http.models import PointStruct
 from urllib.parse import urlencode
-from typing import Any, Dict, List
-import dotenv
+from typing import Any, Dict, List, Optional
+from dotenv import load_dotenv
 from src.services.clip_embedder import CLIPEmbedder
 import uuid
-from src.utils import get_clip_embedder, get_qdrant_client
+from src.utils import get_qdrant_client
 
-dotenv.load_dotenv()
+# Load environment variables
+load_dotenv()
+
+# Constants
+BASE_URL = "https://api.smk.dk/api/v1/art/search/"
+FIELDS = [
+    "titles",
+    "artist",
+    "object_names",
+    "production_date",
+    "object_number",
+    "image_thumbnail",
+]
+START_DATE = "1000-01-01T00:00:00.000Z"
+END_DATE = "2026-12-31T23:59:59.999Z"
+COLLECTION_NAME = "smk_artworks"
+QUERY_TEMPLATE = {
+    "keys": "*",
+    "fields": ",".join(FIELDS),
+    "filters": "[has_image:true],[object_names:maleri],[public_domain:true]",
+    "range": f"[production_dates_end:{{{START_DATE};{END_DATE}}}]",
+    "offset": 0,
+    "rows": 250,  # Max is 2000
+}
 
 
 def get_user_confirmation() -> None:
     """Prompt the user for confirmation before proceeding."""
-    response = input("Do you want to proceed? (y/n): ")
-    if response.lower() != "y":
+    response = input("Do you want to proceed? (y/n): ").strip().lower()
+    if response != "y":
         print("Exiting the program.")
         exit()
     print("Proceeding with the program...")
 
 
-def fetch_data(api_url: str) -> Dict[str, Any]:
+def fetch_data(api_url: str) -> Optional[Dict[str, Any]]:
     """Fetch data from the SMK API and return it as JSON."""
-    response = requests.get(api_url)
-    response.raise_for_status()
-    return response.json()
+    try:
+        response = requests.get(api_url)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        print(f"Error fetching data: {e}")
+        return None
+
+
+def prepare_payload(item: Dict[str, Any]) -> Dict[str, Any]:
+    """Prepare payload for Qdrant PointStruct."""
+    return {
+        "object_number": item["object_number"],
+        "titles": item.get("titles", []),
+        "object_names": item.get("object_names", []),
+        "artist": item.get("artist", []),
+        "production_date_start": item["production_date"][0]["start"].split("-")[0],
+        "production_date_end": item["production_date"][0]["end"].split("-")[0],
+        "thumbnail_url": item["image_thumbnail"],
+    }
 
 
 def process_items(data: Dict[str, Any], embedder: CLIPEmbedder) -> List[PointStruct]:
     """Process items from SMK API data and return a list of Qdrant PointStruct."""
     points = []
-    for idx, item in enumerate(data.get("items", [])):
+    for item in data.get("items", []):
         try:
-            # Prepare metadata for Qdrant payload
-            payload = {
-                "object_number": item["object_number"],
-                "titles": item.get("titles", []),
-                "object_names": item.get("object_names", []),
-                "artist": item.get("artist", []),
-                "production_date_start": item.get("production_date")[0]
-                .get("start")
-                .split("-")[0],
-                "production_date_end": item.get("production_date")[0]
-                .get("end")
-                .split("-")[0],
-                "thumbnail_url": item["image_thumbnail"],
-            }
-            # Make vector embedding from the thumbnail URL
+            payload = prepare_payload(item)
             vector = embedder.generate_thumbnail_embedding(
                 item["image_thumbnail"], item["object_number"]
             )
@@ -67,70 +93,45 @@ def process_items(data: Dict[str, Any], embedder: CLIPEmbedder) -> List[PointStr
     return points
 
 
-def main():
-    BASE_URL = "https://api.smk.dk/api/v1/art/search/"
-    FIELDS = [
-        "titles",
-        "artist",
-        "object_names",
-        "production_date",
-        "object_number",
-        "image_thumbnail",
-    ]
-    START_DATE = "1000-01-01T00:00:00.000Z"
-    END_DATE = "2026-12-31T23:59:59.999Z"
-    QUERY_PARAMS = {
-        "keys": "*",
-        "fields": ",".join(FIELDS),
-        "filters": "[has_image:true],[object_names:maleri],[public_domain:true]",
-        "range": f"[production_dates_end:{{{START_DATE};{END_DATE}}}]",
-        "offset": 0,
-        "rows": 250,  # Max is 2000
-    }
+def create_qdrant_collection(client) -> None:
+    """Create Qdrant collection (if it doesn't exist)."""
+    exists = client.collection_exists(collection_name=COLLECTION_NAME)
+    if not exists:
+        client.create_collection(
+            collection_name=COLLECTION_NAME,
+            vectors_config={"size": 512, "distance": "Cosine"},
+        )
 
-    # Initialize Qdrant client
+
+def main() -> None:
+    """Main entry point of the script."""
+    embedder = CLIPEmbedder()
     qdrant_client = get_qdrant_client()
 
-    # Initialize CLIP embedder
-    embedder = get_clip_embedder()
+    create_qdrant_collection(qdrant_client)
 
-    # Ensure the collection exists
-    COLLECTION_NAME = "smk_artworks"
-    qdrant_client.recreate_collection(
-        collection_name=COLLECTION_NAME,
-        vectors_config={
-            "size": 512,
-            "distance": "Cosine",
-        },
-    )
     offset = 0
     total_points = 0
 
     while True:
-        QUERY_PARAMS["offset"] = offset
-        API_URL = f"{BASE_URL}?{urlencode(QUERY_PARAMS)}"
-        data = fetch_data(API_URL)
+        QUERY_TEMPLATE["offset"] = offset
+        api_url = f"{BASE_URL}?{urlencode(QUERY_TEMPLATE)}"
+        data = fetch_data(api_url)
 
-        # Check if there are any items in the response
-        if not data.get("items"):
+        if not data or not data.get("items"):
             break
 
-        # Process and upload points to Qdrant
         print(f"Processing items for offset {offset}...")
         points = process_items(data, embedder)
 
-        # Bulk upsert to Qdrant
         if points:
             qdrant_client.upsert(collection_name=COLLECTION_NAME, points=points)
+            total_points += len(points)
 
-        total_points += len(points)
-
-        # Check if we've retrieved all the data
-        if offset + QUERY_PARAMS["rows"] >= data["found"]:
+        if offset + QUERY_TEMPLATE["rows"] >= data["found"]:
             break
 
-        # Update offset for the next batch
-        offset += QUERY_PARAMS["rows"]
+        offset += QUERY_TEMPLATE["rows"]
 
     print(f"Total points uploaded: {total_points}")
 
