@@ -8,5 +8,5 @@ pillow
 requests
 pandas
 numpy
-scikit-learn
 qdrant-client
+Django==5.1.5
