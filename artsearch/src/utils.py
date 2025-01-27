@@ -1,8 +1,8 @@
+import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from qdrant_client import QdrantClient
-from src.config import Config
-import requests
+from artsearch.src.config import Config
 
 
 def get_configured_session() -> requests.Session:

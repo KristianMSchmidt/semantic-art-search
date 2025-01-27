@@ -1,6 +1,6 @@
 from qdrant_client import QdrantClient
-from src.services.clip_embedder import CLIPEmbedder
-from src.services.smk_api_client import SMKAPIClient
+from artsearch.src.services.clip_embedder import CLIPEmbedder
+from artsearch.src.services.smk_api_client import SMKAPIClient
 
 
 class QdrantSearchService:

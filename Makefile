@@ -1,8 +1,8 @@
 find-similar-images:
-	python -m scripts.find_similar_images
+	python -m artsearch.src.cli.find_similar_images
 
 text-search:
-	python -m scripts.text_search
+	python -m artsearch.src.cli.text_search
 
 upload-to-qdrant:
-	python -m scripts.upload_to_qdrant
+	python -m artsearch.src.cli.upload_to_qdrant

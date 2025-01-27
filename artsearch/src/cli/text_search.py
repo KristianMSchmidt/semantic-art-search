@@ -1,5 +1,5 @@
-from scripts.shared.interactive_search import interactive_search
-from scripts.shared.search_config import initialize_search_service
+from artsearch.src.cli.shared.interactive_search import interactive_search
+from artsearch.src.cli.shared.search_config import initialize_search_service
 
 
 def search_text(search_service, query):

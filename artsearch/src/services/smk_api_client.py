@@ -1,5 +1,5 @@
 import requests
-from src.utils import get_configured_session
+from artsearch.src.utils import get_configured_session
 
 
 class SMKAPIClient:
