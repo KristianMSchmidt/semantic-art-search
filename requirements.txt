@@ -10,3 +10,5 @@ pandas
 numpy
 qdrant-client
 Django==5.1.5
+django-tailwind[reload]
+

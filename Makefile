@@ -1,3 +1,23 @@
+## ----------------------------------------------------------------------
+## Makefile for portfolio.kristianms.com
+##
+## Used for both development and production. See targets below.
+## ----------------------------------------------------------------------
+
+help:   # Show this help.
+	@sed -ne '/@sed/!s/## //p' $(MAKEFILE_LIST)
+
+
+# ---------- Development ---------- #
+
+tailwind-start:  ## start tailwind (should be running while developing)
+	python manage.py tailwind start
+
+tailwind-build: ## build minified production tailwind css
+	python manage.py tailwind build
+
+
+# -------------- CLI ------------- #
 find-similar-images:
 	python -m artsearch.src.cli.find_similar_images
 
