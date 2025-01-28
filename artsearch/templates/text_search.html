@@ -11,7 +11,7 @@
             <input
                 type="text"
                 name="query"
-                placeholder="Search for images..."
+                placeholder="Search for artworks by words, phrases, or sentences..."
                 value="{{ query|default:'' }}"
                 class="w-full sm:w-auto flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
@@ -44,7 +44,9 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {% for result in results %}
         <div class="bg-white shadow-md rounded-lg overflow-hidden">
-            <img src="{{ result.thumbnail_url }}" alt="{{ result.title }}" class="w-full h-48 object-cover">
+            {% comment %} <img src="{{ result.thumbnail_url }}" alt="{{ result.title }}" class="w-full h-48"> {% endcomment %}
+            <img src="{{ result.thumbnail_url }}" alt="{{ result.title }}" class="w-full h-auto">
+
             <div class="p-4">
                 <h3 class="text-lg font-semibold text-gray-800">{{ result.title }}</h3>
                 <p class="text-sm text-gray-600">

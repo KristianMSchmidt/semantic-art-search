@@ -15,7 +15,9 @@ EXAMPLE_QUERIES = [
     "Old man with beard",
     "War",
     "Dance",
-    "Death and horror"
+    "Death and horror",
+    "Reading child",
+    "Raw meat"
 ]
 
 # Initialize the search service once
