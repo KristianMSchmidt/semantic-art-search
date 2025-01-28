@@ -1,5 +1,5 @@
 from artsearch.src.cli.shared.interactive_search import interactive_search
-from artsearch.src.cli.shared.search_config import initialize_search_service
+from artsearch.src.utils.search_config import initialize_search_service
 
 
 def search_similar_images(search_service, object_number):

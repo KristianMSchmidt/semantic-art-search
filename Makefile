@@ -18,7 +18,7 @@ tailwind-build: ## build minified production tailwind css
 
 
 # -------------- CLI ------------- #
-find-similar-images:
+find-similar:
 	python -m artsearch.src.cli.find_similar_images
 
 text-search:

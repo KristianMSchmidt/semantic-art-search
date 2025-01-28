@@ -31,6 +31,9 @@ class QdrantSearchService:
                 "title": hit.payload['titles'][0]['title'],
                 "artist": hit.payload['artist'],
                 "thumbnail_url": hit.payload['thumbnail_url'],
+                "production_date_start": hit.payload['production_date_start'],
+                "production_date_end": hit.payload['production_date_end'],
+                "object_number": hit.payload['object_number'],
             }
             for hit in hits.points
         ]

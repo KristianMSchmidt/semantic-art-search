@@ -1,8 +1,7 @@
 from artsearch.src.services.qdrant_search_service import QdrantSearchService
 from artsearch.src.services.smk_api_client import SMKAPIClient
 from artsearch.src.services.clip_embedder import CLIPEmbedder
-from artsearch.src.utils import get_qdrant_client
-
+from artsearch.src.utils.get_qdrant_client import get_qdrant_client
 
 def initialize_search_service(collection_name="smk_artworks") -> QdrantSearchService:
     """

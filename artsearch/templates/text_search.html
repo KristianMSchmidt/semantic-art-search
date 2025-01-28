@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="container mx-auto p-4">
+    <!-- Search Form -->
+    <div class="mb-6">
+        <form method="GET" action="{% url 'text-search' %}" class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
+            <!-- Search Input -->
+            <input
+                type="text"
+                name="query"
+                placeholder="Search for images..."
+                value="{{ query|default:'' }}"
+                class="w-full sm:w-auto flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+
+            <!-- Dropdown for Limit -->
+            <div class="relative w-full sm:w-auto">
+                <select
+                    name="limit"
+                    class="block w-full px-3 py-2 border border-gray-300 rounded-lg appearance-none pr-8 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                >
+                    <option value="5" {% if limit == '5' %}selected{% endif %}>5</option>
+                    <option value="10" {% if limit == '10' %}selected{% endif %}>10</option>
+                    <option value="20" {% if limit == '20' %}selected{% endif %}>20</option>
+                    <option value="50" {% if limit == '50' %}selected{% endif %}>50</option>
+                </select>
+            </div>
+
+            <!-- Search Button -->
+            <button
+                type="submit"
+                class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+                Search
+            </button>
+        </form>
+    </div> <!-- End Search Form -->
+
+
+    <!-- Image Results -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {% for result in results %}
+        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+            <img src="{{ result.thumbnail_url }}" alt="{{ result.title }}" class="w-full h-48 object-cover">
+            <div class="p-4">
+                <h3 class="text-lg font-semibold text-gray-800">{{ result.title }}</h3>
+                <p class="text-sm text-gray-600">
+                    {% for artist in result.artist %}
+                    {{ artist }}{% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </p>
+                <p class="text-sm text-gray-500">
+                    {% if result.production_date_start == result.production_date_end %}
+                    {{ result.production_date_start }}
+                    {% else %}
+                    {{ result.production_date_start }}–{{ result.production_date_end }}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% endfor %}
+    </div> <!-- End Image Results -->
+</div> <!-- End Container -->
+{% endblock content%}

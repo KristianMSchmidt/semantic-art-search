@@ -4,7 +4,7 @@ import requests
 import clip
 import torch
 import os
-from artsearch.src.utils import get_configured_session
+from artsearch.src.utils.session_config import get_configured_session
 from artsearch.src.config import Config
 
 
