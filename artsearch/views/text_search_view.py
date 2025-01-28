@@ -3,6 +3,7 @@ from django.shortcuts import render
 from artsearch.src.utils.search_config import initialize_search_service
 
 
+
 EXAMPLE_QUERIES = [
     "Paris",
     "Orientalism",
@@ -24,7 +25,7 @@ EXAMPLE_QUERIES = [
 search_service = initialize_search_service()
 
 # Create your views here.
-def text_search_view(request):
+def text_search(request):
 
     query = request.GET.get('query', random.choice(EXAMPLE_QUERIES))
     limit = request.GET.get('limit', '10')
