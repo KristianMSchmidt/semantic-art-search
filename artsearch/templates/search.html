@@ -2,13 +2,11 @@
 {% load static %}
 
 {% block content %}
-
 <div class="container mx-auto p-4">
 
-    <h1 class="text-2xl font-bold text-gray-800 mb-2">Search Artworks by Text</h1>
-
-    <p class="text-sm text-gray-700 mb-3">
-        Use this page for semantic search in the SMK art collection. Search with words, phrases, or sentences.
+    <!-- Text above search form -->
+    <p class="text-sm text-gray-700 mb-2 mt-4">
+        {{ about_text }}
     </p>
 
     <!-- Search Form -->
@@ -18,7 +16,7 @@
             <input
                 type="text"
                 name="query"
-                placeholder="Search for artworks by words, phrases, or sentences..."
+                placeholder="{{placeholder}}"
                 value="{{ query|default:'' }}"
                 class="w-full sm:w-auto flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
@@ -50,7 +48,7 @@
     <!-- Image Results -->
     <div class="mb-2">
         <p class="text-sm text-gray-500">
-            Results rendered by relevance
+            {{ results|length }} best matches ordered by search score
         </p>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -73,6 +71,15 @@
                     {{ result.production_date_start }}–{{ result.production_date_end }}
                     {% endif %}
                 </p>
+                 <p class="text-sm text-gray-400">
+                    Score: {{ result.score }}
+                </p>
+                <a
+                   href="{% url 'similarity-search' %}?query={{ result.object_number }}"
+                    class="text-blue-400 hover:underline text-sm"
+                >
+                    Find similar
+                </a>
             </div>
         </div>
         {% endfor %}
