@@ -10,12 +10,11 @@ EXAMPLE_QUERIES = [
     "Rome",
     "Martin Luther",
     "War",
-    "Cathedral",
+    "Inside a cathedral",
     "Fauvism",
     "Cubism",
     "Old man with beard",
     "War",
-    "Dance",
     "Death and horror",
     "Reading child",
     "Raw meat"
