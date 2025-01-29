@@ -1,8 +1,10 @@
+import time
 from PIL import Image
 from io import BytesIO
 import requests
 import clip
 import torch
+import torchvision
 import os
 from artsearch.src.utils.session_config import get_configured_session
 from artsearch.src.config import Config
@@ -30,9 +32,17 @@ class CLIPEmbedder:
             http_session (requests.Session): Shared HTTP session for all requests.
         """
         self.device = device or Config.DEVICE
-        self.model, self.preprocess = clip.load(model_name, device=self.device)
+        self.model, self.preprocess = self._load_model(model_name, self.device)
         self.cache_dir = cache_dir
         self.http_session = http_session or get_configured_session()
+
+    def _load_model(self, model_name: str, device: str) -> tuple[any, any]:
+        """Load the CLIP model and preprocessor."""
+        start_time = time.time()
+        print(f"Loading CLIP model: {model_name}")
+        model, preprocess = clip.load(model_name, device=device)
+        print(f"Model loaded on in {time.time() - start_time:.2f}s")
+        return model, preprocess
 
     def _get_local_image_path(self, object_number: str) -> str:
         """Return the local file path for a cached image."""

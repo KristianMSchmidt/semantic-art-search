@@ -11,7 +11,7 @@
 
     <!-- Search Form -->
     <div class="mb-5">
-        <form method="GET" action="{% url 'text-search' %}" class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
+        <form method="GET" action="{% url search_action_url %}" class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
             <!-- Search Input -->
             <input
                 type="text"
@@ -27,10 +27,10 @@
                     name="limit"
                     class="block w-full px-3 py-2 border border-gray-300 rounded-lg appearance-none pr-8 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 >
-                    <option value="5" {% if limit == '5' %}selected{% endif %}>5</option>
-                    <option value="10" {% if limit == '10' %}selected{% endif %}>10</option>
-                    <option value="20" {% if limit == '20' %}selected{% endif %}>20</option>
-                    <option value="50" {% if limit == '50' %}selected{% endif %}>50</option>
+                    <option value="5" {% if limit == 5 %}selected{% endif %}>5</option>
+                    <option value="10" {% if limit == 10 %}selected{% endif %}>10</option>
+                    <option value="20" {% if limit == 20 %}selected{% endif %}>20</option>
+                    <option value="50" {% if limit == 50 %}selected{% endif %}>50</option>
                 </select>
             </div>
 
@@ -44,6 +44,20 @@
         </form>
     </div> <!-- End Search Form -->
 
+    <!-- Error Message -->
+    {% if error_message %}
+
+        {% if error_type == "error" %}
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+        {% elif error_type == "warning" %}
+        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
+        {% else %}
+        <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4">
+        {% endif %}
+            <p>{{ error_message }}</p>
+        </div>
+
+    {% else %}
 
     <!-- Image Results -->
     <div class="mb-2">
@@ -51,6 +65,8 @@
             {{ results|length }} best matches ordered by search score
         </p>
     </div>
+    {% endif %}
+
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {% for result in results %}
         <div class="bg-white shadow-md rounded-lg overflow-hidden">

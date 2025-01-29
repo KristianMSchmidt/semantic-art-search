@@ -16,6 +16,8 @@ tailwind-start:  ## start tailwind (should be running while developing)
 tailwind-build: ## build minified production tailwind css
 	python manage.py tailwind build
 
+dj:  ## run django server
+	python manage.py runserver
 
 # -------------- CLI ------------- #
 find-similar:

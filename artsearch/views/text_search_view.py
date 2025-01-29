@@ -1,39 +1,32 @@
-import random
 from django.shortcuts import render
-from artsearch.src.utils.search_config import initialize_search_service
+from artsearch.src.services.search_service import search_service
+import artsearch.views.view_utils as view_utils
 
-
-EXAMPLE_QUERIES = [
-    "Paris",
-    "Orientalism",
-    "Ancient Rome",
-    "Martin Luther",
-    "War",
-    "Inside a cathedral",
-    "Fauvism",
-    "Cubism",
-    "Old man with beard",
-    "War",
-    "Death and horror",
-    "Reading child",
-    "Raw meat"
-]
-
-# Initialize the search service once
-search_service = initialize_search_service()
 
 def text_search(request):
 
-    query = request.GET.get('query', random.choice(EXAMPLE_QUERIES))
-    limit = request.GET.get('limit', '10')
+    query = view_utils.get_default_text_query(request.GET.get('query'))
+    limit = view_utils.get_valid_limit(request.GET.get('limit'))
 
-    results = search_service.search_text(query, limit=int(limit))
+    results = []
+    error_message = None
+    error_type = None
+
+    try:
+        results = search_service.search_text(query, limit)
+
+    except Exception as e:
+        error_message = "An unexpected error occurred. Please try again."
+        error_type = "error"  #
 
     context = {
+        'search_action_url': 'text-search',
         'about_text': "Search for painting in the SMK collection by entering words, phrases or sentences.",
         'placeholder': "Woman by the window",
         'limit': limit,
         'query': query,
-        'results': results
+        'results': results,
+        'error_message': error_message,
+        'error_type': error_type
     }
     return render(request, 'search.html', context)
