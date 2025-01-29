@@ -13,7 +13,8 @@ EXAMPLE_TEXT_QUERIES = [
     "Reading child",
     "Raw meat",
     "Nature morte",
-    "Bridge"
+    "Bridge",
+    "Snow"
 ]
 
 EXAMPLE_OBJECT_NUMBERS = [

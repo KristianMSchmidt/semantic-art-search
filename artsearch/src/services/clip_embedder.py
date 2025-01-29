@@ -4,7 +4,6 @@ from io import BytesIO
 import requests
 import clip
 import torch
-import torchvision
 import os
 from artsearch.src.utils.session_config import get_configured_session
 from artsearch.src.config import Config
