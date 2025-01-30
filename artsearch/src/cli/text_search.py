@@ -1,5 +1,5 @@
 from artsearch.src.cli.shared.interactive_search import interactive_search
-from artsearch.src.utils.search_config import initialize_search_service
+from artsearch.src.services import search_service
 
 
 def search_text(search_service, query):
@@ -8,7 +8,6 @@ def search_text(search_service, query):
 
 
 def main():
-    search_service = initialize_search_service()
     prompt = "Enter your query (or type 'exit' to quit): "
     interactive_search(search_service, prompt, search_text)
 

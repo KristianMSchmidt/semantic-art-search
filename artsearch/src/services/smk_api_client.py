@@ -15,8 +15,7 @@ class SMKAPIClient:
 
     def get_thumbnail_url(self, object_number: str) -> str:
         """Fetch the thumbnail URL for a given object number."""
-        if not object_number:
-            raise SMKAPIClientError("Please enter an inventory number.")
+        assert object_number, "Object number must be provided"
 
         url = f"{self.BASE_URL}?object_number={object_number}"
         response = self.http_session.get(url)

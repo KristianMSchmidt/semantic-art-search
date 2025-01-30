@@ -11,12 +11,13 @@
 
     <!-- Search Form -->
     <div class="mb-5">
-        <form method="GET" action="{% url search_action_url %}" class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
+        <form id="search-form" method="GET" action="{% url search_action_url %}" class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
             <!-- Search Input -->
             <input
+                id="search-input"
                 type="text"
                 name="query"
-                placeholder="{{placeholder}}"
+                placeholder="{{ placeholder }}"
                 value="{{ query|default:'' }}"
                 class="w-full sm:w-auto flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
@@ -44,61 +45,66 @@
         </form>
     </div> <!-- End Search Form -->
 
-    <!-- Error Message -->
-    {% if error_message %}
-
-        {% if error_type == "error" %}
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
-        {% elif error_type == "warning" %}
-        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
-        {% else %}
-        <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4">
-        {% endif %}
-            <p>{{ error_message }}</p>
+    {% if example_queries %}
+    <!-- Example Queries -->
+    <div class="mb-5">
+        <p class="text-sm text-gray-600 mb-2">Try these examples:</p>
+        <div class="flex flex-wrap gap-2">
+            {% for example in example_queries %}
+            <button
+                type="button"
+                class="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onclick="submitQuery('{{ example }}')"
+            >
+                {{ example }}
+            </button>
+            {% endfor %}
         </div>
-
-    {% else %}
-
-    <!-- Image Results -->
-    <div class="mb-2">
-        <p class="text-sm text-gray-500">
-            {{ results|length }} best matches ordered by search score
-        </p>
     </div>
     {% endif %}
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {% for result in results %}
-        <div class="bg-white shadow-md rounded-lg overflow-hidden">
-            {% comment %} <img src="{{ result.thumbnail_url }}" alt="{{ result.title }}" class="w-full h-48"> {% endcomment %}
-            <img src="{{ result.thumbnail_url }}" alt="{{ result.title }}" class="w-full h-auto">
+    <!-- Error Message -->
+    {% if error_message %}
+    <div class="
+        {% if error_type == 'error' %} bg-red-100 border-red-500 text-red-700
+        {% elif error_type == 'warning' %} bg-yellow-100 border-yellow-500 text-yellow-700
+        {% else %} bg-blue-100 border-blue-500 text-blue-700 {% endif %}
+        border-l-4 p-4 mb-4">
+        <p>{{ error_message }}</p>
+    </div>
+    {% endif %}
 
-            <div class="p-4">
-                <h3 class="text-lg font-semibold text-gray-800">{{ result.title }}</h3>
-                <p class="text-sm text-gray-600">
-                    {% for artist in result.artist %}
-                    {{ artist }}{% if not forloop.last %}, {% endif %}
-                    {% endfor %}
-                </p>
-                <p class="text-sm text-gray-500">
-                    {% if result.production_date_start == result.production_date_end %}
-                    {{ result.production_date_start }}
-                    {% else %}
-                    {{ result.production_date_start }}–{{ result.production_date_end }}
-                    {% endif %}
-                </p>
-                 <p class="text-sm text-gray-400">
-                    Score: {{ result.score }}
-                </p>
-                <a
-                   href="{% url 'similarity-search' %}?query={{ result.object_number }}"
-                    class="text-blue-400 hover:underline text-sm"
-                >
-                    Find similar
-                </a>
-            </div>
+    <!-- Content Section -->
+    {% if results %}
+        <!-- Search Results -->
+        <div class="mb-2">
+            <p class="text-sm text-gray-500">
+                Showing {{ results|length }} search results (best match first)
+            </p>
         </div>
-        {% endfor %}
-    </div> <!-- End Image Results -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {% for result in results %}
+                {% include 'partials/_artwork_card.html' %}
+            {% endfor %}
+        </div>
+    {% elif random_results %}
+        <!-- Random Artworks -->
+        <div class="mb-2">
+            <p class="text-sm text-gray-500">A glimpse into the archive</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {% for result in random_results %}
+                {% include 'partials/_artwork_card.html' %}
+            {% endfor %}
+        </div>
+    {% endif %}
 </div> <!-- End Container -->
-{% endblock content%}
+
+<!-- JavaScript to Submit Example Queries -->
+<script>
+function submitQuery(query) {
+    document.getElementById('search-input').value = query;
+    document.getElementById('search-form').submit();
+}
+</script>
+{% endblock content %}

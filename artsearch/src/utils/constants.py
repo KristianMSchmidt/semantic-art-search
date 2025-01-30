@@ -1,5 +1,5 @@
-EXAMPLE_TEXT_QUERIES = [
-    "Paris",
+EXAMPLE_QUERIES = [
+    "Moonlight by the sea",
     "Orientalism",
     "Ancient Rome",
     "Martin Luther",
@@ -8,19 +8,13 @@ EXAMPLE_TEXT_QUERIES = [
     "Fauvism",
     "Cubism",
     "Old man with beard",
-    "War",
-    "Death and horror",
+    "Death",
+    "Paris",
     "Reading child",
     "Raw meat",
     "Nature morte",
-    "Bridge",
-    "Snow"
-]
-
-EXAMPLE_OBJECT_NUMBERS = [
-    'KMSr86',
-    'KMS1038',
-    'KMS57',
-    'KMS611',
-    'KMS714'
+    "Wooden bridge",
+    "Winter landscape",
+    "Woman by the window",
+    "Red",
 ]
