@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
 from artsearch.src.services.clip_embedder import CLIPEmbedder
 import uuid
-from artsearch.src.utils import get_qdrant_client
+from artsearch.src.utils.get_qdrant_client import get_qdrant_client
 
 # Load environment variables
 load_dotenv()

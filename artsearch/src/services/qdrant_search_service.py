@@ -1,6 +1,6 @@
 import random
 from qdrant_client import QdrantClient
-from qdrant_client.http.models.models import ScoredPoint
+from qdrant_client.http.models.models import ScoredPoint, Payload
 from artsearch.src.services.clip_embedder import CLIPEmbedder
 from artsearch.src.services.smk_api_client import SMKAPIClient
 
@@ -19,25 +19,28 @@ class QdrantSearchService:
         self.collection_name = collection_name
         self.smk_api_client = smk_api_client
 
-    def _format_payload(self, payload: dict) -> dict:
+    def _format_payload(self, payload: Payload | None) -> dict:
+        assert payload
         if payload['production_date_start'] == payload['production_date_end']:
             period = payload['production_date_start']
         else:
-            period = f"{payload['production_date_start']} - {payload['production_date_end']}"
+            period = (
+                f"{payload['production_date_start']} - {payload['production_date_end']}"
+            )
 
         return {
-                "title": payload['titles'][0]['title'],
-                "artist": payload['artist'][0],
-                "thumbnail_url": payload['thumbnail_url'],
-                "period": period,
-                "object_number": payload['object_number'],
-            }
+            "title": payload['titles'][0]['title'],
+            "artist": payload['artist'][0],
+            "thumbnail_url": payload['thumbnail_url'],
+            "period": period,
+            "object_number": payload['object_number'],
+        }
 
-    def _format_payloads(self, payloads: list[dict]) -> list[dict]:
+    def _format_payloads(self, payloads: list[Payload | None]) -> list[dict]:
         return [self._format_payload(payload) for payload in payloads]
 
     def _format_hit(self, hit: ScoredPoint) -> dict:
-        formatted_hit =  self._format_payload(hit.payload)
+        formatted_hit = self._format_payload(hit.payload)
         formatted_hit.update({"score": round(hit.score, 3)})
         return formatted_hit
 

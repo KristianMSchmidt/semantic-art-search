@@ -12,4 +12,6 @@ embedder = CLIPEmbedder()
 smk_api_client = SMKAPIClient()
 collection_name = "smk_artworks"
 
-search_service = QdrantSearchService(qdrant_client, embedder, smk_api_client, collection_name)
+search_service = QdrantSearchService(
+    qdrant_client, embedder, smk_api_client, collection_name
+)

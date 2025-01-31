@@ -6,6 +6,7 @@ import clip
 import torch
 import os
 from artsearch.src.utils.session_config import get_configured_session
+from typing import Tuple, Any
 from artsearch.src.config import Config
 
 
@@ -16,8 +17,8 @@ class CLIPEmbedder:
         self,
         model_name: str = "ViT-B/32",
         cache_dir: str = "data/images",
-        http_session: requests.Session = None,
-        device: str = None,
+        http_session: requests.Session | None = None,
+        device: str | None = None,
     ):
         """
         Initialize the CLIPEmbedder with the specified model, device, cache
@@ -35,7 +36,7 @@ class CLIPEmbedder:
         self.cache_dir = cache_dir
         self.http_session = http_session or get_configured_session()
 
-    def _load_model(self, model_name: str, device: str) -> tuple[any, any]:
+    def _load_model(self, model_name: str, device: str) -> Tuple[Any, Any]:
         """Load the CLIP model and preprocessor."""
         start_time = time.time()
         print(f"Loading CLIP model: {model_name}")
