@@ -15,6 +15,6 @@ EXAMPLE_QUERIES = [
     "Nature morte",
     "Wooden bridge",
     "Winter landscape",
-    "Woman by the window",
+    "Woman by a window",
     "Red",
 ]
