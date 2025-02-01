@@ -1,4 +1,6 @@
 .env
+.env.dev
+.env.prod
 venv
 data
 noter.txt

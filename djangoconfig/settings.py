@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from artsearch.src.config import Config
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,13 +22,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-van-_-+-^-)e0lldzrpy_yc_i57o)58s#nd5f9c+8ajm*kif(h'
+SECRET_KEY = Config.SECRET_KEY
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = Config.DEBUG
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = Config.ALLOWED_HOSTS
 
 # Application definition
 
@@ -40,7 +41,7 @@ INSTALLED_APPS = [
     'artsearch',
     'tailwind',
     'theme',
-    'django_browser_reload'
+    'django_browser_reload',
 ]
 
 MIDDLEWARE = [
@@ -51,7 +52,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django_browser_reload.middleware.BrowserReloadMiddleware'
+    'django_browser_reload.middleware.BrowserReloadMiddleware',
 ]
 
 ROOT_URLCONF = 'djangoconfig.urls'
