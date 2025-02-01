@@ -1,8 +1,6 @@
+import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from qdrant_client import QdrantClient
-from src.config import Config
-import requests
 
 
 def get_configured_session() -> requests.Session:
@@ -14,7 +12,3 @@ def get_configured_session() -> requests.Session:
     adapter = HTTPAdapter(max_retries=retry_strategy)
     session.mount("https://", adapter)
     return session
-
-
-def get_qdrant_client() -> QdrantClient:
-    return QdrantClient(url=Config.QDRANT_URL, api_key=Config.QDRANT_API_KEY)

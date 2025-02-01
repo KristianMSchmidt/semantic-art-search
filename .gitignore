@@ -1,4 +1,6 @@
 .env
+.env.dev
+.env.prod
 venv
 data
 noter.txt
@@ -8,3 +10,6 @@ qdrant_storage
 project_export
 __pycache__
 project_export.txt
+db.sqlite3
+node_modules
+dev.py

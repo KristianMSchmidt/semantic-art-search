@@ -1,0 +1,39 @@
+{% load static %}
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+    <title>Semantic Art Search</title>
+		<link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta http-equiv="X-UA-Compatible" content="ie=edge">
+		{% tailwind_css %}
+		<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+	</head>
+
+	<body class="bg-gray-50 font-serif leading-normal tracking-normal">
+
+		<!-- Base Navbar -->
+		<nav class="bg-blue-500 p-4">
+			<div class="container mx-auto flex justify-between items-center">
+				<!-- Website Name -->
+				<a href="{% url 'home' %}" class="text-blue-50 text-lg font-bold">Semantic Art Search</a>
+
+				<!-- Links -->
+				<div class="flex space-x-4">
+				<a href="{% url 'text-search' %}"
+   						class="text-blue-100 hover:text-blue-50 {% if request.resolver_match.url_name == 'text-search' %}text-white font-bold{% endif %}">
+						Search By Text
+					</a>
+					<a href="{% url 'similarity-search' %}"
+						class="text-blue-100 hover:text-blue-50 {% if request.resolver_match.url_name == 'similarity-search' %}text-white font-bold{% endif %}">
+						Similarity Search
+					</a>
+				</div>
+			</div>
+		</nav>
+		{% block content %}
+		{% endblock %}
+	</body>
+</html>

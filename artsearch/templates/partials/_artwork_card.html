@@ -1,0 +1,18 @@
+<div class="bg-white shadow-md rounded-lg overflow-hidden">
+    <img src="{{ result.thumbnail_url }}"
+         alt="{{ result.title }}"
+         class="w-full h-auto cursor-pointer hover:opacity-80 transition"
+         onclick="openModal('{{ result.thumbnail_url }}')">
+    <div class="p-4">
+        <h3 class="text-lg font-semibold text-gray-800">{{ result.title }}</h3>
+        <p class="text-sm text-gray-600">{{ result.artist }}</p>
+        <p class="text-sm text-gray-500">{{ result.period }}</p>
+        {% if result.score is not None %}
+        <p class="text-sm text-gray-400">Score: {{ result.score }}</p>
+        {% endif %}
+        <a href="{% url 'similarity-search' %}?query={{ result.object_number }}"
+           class="text-blue-400 hover:underline text-sm">
+            Find similar
+        </a>
+    </div>
+</div>

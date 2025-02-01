@@ -1,0 +1,30 @@
+{
+	"name": "Python Dev Container",
+	"build": {
+		"context": "..",
+		"dockerfile": "../Dockerfile"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"ms-python.black-formatter"
+			],
+			"settings": {
+				// ✅ Enable Black as the default formatter
+				"[python]": {
+					"editor.defaultFormatter": "ms-python.black-formatter",
+					"editor.formatOnSave": true
+				},
+				// ✅ Ensure Pylance is active
+				"python.analysis.typeCheckingMode": "basic",
+				"python.analysis.autoImportCompletions": true,
+				"python.analysis.diagnosticMode": "workspace",
+				// ❌ Disable all linters (relying only on Black for formatting and Pylance for analysis)
+				"python.linting.enabled": false
+			}
+		}
+	},
+	"postCreateCommand": "pip install black"
+}

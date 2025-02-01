@@ -1,0 +1,44 @@
+version: "3.3"
+
+services:
+  web:
+    restart: always
+    build: .
+    command: [ "/code/entrypoint.prod.sh" ]
+    volumes:
+      - database_volume:/db/
+      - static_volume:/code/static
+    expose:
+      - 8017
+    networks:
+      - reverse-proxy_proxynet
+
+  nginx:
+    restart: always
+    image: nginx:latest
+    hostname: semantic-art-search.kristianms.com
+    volumes:
+      - static_volume:/code/static
+      - type: bind
+        source: ./nginx_config/nginx.conf
+        target: /etc/nginx/conf.d/default.conf
+    expose:
+      - 1369
+    depends_on:
+      - web
+    environment:
+      - VIRTUAL_HOST=semantic-art-search.kristianms.com
+      - VIRTUAL_PORT=1369
+      - LETSENCRYPT_HOST=semantic-art-search.kristianms.com
+      - LETSENCRYPT_EMAIL=kmollerschmidt@gmail.com
+      - url=https://semantic-art-search.kristianms.com
+    networks:
+      - reverse-proxy_proxynet
+
+volumes:
+  database_volume: {}
+  static_volume: {}
+
+networks:
+  reverse-proxy_proxynet:
+    external: true
