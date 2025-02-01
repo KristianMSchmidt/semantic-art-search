@@ -21,15 +21,10 @@
 				"python.analysis.typeCheckingMode": "basic",
 				"python.analysis.autoImportCompletions": true,
 				"python.analysis.diagnosticMode": "workspace",
-				"python.linting.enabled": true,
-				"python.linting.pylintEnabled": true,
-				// ✅ Ensure Black runs inside the correct environment
-				"black-formatter.importStrategy": "fromEnvironment",
-				"black-formatter.path": [
-					"black"
-				]
+				// ❌ Disable all linters (relying only on Black for formatting and Pylance for analysis)
+				"python.linting.enabled": false
 			}
 		}
 	},
-	"postCreateCommand": "pip install black pylint"
+	"postCreateCommand": "pip install black"
 }

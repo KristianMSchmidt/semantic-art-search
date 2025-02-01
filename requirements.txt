@@ -1,13 +1,8 @@
-clip
 torch
 pillow
 git+https://github.com/openai/CLIP.git
-openai
 python-dotenv
-pillow
 requests
-pandas
-numpy
 qdrant-client
 Django==5.1.5
 django-tailwind[reload]
