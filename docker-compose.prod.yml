@@ -2,7 +2,7 @@ version: "3.3"
 
 services:
   web:
-    restart: always
+    # restart: always
     build: .
     command: /bin/sh -c /code/entrypoint.prod.sh
     volumes:

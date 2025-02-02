@@ -7,7 +7,7 @@ python manage.py migrate
 
 
 echo "${0}: collecting static files."
-echo "STATIC_ROOT is: $STATIC_ROOT"
+echo "STATIC_ROOT is:"
 python manage.py shell -c "from django.conf import settings; print(settings.STATIC_ROOT)"
 # python manage.py collectstatic --noinput --clear
 
