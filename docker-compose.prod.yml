@@ -30,7 +30,7 @@ services:
       - web
     environment:
       - VIRTUAL_HOST=semantic-art-search.kristianms.com
-      - VIRTUAL_PORT=8017
+      - VIRTUAL_PORT=1369
       - LETSENCRYPT_HOST=semantic-art-search.kristianms.com
       - LETSENCRYPT_EMAIL=kmollerschmidt@gmail.com
       - url=https://semantic-art-search.kristianms.com
