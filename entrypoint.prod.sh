@@ -14,4 +14,4 @@ python manage.py shell -c "from django.conf import settings; print(settings.STAT
 
 echo "${0}: running production server."
 mkdir -p /var/log/gunicorn
-gunicorn config.wsgi -b 0.0.0.0:8017
+gunicorn djangoconfig.wsgi -b 0.0.0.0:8017
