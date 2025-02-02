@@ -40,8 +40,7 @@ class CLIPEmbedder:
         """Load the CLIP model and preprocessor."""
         start_time = time.time()
         print(f"Loading CLIP model: {model_name}")
-        model, preprocess = None, None
-        # model, preprocess = clip.load(model_name, device=device)
+        model, preprocess = clip.load(model_name, device=device)
         print(f"Model loaded on in {time.time() - start_time:.2f}s")
         return model, preprocess
 
