@@ -4,7 +4,7 @@ services:
   web:
     restart: always
     build: .
-    command: [ "/code/entrypoint.prod.sh" ]
+    command: /bin/sh -c /code/entrypoint.prod.sh
     volumes:
       - database_volume:/db/
       - static_volume:/code/static
