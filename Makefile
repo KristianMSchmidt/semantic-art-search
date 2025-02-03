@@ -1,5 +1,5 @@
 ## ----------------------------------------------------------------------
-## Makefile for portfolio.kristianms.com
+## Makefile for semantic-art-search.kristianms.com
 ##
 ## Used for both development and production. See targets below.
 ## ----------------------------------------------------------------------
