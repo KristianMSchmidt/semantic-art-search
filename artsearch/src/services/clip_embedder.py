@@ -48,29 +48,36 @@ class CLIPEmbedder:
         """Return the local file path for a cached image."""
         return os.path.join(self.cache_dir, f"{object_number}.jpg")
 
-    def _download_image(self, url: str, save_path: str) -> Image.Image:
-        """Download an image from a URL and save it locally."""
-        response = self.http_session.get(url, stream=True)
+    def _download_image(self, url: str, save_path: str, cache: bool) -> Image.Image:
+        """Download an image from a URL and optionally save it locally."""
+        response = self.http_session.get(url)
         response.raise_for_status()
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        with open(save_path, "wb") as f:
-            for chunk in response.iter_content(8192):
-                f.write(chunk)
-        return Image.open(BytesIO(response.content)).convert("RGB")
 
-    def _load_image(self, thumbnail_url: str, object_number: str) -> Image.Image:
+        image_bytes = response.content
+
+        if cache:
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            with open(save_path, "wb") as f:
+                f.write(image_bytes)
+            return Image.open(save_path).convert("RGB")
+
+        return Image.open(BytesIO(image_bytes)).convert("RGB")
+
+    def _load_image(
+        self, thumbnail_url: str, object_number: str, cache: bool
+    ) -> Image.Image:
         """Load an image from the cache or download it."""
         local_path = self._get_local_image_path(object_number)
 
-        if os.path.exists(local_path):
+        if cache and os.path.exists(local_path):
             print(f"Using cached image: {local_path}")
             return Image.open(local_path).convert("RGB")
         else:
             print(f"Downloading image from URL: {thumbnail_url}")
-            return self._download_image(thumbnail_url, local_path)
+            return self._download_image(thumbnail_url, local_path, cache)
 
     def generate_thumbnail_embedding(
-        self, thumbnail_url: str, object_number: str
+        self, thumbnail_url: str, object_number: str, cache: bool
     ) -> list[float] | None:
         """
         Generate an image embedding from a URL or cached image.
@@ -83,7 +90,7 @@ class CLIPEmbedder:
             list[float]: The embedding vector as a list, or None if an error occurs.
         """
         try:
-            img = self._load_image(thumbnail_url, object_number)
+            img = self._load_image(thumbnail_url, object_number, cache)
             image_tensor = self.preprocess(img).unsqueeze(0).to(self.device)
             with torch.no_grad():
                 embedding = (

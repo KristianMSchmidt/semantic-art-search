@@ -12,7 +12,6 @@ import uuid
 from artsearch.src.utils.get_qdrant_client import get_qdrant_client
 
 
-# Constants
 BASE_URL = "https://api.smk.dk/api/v1/art/search/"
 FIELDS = [
     "titles",
@@ -75,7 +74,7 @@ def process_items(data: Dict[str, Any], embedder: CLIPEmbedder) -> List[PointStr
         try:
             payload = prepare_payload(item)
             vector = embedder.generate_thumbnail_embedding(
-                item["image_thumbnail"], item["object_number"]
+                item["image_thumbnail"], item["object_number"], cache=True
             )
             if vector is not None:
                 points.append(
