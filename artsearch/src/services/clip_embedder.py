@@ -53,7 +53,6 @@ class CLIPEmbedder:
         response = self.http_session.get(url)
         response.raise_for_status()
 
-        # Read content ONCE
         image_bytes = response.content
 
         if cache:
@@ -62,7 +61,6 @@ class CLIPEmbedder:
                 f.write(image_bytes)
             return Image.open(save_path).convert("RGB")
 
-        # Directly open from memory if not caching
         return Image.open(BytesIO(image_bytes)).convert("RGB")
 
     def _load_image(
