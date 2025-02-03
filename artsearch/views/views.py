@@ -29,7 +29,7 @@ def handle_search(request, params: SearchParams):
     if query_param is None:
         # This is the initial page load.
         query_param = ""
-        random_results = search_service.get_random_sample()
+        random_results = search_service.get_random_sample(10)
     elif query_param.strip() == "":
         # The user submitted an empty query.
         error_message = params.no_input_error_message

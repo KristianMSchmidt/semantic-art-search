@@ -1,3 +1,4 @@
+import time
 import random
 from qdrant_client import QdrantClient
 from qdrant_client.http.models.models import ScoredPoint, Payload
@@ -74,19 +75,23 @@ class QdrantSearchService:
         """
         Retrieve a random sample of (payloads of) points from Qdrant collection.
         """
+        start_time = time.time()
         count = self.qdrant_client.count(collection_name=self.collection_name).count
+        print(f"Counted {count} points in {time.time() - start_time:.2f} seconds.")
 
+        start_time = time.time()
         all_ids = self.qdrant_client.scroll(
             collection_name=self.collection_name,
             limit=count,
             with_payload=False,
             with_vectors=False,
         )[0]
-
+        print(f"Scrolled through all points in {time.time() - start_time:.2f} seconds.")
         random_ids = random.sample([point.id for point in all_ids], n)
-
+        start_time = time.time()
         payloads = [
-            self.qdrant_client.retrieve(self.collection_name, [point_id])[0].payload
-            for point_id in random_ids
+            record.payload
+            for record in self.qdrant_client.retrieve(self.collection_name, random_ids)
         ]
+        print(f"Retrieved random sample in {time.time() - start_time:.2f} seconds.")
         return self._format_payloads(payloads)
