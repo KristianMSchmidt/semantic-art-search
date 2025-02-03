@@ -19,6 +19,9 @@ def handle_search(request, params: SearchParams):
     """Handles both text and similarity search in a generic way."""
 
     query_param = request.GET.get('query')
+    print('Handling search with query:', query_param)
+    print(params.search_function.__name__)
+
     limit = utils.get_valid_limit(request.GET.get('limit'))
 
     results = []
@@ -78,7 +81,7 @@ def text_search(request):
 def similarity_search(request):
     params = SearchParams(
         search_function=search_service.search_similar_images,
-        no_input_error_message="Please enter an object number.",
+        no_input_error_message="Please enter an inventory number.",
         search_action_url='similarity-search',
         about_text="Find similar paintings in the SMK collection.",
         placeholder="Enter the artwork's inventory number",
