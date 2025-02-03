@@ -60,9 +60,19 @@ class QdrantSearchService:
 
     def search_similar_images(self, object_number: str, limit: int = 6) -> list[dict]:
         """Search for similar items based on an image embedding."""
+
+        # If there is a vector in qdrant with the same object number, return it
+        # hits = self.qdrant_client.query_points(
+        #     collection_name=self.collection_name,
+        #     filter={"object_number": object_number},
+        #     limit=1,
+        # )
+        # breakpoint()
+
         thumbnail_url = self.smk_api_client.get_thumbnail_url(object_number)
+
         query_vector = self.embedder.generate_thumbnail_embedding(
-            thumbnail_url, object_number
+            thumbnail_url, object_number, cache=False
         )
         hits = self.qdrant_client.query_points(
             collection_name=self.collection_name,
