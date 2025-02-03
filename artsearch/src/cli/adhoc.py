@@ -1,5 +1,3 @@
-from artsearch.src.cli.shared.interactive_search import interactive_search
-from artsearch.src.services.search_service import search_service
 from PIL import Image
 import requests
 from artsearch.src.services.smk_api_client import SMKAPIClient
@@ -30,12 +28,6 @@ def make_favicon():
     print("Favicon saved as favicon.ico")
 
 
-def make_secret_key():
-    from django.core.management.utils import get_random_secret_key
-
-    print(get_random_secret_key())
-
-
 if "__main__" == "__main__":
+    pass
     # make_favicon()
-    make_secret_key()

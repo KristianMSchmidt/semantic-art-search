@@ -19,8 +19,6 @@ def handle_search(request, params: SearchParams):
     """Handles both text and similarity search in a generic way."""
 
     query_param = request.GET.get('query')
-    print('Handling search with query:', query_param)
-    print(params.search_function.__name__)
 
     limit = utils.get_valid_limit(request.GET.get('limit'))
 
