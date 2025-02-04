@@ -22,6 +22,15 @@ dj:  ## run django server
 adhoc: # Adhoc srcripts only used during development
 	python -m artsearch.src.cli.adhoc
 
+run-dev: ## Run django development server
+	python manage.py runserver
+
+run-as-production: ## Run django server as production
+	python manage.py migrate
+	python manage.py collectstatic --noinput --clear
+	gunicorn djangoconfig.wsgi -b 0.0.0.0:8017 --workers=1 --timeout=300 --log-level=debug
+
+
 # -------------- CLI ------------- #
 find-similar: ## find similar images
 	python -m artsearch.src.cli.find_similar_images

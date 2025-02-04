@@ -6,6 +6,8 @@ as these rely on the resource-intensive CLIP model.
 From anywhere in the code, import the services from this module.
 """
 
+import sys
+
 clip_embedder_instance = None
 search_service_instance = None
 qdrant_client_instance = None
@@ -13,6 +15,10 @@ smk_api_client_instance = None
 
 
 def initialize_services():
+    # Only initialize if the command is not one of the ones that don't need it
+    management_commands_to_skip = ['migrate', 'collectstatic', 'shell']
+    if len(sys.argv) > 1 and sys.argv[1] in management_commands_to_skip:
+        return
     global clip_embedder_instance, search_service_instance, qdrant_client_instance, smk_api_client_instance
     if clip_embedder_instance is None:
         from artsearch.src.services.clip_embedder import CLIPEmbedder
