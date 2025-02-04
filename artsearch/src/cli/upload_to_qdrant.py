@@ -7,9 +7,8 @@ import requests
 from qdrant_client.http.models import PointStruct
 from urllib.parse import urlencode
 from typing import Any, Dict, List, Optional
-from artsearch.src.services.clip_embedder import CLIPEmbedder
+from artsearch.src.global_services import clip_embedder_instance, qdrant_client_instance
 import uuid
-from artsearch.src.utils.get_qdrant_client import get_qdrant_client
 
 
 BASE_URL = "https://api.smk.dk/api/v1/art/search/"
@@ -67,7 +66,7 @@ def prepare_payload(item: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def process_items(data: Dict[str, Any], embedder: CLIPEmbedder) -> List[PointStruct]:
+def process_items(data: Dict[str, Any], embedder) -> List[PointStruct]:
     """Process items from SMK API data and return a list of Qdrant PointStruct."""
     points = []
     for item in data.get("items", []):
@@ -101,8 +100,7 @@ def create_qdrant_collection(client) -> None:
 
 def main() -> None:
     """Main entry point of the script."""
-    embedder = CLIPEmbedder()
-    qdrant_client = get_qdrant_client()
+    qdrant_client = qdrant_client_instance
 
     create_qdrant_collection(qdrant_client)
 
@@ -118,7 +116,7 @@ def main() -> None:
             break
 
         print(f"Processing items for offset {offset}...")
-        points = process_items(data, embedder)
+        points = process_items(data, clip_embedder_instance)
 
         if points:
             qdrant_client.upsert(collection_name=COLLECTION_NAME, points=points)

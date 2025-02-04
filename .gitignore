@@ -13,3 +13,4 @@ project_export.txt
 db.sqlite3
 node_modules
 dev.py
+static
