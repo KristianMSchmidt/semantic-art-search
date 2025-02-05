@@ -1,4 +1,3 @@
-import random
 from typing import NamedTuple, Callable
 from django.shortcuts import render
 from artsearch.src.global_services import search_service_instance
@@ -67,20 +66,13 @@ def handle_search(request, params: SearchParams):
 
 def text_search(request):
 
-    # Check if the request comes from a mobile device
-    if hasattr(request, 'user_agent') and request.user_agent.is_mobile:
-        # Randomly select 4 examples for mobile devices
-        examples = random.sample(EXAMPLE_QUERIES, 4)
-    else:
-        examples = EXAMPLE_QUERIES
-
     params = SearchParams(
         search_function=search_service_instance.search_text,
         no_input_error_message="Please enter a search query.",
         search_action_url='text-search',
         about_text="Explore the SMK collection through meaning-driven search!",
         placeholder="Search by theme, objects, style, or more...",
-        example_queries=examples,
+        example_queries=EXAMPLE_QUERIES,
     )
     return handle_search(request, params)
 

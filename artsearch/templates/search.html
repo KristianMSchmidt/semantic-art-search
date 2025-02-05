@@ -47,10 +47,12 @@
     </div> <!-- End Search Form -->
 
     {% if example_queries %}
-    <!-- Example Queries -->
+    <!-- Example Queries Section -->
     <div class="mb-5">
         <p class="text-sm text-gray-600 mb-2">Try these examples:</p>
-        <div class="flex flex-wrap gap-2">
+
+        <!-- Desktop View: show all examples -->
+        <div class="hidden sm:flex flex-wrap gap-2">
             {% for example in example_queries %}
             <button
                 type="button"
@@ -60,6 +62,43 @@
                 {{ example }}
             </button>
             {% endfor %}
+        </div>
+
+        <!-- Mobile View: show 4 examples and a "More" button -->
+        <div class="sm:hidden" x-data="{ showAll: false }">
+            <template x-if="!showAll">
+                <div class="flex flex-wrap gap-2">
+                    {% for example in example_queries|slice:":5" %}
+                    <button
+                        type="button"
+                        class="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onclick="submitQuery('{{ example }}')"
+                    >
+                        {{ example }}
+                    </button>
+                    {% endfor %}
+                    <button
+                        type="button"
+                        class="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg text-sm hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        x-on:click="showAll = true"
+                    >
+                        More
+                    </button>
+                </div>
+            </template>
+            <template x-if="showAll">
+                <div class="flex flex-wrap gap-2">
+                    {% for example in example_queries %}
+                    <button
+                        type="button"
+                        class="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onclick="submitQuery('{{ example }}')"
+                    >
+                        {{ example }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </template>
         </div>
     </div>
     {% endif %}
@@ -102,21 +141,21 @@
 
     <!-- Thumbnail Image Modal -->
     <div x-data="{ isOpen: false, imageUrl: '' }"
-        x-show="isOpen"
-        class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50"
-        @open-modal.window="
-            imageUrl = $event.detail.imageUrl;
-            isOpen = true;
-        "
-        x-transition.opacity
-        x-cloak>
+         x-show="isOpen"
+         class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50"
+         @open-modal.window="
+             imageUrl = $event.detail.imageUrl;
+             isOpen = true;
+         "
+         x-transition.opacity
+         x-cloak>
 
         <!-- Modal Card -->
         <div class="bg-white rounded-lg shadow-lg max-w-3xl mx-auto relative" @click="isOpen = false">
             <div class="p-4">
                 <img :src="imageUrl"
-                    alt="Artwork"
-                    class="rounded-lg shadow-md max-w-full max-h-[80vh]">
+                     alt="Artwork"
+                     class="rounded-lg shadow-md max-w-full max-h-[80vh]">
             </div>
         </div>
     </div>
@@ -134,5 +173,4 @@
     </script>
 
 </div> <!-- End Container -->
-
 {% endblock content %}

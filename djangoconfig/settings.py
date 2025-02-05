@@ -41,12 +41,10 @@ INSTALLED_APPS = [
     'artsearch',
     'tailwind',
     'theme',
-    'django_user_agents',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'django_user_agents.middleware.UserAgentMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Use WhiteNoise to serve static files (DEV)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
