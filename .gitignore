@@ -14,3 +14,4 @@ db.sqlite3
 node_modules
 dev.py
 static
+theme/static/css/dist/styles.css

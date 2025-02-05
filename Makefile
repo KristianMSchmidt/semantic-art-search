@@ -19,16 +19,14 @@ tailwind-build: ## build minified production tailwind css
 dj:  ## run django server
 	python manage.py runserver
 
-adhoc: # Adhoc srcripts only used during development
+adhoc: # Adhoc scripts only used during development
 	python -m artsearch.src.cli.adhoc
 
-run-dev: ## Run django development server
-	python manage.py runserver
-
-run-as-production: ## Run django server as production
+run-dev: # Run django server (almost) as in production
 	python manage.py migrate
+	python manage.py tailwind build
 	python manage.py collectstatic --noinput --clear
-	gunicorn djangoconfig.wsgi -b 0.0.0.0:8017 --workers=1 --timeout=300 --log-level=debug
+	gunicorn djangoconfig.wsgi -b 0.0.0.0:8017 --workers=1 --timeout=300 --log-level=debug --reload
 
 
 # -------------- CLI ------------- #

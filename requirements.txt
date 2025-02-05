@@ -7,3 +7,5 @@ qdrant-client
 gunicorn
 Django==5.1.5
 django-tailwind
+django-user-agents
+whitenoise

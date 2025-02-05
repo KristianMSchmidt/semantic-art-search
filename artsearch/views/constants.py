@@ -7,7 +7,7 @@ EXAMPLE_QUERIES = [
     "Inside a cathedral",
     "Fauvism",
     "Cubism",
-    "Old man with beard",
+    "Old man",
     "Death",
     "Paris",
     "Reading child",
@@ -17,4 +17,5 @@ EXAMPLE_QUERIES = [
     "Winter landscape",
     "Woman by a window",
     "Red",
+    "Ship in a storm",
 ]
