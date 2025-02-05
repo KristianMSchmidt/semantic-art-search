@@ -16,7 +16,13 @@ smk_api_client_instance = None
 
 def initialize_services():
     # Only initialize if the command is not one of the ones that don't need it
-    management_commands_to_skip = ['migrate', 'collectstatic', 'shell']
+    management_commands_to_skip = [
+        'migrate',
+        'collectstatic',
+        'shell',
+        'makemigrations',
+        'tailwind',
+    ]
     if len(sys.argv) > 1 and sys.argv[1] in management_commands_to_skip:
         return
     global clip_embedder_instance, search_service_instance, qdrant_client_instance, smk_api_client_instance

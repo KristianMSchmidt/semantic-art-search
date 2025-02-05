@@ -16,13 +16,10 @@ tailwind-start:  ## start tailwind (should be running while developing)
 tailwind-build: ## build minified production tailwind css
 	python manage.py tailwind build
 
-dj:  ## run django server
-	python manage.py runserver
-
 adhoc: # Adhoc scripts only used during development
 	python -m artsearch.src.cli.adhoc
 
-run-dev: # Run django server (almost) as in production
+dj: # Run django server (almost) as in production
 	python manage.py migrate
 	python manage.py tailwind build
 	python manage.py collectstatic --noinput --clear
