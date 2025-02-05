@@ -65,6 +65,7 @@ def handle_search(request, params: SearchParams):
 
 
 def text_search(request):
+
     params = SearchParams(
         search_function=search_service_instance.search_text,
         no_input_error_message="Please enter a search query.",
