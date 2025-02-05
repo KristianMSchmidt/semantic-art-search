@@ -1,8 +1,8 @@
 EXAMPLE_QUERIES = [
     "Reading child",
     "Orientalism",
-    "Inside a cathedral",
     "War",
+    "Inside a cathedral",
     "Ancient Rome",
     "Raw meat",
     "Moonlight by the sea",
