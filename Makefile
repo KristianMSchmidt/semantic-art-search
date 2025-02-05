@@ -20,6 +20,9 @@ adhoc: # Adhoc scripts only used during development
 	python -m artsearch.src.cli.adhoc
 
 dj: # Run django server (almost) as in production
+	python manage.py runserver
+
+run-gunicorn: # Run gunicorn server (to mimic production)
 	python manage.py tailwind build
 	python manage.py collectstatic --noinput --clear
 	gunicorn djangoconfig.wsgi -b 0.0.0.0:8017 --workers=1 --timeout=300 --log-level=debug --reload
