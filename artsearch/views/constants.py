@@ -5,6 +5,7 @@ EXAMPLE_QUERIES = [
     "Music",
     "Inside cathedral",
     "Ancient Rome",
+    "Woman in blue dress",
     "Raw meat",
     "Moonlight by the sea",
     "Martin Luther",
@@ -17,6 +18,5 @@ EXAMPLE_QUERIES = [
     "Wooden bridge",
     "Winter landscape",
     "Woman by a window",
-    "Red",
     "Ship in a storm",
 ]
