@@ -80,7 +80,7 @@
                     <button
                         type="button"
                         class="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg text-sm hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        x-on:click="showAll = true"
+                        x-on:click="showAll = true; $event.target.blur()"
                     >
                         More
                     </button>
