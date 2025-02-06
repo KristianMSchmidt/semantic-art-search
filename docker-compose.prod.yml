@@ -7,7 +7,7 @@ services:
     command: /bin/sh -c /code/entrypoint.prod.sh
     volumes:
       - database_volume:/db/
-      - static_volume:/code/static
+      - static_volume:/code/staticfiles
     expose:
       - 8017
     networks:
@@ -18,7 +18,7 @@ services:
     image: nginx:latest
     hostname: semantic-art-search.kristianms.com
     volumes:
-      - static_volume:/code/static
+      - static_volume:/code/staticfiles
       - type: bind
         source: ./nginx_config/nginx.conf
         target: /etc/nginx/conf.d/default.conf
