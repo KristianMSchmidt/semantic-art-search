@@ -5,13 +5,8 @@ set -e  # Exit immediately on error
 echo "${0}: Running migrations..."
 python manage.py migrate --noinput
 
-echo "${0}: Checking for Tailwind installation..."
-if [ ! -d "theme/static_src/node_modules" ]; then
-    echo "${0}: Installing django-tailwind dependencies..."
-    python manage.py tailwind install
-else
-    echo "${0}: Tailwind already installed, skipping."
-fi
+echo "${0}: Installing django-tailwind dependencies..."
+python manage.py tailwind install
 
 echo "${0}: Building CSS files..."
 python manage.py tailwind build
