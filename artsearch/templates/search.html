@@ -81,10 +81,10 @@
                         type="button"
                         class="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg text-sm hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         x-on:click="showAll = true; setTimeout(() => $event.target.blur(), 100)"
+                        x-on:touchend="setTimeout(() => $event.target.blur(), 100)"
                     >
                         More
                     </button>
-
                 </div>
             </template>
             <template x-if="showAll">
