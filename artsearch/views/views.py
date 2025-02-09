@@ -1,9 +1,13 @@
 from typing import NamedTuple, Callable
 from django.shortcuts import render
-from artsearch.src.global_services import search_service_instance
 from artsearch.src.services.smk_api_client import SMKAPIClientError
 import artsearch.views.utils as utils
 from artsearch.views.constants import EXAMPLE_QUERIES
+from artsearch.src.services.qdrant_service import get_qdrant_service
+
+
+# Create a global instance (initialized once and reused)
+qdrant_service = get_qdrant_service()
 
 
 class SearchParams(NamedTuple):
@@ -30,7 +34,7 @@ def handle_search(request, params: SearchParams):
     if query_param is None:
         # This is the initial page load.
         query_param = ""
-        random_results = search_service_instance.get_random_sample(10)
+        random_results = qdrant_service.get_random_sample(10)
     elif query_param.strip() == "":
         # The user submitted an empty query.
         error_message = params.no_input_error_message
@@ -67,7 +71,7 @@ def handle_search(request, params: SearchParams):
 def text_search(request):
 
     params = SearchParams(
-        search_function=search_service_instance.search_text,
+        search_function=qdrant_service.search_text,
         no_input_error_message="Please enter a search query.",
         search_action_url='text-search',
         about_text="Explore the SMK collection through meaning-driven search!",
@@ -79,7 +83,7 @@ def text_search(request):
 
 def similarity_search(request):
     params = SearchParams(
-        search_function=search_service_instance.search_similar_images,
+        search_function=qdrant_service.search_similar_images,
         no_input_error_message="Please enter an inventory number.",
         search_action_url='similarity-search',
         about_text="Find similar paintings in the SMK collection.",

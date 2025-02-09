@@ -20,7 +20,7 @@
 				// ✅ Ensure Pylance is active
 				"python.analysis.typeCheckingMode": "basic",
 				"python.analysis.autoImportCompletions": true,
-				"python.analysis.diagnosticMode": "workspace",
+				"python.analysis.diagnosticMode": "openFilesOnly",
 				// ❌ Disable all linters (relying only on Black for formatting and Pylance for analysis)
 				"python.linting.enabled": false
 			}

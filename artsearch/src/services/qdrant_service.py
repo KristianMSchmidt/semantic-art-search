@@ -1,20 +1,19 @@
 from qdrant_client import QdrantClient, models
 from qdrant_client.http.models.models import ScoredPoint, Payload
-from artsearch.src.services.clip_embedder import CLIPEmbedder
 from artsearch.src.services.smk_api_client import SMKAPIClient
+from artsearch.src.services.clip_embedder import get_clip_embedder
+from artsearch.src.utils.get_qdrant_client import get_qdrant_client
 
 
-class QdrantSearchService:
+class QdrantService:
 
     def __init__(
         self,
         qdrant_client: QdrantClient,
-        embedder: CLIPEmbedder,
         smk_api_client: SMKAPIClient,
         collection_name: str,
     ):
         self.qdrant_client = qdrant_client
-        self.embedder = embedder
         self.collection_name = collection_name
         self.smk_api_client = smk_api_client
 
@@ -70,7 +69,7 @@ class QdrantSearchService:
 
     def search_text(self, query: str, limit: int = 5) -> list[dict]:
         """Search for similar items based on a text query."""
-        query_vector = self.embedder.generate_text_embedding(query)
+        query_vector = get_clip_embedder().generate_text_embedding(query)
         hits = self.qdrant_client.query_points(
             collection_name=self.collection_name,
             query=query_vector,
@@ -84,7 +83,7 @@ class QdrantSearchService:
 
         if query_vector is None:
             thumbnail_url = self.smk_api_client.get_thumbnail_url(object_number)
-            query_vector = self.embedder.generate_thumbnail_embedding(
+            query_vector = get_clip_embedder().generate_thumbnail_embedding(
                 thumbnail_url, object_number, cache=False
             )
 
@@ -106,3 +105,27 @@ class QdrantSearchService:
         )
         payloads = [point.payload for point in sampled.points]
         return self._format_payloads(payloads)
+
+    def create_qdrant_collection(self, collection_name: str, dimensions: int) -> None:
+        """Create Qdrant collection (if it doesn't exist)."""
+        exists = self.qdrant_client.collection_exists(collection_name=collection_name)
+        if not exists:
+            self.qdrant_client.create_collection(
+                collection_name=collection_name,
+                vectors_config=models.VectorParams(
+                    size=dimensions, distance=models.Distance.COSINE
+                ),
+            )
+
+    def upload_points(self, points: list[models.PointStruct], collection_name) -> None:
+        """Upload points to the Qdrant collection."""
+        breakpoint()
+        self.qdrant_client.upsert(collection_name=collection_name, points=points)
+
+
+def get_qdrant_service():
+    return QdrantService(
+        qdrant_client=get_qdrant_client(),
+        smk_api_client=SMKAPIClient(),
+        collection_name="smk_artworks",
+    )

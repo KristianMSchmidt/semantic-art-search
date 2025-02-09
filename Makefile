@@ -23,19 +23,19 @@ run-gunicorn: # Run gunicorn server (to mimic production)
 	gunicorn djangoconfig.wsgi -b 0.0.0.0:8017 --workers=1 --timeout=300 --log-level=debug --reload
 
 adhoc: # Adhoc scripts only used during development
-	python -m artsearch.src.cli.adhoc
+	python -m artsearch.src.scripts.adhoc
 
-
-# -------------- CLI ------------- #
-find-similar: ## find similar images
-	python -m artsearch.src.cli.find_similar_images
-
-text-search: # search by text
-	python -m artsearch.src.cli.text_search
 
 # ---------- Data Operations ---------- #
-upload-to-qdrant: # upload images to qdrant
-	python -m artsearch.src.cli.upload_to_qdrant
+upload-to-qdrant: ## upload images to qdrant
+	python -m artsearch.src.scripts.upload_to_qdrant
+
+preprocess: ## preprocess images (for 2D rendering and clustering)
+	python -m artsearch.src.scripts.preprocess
+
+visualize-umap-metadata: ## visualize clusters with metadata
+	python -m artsearch.src.scripts.visualize_umap_with_artists_and_metadata
+
 
 # ---------- Production ---------- #
 production_stop: ## Stop production server
