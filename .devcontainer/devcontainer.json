@@ -26,5 +26,5 @@
 			}
 		}
 	},
-	"postCreateCommand": "pip install black"
+	"postCreateCommand": "pip install black django-tailwind[reload]"
 }

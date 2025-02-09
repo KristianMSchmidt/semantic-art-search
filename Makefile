@@ -30,12 +30,6 @@ adhoc: # Adhoc scripts only used during development
 upload-to-qdrant: ## upload images to qdrant
 	python -m artsearch.src.scripts.upload_to_qdrant
 
-preprocess: ## preprocess images (for 2D rendering and clustering)
-	python -m artsearch.src.scripts.preprocess
-
-visualize-umap-metadata: ## visualize clusters with metadata
-	python -m artsearch.src.scripts.visualize_umap_with_artists_and_metadata
-
 
 # ---------- Production ---------- #
 production_stop: ## Stop production server

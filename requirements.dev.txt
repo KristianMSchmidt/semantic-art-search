@@ -1,8 +1,0 @@
-black
-django-tailwind[reload]
-
-# Data science experiments
-numpy
-matplotlib
-umap-learn
-tqdm
