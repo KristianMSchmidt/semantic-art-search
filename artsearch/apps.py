@@ -6,6 +6,4 @@ class ArtsearchConfig(AppConfig):
     name = 'artsearch'
 
     def ready(self):
-        from artsearch.src.global_services import initialize_services
-
-        initialize_services()
+        pass

@@ -5,13 +5,24 @@ import requests
 import clip
 import torch
 import os
-from artsearch.src.utils.session_config import get_configured_session
 from typing import Tuple, Any
+from functools import lru_cache
+from artsearch.src.utils.session_config import get_configured_session
 from artsearch.src.config import Config
 
 
-class CLIPEmbedder:
+class _CLIPEmbedder:
     """A class for generating image embeddings using OpenAI's CLIP model."""
+
+    _instance = None  # Store singleton instance
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is not None:
+            raise RuntimeError(
+                "Use get_clip_embedder() instead of creating CLIPEmbedder directly."
+            )
+        cls._instance = super(_CLIPEmbedder, cls).__new__(cls)
+        return cls._instance
 
     def __init__(
         self,
@@ -37,7 +48,7 @@ class CLIPEmbedder:
         self.http_session = http_session or get_configured_session()
 
     def _load_model(self, model_name: str, device: str) -> Tuple[Any, Any]:
-        """Load the CLIP model and preprocessor."""
+        """Load the CLIP model and preprocessor (caches model by default)."""
         start_time = time.time()
         print(f"Loading CLIP model: {model_name}")
         model, preprocess = clip.load(model_name, device=device)
@@ -114,3 +125,11 @@ class CLIPEmbedder:
         text = clip.tokenize([query]).to(self.device)
         with torch.no_grad():
             return self.model.encode_text(text).cpu().numpy().flatten().tolist()
+
+
+@lru_cache(maxsize=1)
+def get_clip_embedder():
+    """
+    Always return the same instance of CLIPEmbedder (one per worker).
+    """
+    return _CLIPEmbedder()  # Loads only once

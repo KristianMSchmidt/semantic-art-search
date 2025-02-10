@@ -7,9 +7,9 @@ import requests
 from qdrant_client.http.models import PointStruct
 from urllib.parse import urlencode
 from typing import Any, Dict, List, Optional
-from artsearch.src.global_services import clip_embedder_instance, qdrant_client_instance
 import uuid
-
+from artsearch.src.services.qdrant_service import get_qdrant_service
+from artsearch.src.services.clip_embedder import get_clip_embedder
 
 BASE_URL = "https://api.smk.dk/api/v1/art/search/"
 FIELDS = [
@@ -88,21 +88,17 @@ def process_items(data: Dict[str, Any], embedder) -> List[PointStruct]:
     return points
 
 
-def create_qdrant_collection(client) -> None:
-    """Create Qdrant collection (if it doesn't exist)."""
-    exists = client.collection_exists(collection_name=COLLECTION_NAME)
-    if not exists:
-        client.create_collection(
-            collection_name=COLLECTION_NAME,
-            vectors_config={"size": 512, "distance": "Cosine"},
-        )
-
-
 def main() -> None:
     """Main entry point of the script."""
-    qdrant_client = qdrant_client_instance
 
-    create_qdrant_collection(qdrant_client)
+    qdrant_service = get_qdrant_service()
+    clip_embedder = get_clip_embedder()
+
+    # Create collection if it doesn't exist
+    qdrant_service.create_qdrant_collection(
+        collection_name=COLLECTION_NAME,
+        dimensions=512,
+    )
 
     offset = 0
     total_points = 0
@@ -116,10 +112,12 @@ def main() -> None:
             break
 
         print(f"Processing items for offset {offset}...")
-        points = process_items(data, clip_embedder_instance)
+        points = process_items(data, clip_embedder)
 
         if points:
-            qdrant_client.upsert(collection_name=COLLECTION_NAME, points=points)
+            qdrant_service.qdrant_client.upsert(
+                collection_name=COLLECTION_NAME, points=points
+            )
             total_points += len(points)
 
         if offset + QUERY_TEMPLATE["rows"] >= data["found"]:

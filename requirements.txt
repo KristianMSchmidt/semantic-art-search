@@ -6,4 +6,4 @@ requests
 qdrant-client
 gunicorn
 Django==5.1.5
-django-tailwind[reload]
+django-tailwind
