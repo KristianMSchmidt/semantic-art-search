@@ -118,8 +118,7 @@ class QdrantService:
             )
 
     def upload_points(self, points: list[models.PointStruct], collection_name) -> None:
-        """Upload points to the Qdrant collection."""
-        breakpoint()
+        """Upload points to a Qdrant collection."""
         self.qdrant_client.upsert(collection_name=collection_name, points=points)
 
 
