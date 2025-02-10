@@ -1,2 +1,11 @@
 black
 django-tailwind[reload]
+
+# Data Science
+numpy
+umap-learn
+matplotlib
+Pillow
+tqdm
+scikit-learn
+qdrant-client
