@@ -22,20 +22,17 @@
                 class="w-full sm:w-auto flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required
             />
-
             <!-- Dropdown for Limit -->
             <div class="relative w-full sm:w-auto">
                 <select
                     name="limit"
                     class="block w-full px-3 py-2 border border-gray-300 rounded-lg appearance-none pr-8 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 >
-                    <option value="5" {% if limit == 5 %}selected{% endif %}>5</option>
-                    <option value="10" {% if limit == 10 %}selected{% endif %}>10</option>
-                    <option value="20" {% if limit == 20 %}selected{% endif %}>20</option>
-                    <option value="50" {% if limit == 50 %}selected{% endif %}>50</option>
+                    {% for value in limit_options %}
+                        <option value="{{ value }}" {% if limit == value %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
                 </select>
             </div>
-
             <!-- Search Button -->
             <button
                 type="submit"

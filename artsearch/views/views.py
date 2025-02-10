@@ -63,6 +63,7 @@ def handle_search(request, params: SearchParams):
         'error_message': error_message,
         'error_type': error_type,
         'example_queries': params.example_queries,
+        "limit_options": [5, 10, 20, 50, 100],
     }
 
     return render(request, 'search.html', context)
