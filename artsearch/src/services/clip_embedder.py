@@ -26,7 +26,7 @@ class _CLIPEmbedder:
 
     def __init__(
         self,
-        model_name: str = "ViT-B/32",
+        model_name: str = "ViT-B/32",  # "ViT-L/14",
         cache_dir: str = "data/images",
         http_session: requests.Session | None = None,
         device: str | None = None,

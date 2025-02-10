@@ -1,3 +1,4 @@
+from torch import clip_
 import umap
 import numpy as np
 import matplotlib.pyplot as plt
@@ -5,10 +6,17 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from PIL import Image
 import requests
 from io import BytesIO
-from tqdm import tqdm
 from sklearn.preprocessing import normalize
-from qdrant_client.http.models import PointStruct
+from sklearn.decomposition import PCA
 from artsearch.src.services.qdrant_service import get_qdrant_service
+
+
+# =============================================================================
+# STEP 0: CONFIGURATION
+# Choose the first projection method: 'UMAP' or 'PCA'
+FIRST_PROJECTION_METHOD = 'PCA'
+# =============================================================================
+
 
 # =============================================================================
 # STEP 1: FETCH DATA FROM THE ORIGINAL COLLECTION (512D embeddings)
@@ -43,17 +51,23 @@ print(f"Loaded {len(vectors_512)} vectors with shape: {vectors_512.shape}")
 print("L2 norm of first vector:", np.linalg.norm(vectors_512[0]))
 
 # =============================================================================
-# STEP 2: REDUCE DIMENSIONALITY FROM 512D TO 50D USING UMAP
+# STEP 2: REDUCE DIMENSIONALITY FROM 512D TO 50D
 # =============================================================================
 
-print("Reducing dimensionality from 512D to 50D...")
-umap_model_50d = umap.UMAP(n_components=50, metric="euclidean", random_state=42)
-vectors_50d = umap_model_50d.fit_transform(vectors_512)
-print("50D reduction complete.")
+if FIRST_PROJECTION_METHOD == 'UMAP':
+    print("Reducing dimensionality from 512D to 50D using UMAP...")
+    umap_model_50d = umap.UMAP(n_components=50, metric="euclidean", random_state=42)
+    vectors_50d = umap_model_50d.fit_transform(vectors_512)
+    print("50D reduction complete.")
 
-# (Note: We are not uploading the 50D embeddings to Qdrant here,
-#  which avoids the extra upload/download step.)
+elif FIRST_PROJECTION_METHOD == 'PCA':
+    print("Reducing dimensionality from 512D to 50D using PCA...")
+    pca_model = PCA(n_components=50, random_state=42)
+    vectors_50d = pca_model.fit_transform(vectors_512)
+    print("50D reduction complete.")
 
+else:
+    raise ValueError("Invalid value for FIRST_PROJECTION. Use 'UMAP' or 'PCA'.")
 # =============================================================================
 # STEP 3: FURTHER REDUCE FROM 50D TO 2D FOR VISUALIZATION
 # =============================================================================
@@ -88,6 +102,7 @@ for payload in metadata_list:
     thumbnails.append(thumbnail_url)
     artists_list.append(artist)
 
+
 # =============================================================================
 # STEP 5: CREATE THE SCATTER PLOT WITH HOVER FUNCTIONALITY
 # =============================================================================
@@ -96,11 +111,10 @@ print("Creating scatter plot visualization...")
 plt.figure(figsize=(21, 15))
 
 # Define artists to highlight and their colors
-highlight_artists = ["Vilhelm Lundstrøm", "C.W. Eckersberg", "Henri Matisse"]
-highlight_colors = ["red", "orange", "lime"]  # Colors for highlighted artists
+highlight_artists = ["C.W. Eckersberg", "Henri Matisse"]
+highlight_colors = ["red", "lime"]  # Colors for highlighted artists
 default_color = "lightgray"  # Color for non-highlighted points
 
-# Create a color mapping based on highlighted artists
 color_map = {
     artist: color for artist, color in zip(highlight_artists, highlight_colors)
 }
@@ -114,7 +128,7 @@ point_sizes = [
     for artist in artists_list
 ]
 
-# Plot the points using the 2D UMAP coordinates
+# Set zorder explicitly so that scatter points are drawn above the image (if needed)
 scatter = plt.scatter(
     vectors_2d[:, 0],
     vectors_2d[:, 1],
@@ -123,6 +137,7 @@ scatter = plt.scatter(
     alpha=0.6,
     edgecolors="k" if highlight_artists else None,
     linewidth=0.5,
+    zorder=2,  # scatter points drawn at level 2
 )
 
 # =============================================================================
@@ -141,7 +156,7 @@ def fetch_image(url):
         return None
 
 
-# Create an annotation box (initially invisible)
+# Create an annotation box for metadata (initially invisible)
 annot = plt.gca().annotate(
     "",
     xy=(0, 0),
@@ -152,41 +167,66 @@ annot = plt.gca().annotate(
     arrowprops=dict(arrowstyle="->"),
 )
 annot.set_visible(False)
+annot.set_zorder(3)  # draw metadata above scatter points and image
 
-image_box = None  # Placeholder for the image box
+# Global placeholders for the image box and hovered point marker
+image_box = None
+hovered_point_marker = None
 
 
 def update_annot(ind):
     """Update the annotation text and image box based on the hovered point."""
+    global image_box, hovered_point_marker
     index = ind["ind"][0]
     pos = scatter.get_offsets()[index]
     annot.xy = pos
     annot.set_text(annotations[index])
 
-    global image_box
-    # Remove any existing image box
+    # Remove any existing image box (if present)
     if image_box is not None and image_box in plt.gca().artists:
         image_box.remove()
         image_box = None
 
-    # If a thumbnail URL is available, fetch and display the image
+    # If a thumbnail URL is available, fetch and display the image.
+    # Use an offset (in display points) so that the image does not overlap the metadata box.
     if thumbnails[index]:
         img = fetch_image(thumbnails[index])
         if img:
             img.thumbnail((200, 200))  # Resize image as needed
             image = OffsetImage(img, zoom=1.2)
+            # Here we use xybox with "offset points" so that the image always appears, for example, 30 points to the right
+            # and 30 points down from the hovered point. Adjust (30, -30) as needed.
             image_box = AnnotationBbox(
                 image,
-                (pos[0], pos[1] - 1),  # Adjust position as needed
+                pos,
+                xybox=(30, -30),
+                xycoords='data',
+                boxcoords="offset points",
                 frameon=True,
                 pad=0.3,
                 bboxprops=dict(edgecolor="black"),
+                zorder=1,  # draw image behind both scatter points and metadata text
             )
             plt.gca().add_artist(image_box)
+
+    # Optionally, add a highlighted marker on top of the hovered point so it stays visible.
+    # Remove previous marker if it exists.
+    if hovered_point_marker is not None:
+        hovered_point_marker.remove()
+    hovered_point_marker = plt.gca().scatter(
+        [pos[0]],
+        [pos[1]],
+        s=point_sizes[index] * 3,  # slightly larger for emphasis
+        facecolors='none',
+        edgecolors='black',
+        linewidth=1.5,
+        zorder=4,  # highest zorder so it appears on top
+    )
 
 
 def hover(event):
     """Event handler for mouse motion: update annotation when hovering over a point."""
+    global hovered_point_marker
     vis = annot.get_visible()
     if event.inaxes == scatter.axes:
         cont, ind = scatter.contains(event)
@@ -197,14 +237,17 @@ def hover(event):
         else:
             if vis:
                 annot.set_visible(False)
+                # Remove the image box and hovered marker if they exist
                 global image_box
                 if image_box is not None and image_box in plt.gca().artists:
                     image_box.remove()
                     image_box = None
+                if hovered_point_marker is not None:
+                    hovered_point_marker.remove()
+                    hovered_point_marker = None
                 plt.gcf().canvas.draw_idle()
 
 
-# Connect the hover event to the handler
 plt.gcf().canvas.mpl_connect("motion_notify_event", hover)
 
 # =============================================================================
