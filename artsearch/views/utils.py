@@ -3,6 +3,6 @@ def get_valid_limit(limit: str | None, default: int = 10) -> int:
     if limit is None:
         return default
     try:
-        return max(5, min(1000, int(limit)))  # Clamp between 5 and 50
+        return max(5, min(1000, int(limit)))
     except (ValueError, TypeError):
         return default
