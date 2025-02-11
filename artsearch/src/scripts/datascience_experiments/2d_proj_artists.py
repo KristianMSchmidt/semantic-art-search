@@ -1,3 +1,10 @@
+"""
+2D projects typically preserve the local structure of the data, which means that similar
+points in the original high-dimensional space will be close to each other in the 2D projection.
+This property is useful for visualizing clusters or patterns in the data.
+Global structure, on the other hand, may not be preserved as well in 2D projections.
+"""
+
 import umap
 import numpy as np
 import matplotlib.pyplot as plt
@@ -110,8 +117,8 @@ print("Creating scatter plot visualization...")
 plt.figure(figsize=(21, 15))
 
 # Define artists to highlight and their colors
-highlight_artists = ["C.W. Eckersberg", "Henri Matisse"]
-highlight_colors = ["red", "lime"]  # Colors for highlighted artists
+highlight_artists = ["C.W. Eckersberg", "Henri Matisse", "H.W. Bissen"]
+highlight_colors = ["red", "lime", "blue"]  # Colors for highlighted artists
 default_color = "lightgray"  # Color for non-highlighted points
 
 color_map = {
