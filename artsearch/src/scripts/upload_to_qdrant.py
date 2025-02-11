@@ -10,8 +10,11 @@ from typing import Any, Dict, List, Optional
 import uuid
 from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.src.services.clip_embedder import get_clip_embedder
+from artsearch.src.services.smk_api_client import SMKAPIClient
 
-BASE_URL = "https://api.smk.dk/api/v1/art/search/"
+from src.config import config
+
+BASE_URL = SMKAPIClient.BASE_URL + "search/"
 FIELDS = [
     "titles",
     "artist",
@@ -22,7 +25,6 @@ FIELDS = [
 ]
 START_DATE = "1000-01-01T00:00:00.000Z"
 END_DATE = "2026-12-31T23:59:59.999Z"
-COLLECTION_NAME = "smk_artworks"
 QUERY_TEMPLATE = {
     "keys": "*",
     "fields": ",".join(FIELDS),
@@ -96,7 +98,7 @@ def main() -> None:
 
     # Create collection if it doesn't exist
     qdrant_service.create_qdrant_collection(
-        collection_name=COLLECTION_NAME,
+        collection_name=config.qdrant_collection_name,
         dimensions=512,
     )
 
@@ -116,7 +118,7 @@ def main() -> None:
 
         if points:
             qdrant_service.qdrant_client.upsert(
-                collection_name=COLLECTION_NAME, points=points
+                collection_name=config.qdrant_collection_name, points=points
             )
             total_points += len(points)
 

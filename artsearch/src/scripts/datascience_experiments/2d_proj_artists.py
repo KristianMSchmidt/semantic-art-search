@@ -1,4 +1,3 @@
-from torch import clip_
 import umap
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,7 +8,7 @@ from io import BytesIO
 from sklearn.preprocessing import normalize
 from sklearn.decomposition import PCA
 from artsearch.src.services.qdrant_service import get_qdrant_service
-
+from artsearch.src.config import config
 
 # =============================================================================
 # STEP 0: CONFIGURATION
@@ -27,7 +26,7 @@ qdrant_service = get_qdrant_service()
 qdrant_client = qdrant_service.qdrant_client
 
 # Define source collection name
-SOURCE_COLLECTION = "smk_artworks"
+SOURCE_COLLECTION = config.qdrant_collection_name
 
 print("Fetching data from Qdrant...")
 # The scroll method returns a tuple: (list_of_points, next_page_offset)
@@ -131,9 +130,9 @@ point_sizes = [
 # Set zorder explicitly so that scatter points are drawn above the image (if needed)
 scatter = plt.scatter(
     vectors_2d[:, 0],
-    vectors_2d[:, 1],
-    c=point_colors,
-    s=point_sizes,
+    vectors_2d[:, 1],  # type: ignore
+    c=point_colors,  # type: ignore
+    s=point_sizes,  # type: ignore
     alpha=0.6,
     edgecolors="k" if highlight_artists else None,
     linewidth=0.5,
@@ -178,8 +177,8 @@ def update_annot(ind):
     """Update the annotation text and image box based on the hovered point."""
     global image_box, hovered_point_marker
     index = ind["ind"][0]
-    pos = scatter.get_offsets()[index]
-    annot.xy = pos
+    pos = scatter.get_offsets()[index]  # type: ignore
+    annot.xy = pos  # type: ignore
     annot.set_text(annotations[index])
 
     # Remove any existing image box (if present)
@@ -193,12 +192,12 @@ def update_annot(ind):
         img = fetch_image(thumbnails[index])
         if img:
             img.thumbnail((200, 200))  # Resize image as needed
-            image = OffsetImage(img, zoom=1.2)
+            image = OffsetImage(img, zoom=1.2)  # type: ignore
             # Here we use xybox with "offset points" so that the image always appears, for example, 30 points to the right
             # and 30 points down from the hovered point. Adjust (30, -30) as needed.
             image_box = AnnotationBbox(
                 image,
-                pos,
+                pos,  # type: ignore
                 xybox=(30, -30),
                 xycoords='data',
                 boxcoords="offset points",
@@ -214,8 +213,8 @@ def update_annot(ind):
     if hovered_point_marker is not None:
         hovered_point_marker.remove()
     hovered_point_marker = plt.gca().scatter(
-        [pos[0]],
-        [pos[1]],
+        [pos[0]],  # type: ignore
+        [pos[1]],  # type: ignore
         s=point_sizes[index] * 3,  # slightly larger for emphasis
         facecolors='none',
         edgecolors='black',

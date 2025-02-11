@@ -8,7 +8,7 @@ import os
 from typing import Tuple, Any
 from functools import lru_cache
 from artsearch.src.utils.session_config import get_configured_session
-from artsearch.src.config import Config
+from artsearch.src.config import config
 
 
 class _CLIPEmbedder:
@@ -42,7 +42,7 @@ class _CLIPEmbedder:
             cache_dir (str): Directory to store cached images.
             http_session (requests.Session): Shared HTTP session for all requests.
         """
-        self.device = device or Config.DEVICE
+        self.device = device or config.device
         self.model, self.preprocess = self._load_model(model_name, self.device)
         self.cache_dir = cache_dir
         self.http_session = http_session or get_configured_session()
