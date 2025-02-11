@@ -136,7 +136,7 @@ point_sizes = [
 
 # Set zorder explicitly so that scatter points are drawn above the image (if needed)
 scatter = plt.scatter(
-    vectors_2d[:, 0],
+    vectors_2d[:, 0],  # type: ignore
     vectors_2d[:, 1],  # type: ignore
     c=point_colors,  # type: ignore
     s=point_sizes,  # type: ignore
