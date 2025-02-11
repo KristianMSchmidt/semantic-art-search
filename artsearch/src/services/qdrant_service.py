@@ -3,6 +3,7 @@ from qdrant_client.http.models.models import ScoredPoint, Payload
 from artsearch.src.services.smk_api_client import SMKAPIClient
 from artsearch.src.services.clip_embedder import get_clip_embedder
 from artsearch.src.utils.get_qdrant_client import get_qdrant_client
+from artsearch.src.config import config
 
 
 class QdrantService:
@@ -28,7 +29,10 @@ class QdrantService:
 
         return {
             "title": payload['titles'][0]['title'],
-            "artist": payload['artist'][0],
+            "artist": ", ".join(payload['artist']),
+            "object_names": ", ".join(
+                [object_name.get("name") for object_name in payload['object_names']]
+            ),
             "thumbnail_url": payload['thumbnail_url'],
             "period": period,
             "object_number": payload['object_number'],
@@ -126,5 +130,5 @@ def get_qdrant_service():
     return QdrantService(
         qdrant_client=get_qdrant_client(),
         smk_api_client=SMKAPIClient(),
-        collection_name="smk_artworks",
+        collection_name=config.qdrant_collection_name,
     )

@@ -1,4 +1,6 @@
 import requests
+from typing import Any
+from urllib.parse import urlencode
 from artsearch.src.utils.session_config import get_configured_session
 
 
@@ -10,6 +12,7 @@ class SMKAPIClientError(Exception):
 
 class SMKAPIClient:
     BASE_URL = "https://api.smk.dk/api/v1/art/"
+    BASE_SEARCH_URL = f"{BASE_URL}search/"
 
     def __init__(self, http_session: requests.Session | None = None):
         self.http_session = http_session or get_configured_session()
@@ -38,3 +41,14 @@ class SMKAPIClient:
             raise SMKAPIClientError(
                 f"Missing expected data for object number: {object_number}"
             )
+
+    def fetch_data(self, query_template: dict[str, Any]) -> dict[str, Any] | None:
+        """Use SMK's search endpoint to fetch artwork data and return it as JSON."""
+        api_url = f"{self.BASE_SEARCH_URL}?{urlencode(query_template)}"
+        try:
+            response = requests.get(api_url)
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            print(f"Error fetching data: {e}")
+            return None

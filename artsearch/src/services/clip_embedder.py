@@ -42,6 +42,7 @@ class _CLIPEmbedder:
             cache_dir (str): Directory to store cached images.
             http_session (requests.Session): Shared HTTP session for all requests.
         """
+        self.model_name = model_name
         self.device = device or config.device
         self.model, self.preprocess = self._load_model(model_name, self.device)
         self.cache_dir = cache_dir

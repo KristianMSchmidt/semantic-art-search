@@ -87,7 +87,7 @@ def similarity_search(request):
         search_function=qdrant_service.search_similar_images,
         no_input_error_message="Please enter an inventory number.",
         search_action_url='similarity-search',
-        about_text="Find similar paintings in the SMK collection.",
+        about_text="Find similar artworks in the SMK collection.",
         placeholder="Enter the artwork's inventory number",
         example_queries=[],
     )
