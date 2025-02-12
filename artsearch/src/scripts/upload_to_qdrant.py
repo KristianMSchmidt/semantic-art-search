@@ -9,7 +9,12 @@ from qdrant_client.http.models import PointStruct
 from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.src.services.clip_embedder import get_clip_embedder
 from artsearch.src.services.smk_api_client import SMKAPIClient
-from artsearch.src.config import config
+
+CLIP_MODEL_NAME = "ViT-B/32"
+# CLIP_MODEL_NAME = "ViT-L/14"
+
+UPLOAD_COLLECTION_NAME = "smk_artworks_dev"
+
 
 smk_api_client = SMKAPIClient()
 
@@ -23,8 +28,8 @@ FIELDS = [
 ]
 START_DATE = "1000-01-01T00:00:00.000Z"
 END_DATE = "2026-12-31T23:59:59.999Z"
-OBJECT_NAME = "Buste"
-# "paster"  # "akvatinte"  # "Altertavle (maleri)"  # "akvarel"  # "maleri"
+OBJECT_NAME = "pastel"
+# "Buste"  # "akvatinte"  # "Altertavle (maleri)"  # "akvarel"  # "maleri"
 QUERY_TEMPLATE = {
     "keys": "*",
     "fields": ",".join(FIELDS),
@@ -37,6 +42,10 @@ QUERY_TEMPLATE = {
 
 def get_user_confirmation() -> None:
     """Prompt the user for confirmation before proceeding."""
+    print(
+        f"This script will upload embedded data to the Qdrant collection: {UPLOAD_COLLECTION_NAME},",
+        f"using the CLIP model: {CLIP_MODEL_NAME}.",
+    )
     response = input("Do you want to proceed? (y/n): ").strip().lower()
     if response != "y":
         print("Exiting the program.")
@@ -84,12 +93,12 @@ def main() -> None:
     """Main entry point of the script."""
 
     qdrant_service = get_qdrant_service()
-    clip_embedder = get_clip_embedder()
+    clip_embedder = get_clip_embedder(model_name=CLIP_MODEL_NAME)
 
     # Create collection if it doesn't exist
     qdrant_service.create_qdrant_collection(
-        collection_name=config.qdrant_collection_name,
-        dimensions=512,
+        collection_name=UPLOAD_COLLECTION_NAME,
+        dimensions=clip_embedder.embedding_dim,
     )
 
     offset = 0
@@ -107,7 +116,7 @@ def main() -> None:
 
         if points:
             qdrant_service.qdrant_client.upsert(
-                collection_name=config.qdrant_collection_name, points=points
+                collection_name=UPLOAD_COLLECTION_NAME, points=points
             )
             total_points += len(points)
 

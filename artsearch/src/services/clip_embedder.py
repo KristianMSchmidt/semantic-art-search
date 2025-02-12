@@ -45,6 +45,7 @@ class _CLIPEmbedder:
         self.model_name = model_name
         self.device = device or config.device
         self.model, self.preprocess = self._load_model(model_name, self.device)
+        self.embedding_dim = self.model.visual.proj.shape[1]
         self.cache_dir = cache_dir
         self.http_session = http_session or get_configured_session()
 
@@ -129,8 +130,8 @@ class _CLIPEmbedder:
 
 
 @lru_cache(maxsize=1)
-def get_clip_embedder():
+def get_clip_embedder(model_name: str = "ViT-B/32") -> _CLIPEmbedder:
     """
     Always return the same instance of CLIPEmbedder (one per worker).
     """
-    return _CLIPEmbedder()  # Loads only once
+    return _CLIPEmbedder(model_name=model_name)  # Loads only once
