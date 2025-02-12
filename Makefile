@@ -16,22 +16,35 @@ tailwind-install:  ## install tailwind
 tailwind-start:  ## start tailwind (should be running while developing)
 	python manage.py tailwind start
 
-dj: # Run django server (almost) as in production
-	python manage.py runserver
+build:  ## Build or rebuild development docker image
+	docker-compose -f docker-compose.dev.yml build
 
-run-gunicorn: # Run gunicorn server (to mimic production)
-	gunicorn djangoconfig.wsgi -b 0.0.0.0:8017 --workers=1 --timeout=300 --log-level=debug --reload
+develop:  ## Run development server
+	docker-compose -f docker-compose.dev.yml up --remove-orphans
 
+stop: ## Stop development server
+	docker-compose -f docker-compose.dev.yml down --remove-orphans
+
+shell:  ## Open shell in running docker development container
+	docker-compose -f docker-compose.dev.yml exec web /bin/bash
+
+djangoshell:  ## Open django shell in running docker development container
+	docker-compose -f docker-compose.dev.yml exec web python manage.py shell
+
+
+# ---------- Data ---------- #
 adhoc: # Adhoc scripts only used during development
-	python -m artsearch.src.scripts.adhoc
+	docker-compose -f docker-compose.dev.yml exec web python -m artsearch.src.scripts.adhoc
 
-
-# ---------- Data Operations ---------- #
 upload-to-qdrant: ## upload images to qdrant
-	python -m artsearch.src.scripts.upload_to_qdrant
+	docker-compose -f docker-compose.dev.yml exec web python -m artsearch.src.scripts.upload_to_qdrant
 
 stats: ## Print out collection stats
-	python -m artsearch.src.scripts.collection_stats
+	docker-compose -f docker-compose.dev.yml exec web python -m artsearch.src.scripts.collection_stats
+
+projection: ## Run projection
+	docker-compose -f docker-compose.dev.yml exec web python -m artsearch.src.scripts.datascience_experiments.2d_proj_artists
+
 
 # ---------- Production ---------- #
 production_stop: ## Stop production server
@@ -49,5 +62,8 @@ production_accesslogs: ## Show nginx access logs
 production_terminal: # Open shell in running docker production container
 	docker-compose -f docker-compose.prod.yml exec web /bin/bash
 
-production_shell:  ## Open django shell in running docker development container
+production_shell:  ## Open shell in running docker development container
+	docker-compose -f docker-compose.prod.yml exec web /bin/bash
+
+production_djangoshell:  ## Open django shell in running docker development container
 	docker-compose -f docker-compose.prod.yml exec web python manage.py shell
