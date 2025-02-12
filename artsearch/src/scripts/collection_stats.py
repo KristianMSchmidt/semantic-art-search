@@ -43,7 +43,8 @@ def print_stats(object_name_counts, object_numbers, points_data):
     # Print the total number of points
     print(f"Total number of artworks: {len(points_data)}")
 
-    # Print the number of object_numbers (should be equal to the total number of artworks)
+    # Print the number of object_numbers (should be equal to the total number
+    #  of artworks)
     print(f"Total number of unique object_numbers: {len(object_numbers)}")
 
 
