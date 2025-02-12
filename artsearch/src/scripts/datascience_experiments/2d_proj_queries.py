@@ -1,15 +1,11 @@
-from torch import clip_
 import umap
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
-from PIL import Image
-import requests
-from io import BytesIO
 from sklearn.preprocessing import normalize
 from sklearn.decomposition import PCA
 from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.src.services.clip_embedder import get_clip_embedder
+from artsearch.src.config import config
 
 # =============================================================================
 # STEP 0: CONFIGURATION
@@ -23,10 +19,9 @@ FIRST_PROJECTION_METHOD = 'PCA'
 qdrant_service = get_qdrant_service()
 qdrant_client = qdrant_service.qdrant_client
 
-SOURCE_COLLECTION = "smk_artworks"
 print("Fetching data from Qdrant...")
 points_data, _ = qdrant_client.scroll(
-    SOURCE_COLLECTION, scroll_filter=None, with_vectors=True, limit=10_000
+    config.qdrant_collection_name, scroll_filter=None, with_vectors=True, limit=10_000
 )
 
 vectors_512, metadata_list, ids = [], [], []
@@ -74,9 +69,10 @@ queries = [
     'Still Life',
     'Animal',
     'Building',
-    'Ruin',
     'Orientalism',
     'Cubism',
+    'Watercolor',
+    'Bust',
 ]
 embedded_queries = [clip_embedder.generate_text_embedding(query) for query in queries]
 embedded_queries = normalize(np.array(embedded_queries), norm="l2")
@@ -108,13 +104,14 @@ default_color, query_colors = "lightgray", [
     "black",
     "lime",
     "olive",
+    'teal',
 ]
 default_size, query_size = 2, 150
 
 # Plot artwork embeddings
 scatter = plt.scatter(
-    vectors_2d[:, 0],
-    vectors_2d[:, 1],
+    vectors_2d[:, 0],  # type: ignore
+    vectors_2d[:, 1],  # type: ignore
     c=default_color,
     s=default_size,
     alpha=0.6,

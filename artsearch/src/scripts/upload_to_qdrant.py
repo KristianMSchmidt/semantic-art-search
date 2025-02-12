@@ -3,18 +3,21 @@ This script fetches data from the SMK API, processes it, and uploads it
 to a Qdrant collection.
 """
 
-import requests
-from qdrant_client.http.models import PointStruct
-from urllib.parse import urlencode
-from typing import Any, Dict, List, Optional
+from typing import Any
 import uuid
+from qdrant_client.http.models import PointStruct
 from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.src.services.clip_embedder import get_clip_embedder
 from artsearch.src.services.smk_api_client import SMKAPIClient
 
-from src.config import config
+CLIP_MODEL_NAME = "ViT-B/32"
+# CLIP_MODEL_NAME = "ViT-L/14"
 
-BASE_URL = SMKAPIClient.BASE_URL + "search/"
+UPLOAD_COLLECTION_NAME = "smk_artworks_dev"
+
+
+smk_api_client = SMKAPIClient()
+
 FIELDS = [
     "titles",
     "artist",
@@ -25,10 +28,12 @@ FIELDS = [
 ]
 START_DATE = "1000-01-01T00:00:00.000Z"
 END_DATE = "2026-12-31T23:59:59.999Z"
+OBJECT_NAME = "pastel"
+# "Buste"  # "akvatinte"  # "Altertavle (maleri)"  # "akvarel"  # "maleri"
 QUERY_TEMPLATE = {
     "keys": "*",
     "fields": ",".join(FIELDS),
-    "filters": "[has_image:true],[object_names:maleri],[public_domain:true]",
+    "filters": f"[has_image:true],[object_names:{OBJECT_NAME}],[public_domain:true]",
     "range": f"[production_dates_end:{{{START_DATE};{END_DATE}}}]",
     "offset": 0,
     "rows": 250,  # Max is 2000
@@ -37,6 +42,10 @@ QUERY_TEMPLATE = {
 
 def get_user_confirmation() -> None:
     """Prompt the user for confirmation before proceeding."""
+    print(
+        f"This script will upload embedded data to the Qdrant collection: {UPLOAD_COLLECTION_NAME},",
+        f"using the CLIP model: {CLIP_MODEL_NAME}.",
+    )
     response = input("Do you want to proceed? (y/n): ").strip().lower()
     if response != "y":
         print("Exiting the program.")
@@ -44,18 +53,7 @@ def get_user_confirmation() -> None:
     print("Proceeding with the program...")
 
 
-def fetch_data(api_url: str) -> Optional[Dict[str, Any]]:
-    """Fetch data from the SMK API and return it as JSON."""
-    try:
-        response = requests.get(api_url)
-        response.raise_for_status()
-        return response.json()
-    except requests.RequestException as e:
-        print(f"Error fetching data: {e}")
-        return None
-
-
-def prepare_payload(item: Dict[str, Any]) -> Dict[str, Any]:
+def prepare_payload(item: dict[str, Any]) -> dict[str, Any]:
     """Prepare payload for Qdrant PointStruct."""
     return {
         "object_number": item["object_number"],
@@ -68,7 +66,7 @@ def prepare_payload(item: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def process_items(data: Dict[str, Any], embedder) -> List[PointStruct]:
+def process_items(data: dict[str, Any], embedder) -> list[PointStruct]:
     """Process items from SMK API data and return a list of Qdrant PointStruct."""
     points = []
     for item in data.get("items", []):
@@ -78,8 +76,9 @@ def process_items(data: Dict[str, Any], embedder) -> List[PointStruct]:
                 item["image_thumbnail"], item["object_number"], cache=True
             )
             if vector is not None:
+                point_id = uuid.uuid5(uuid.NAMESPACE_DNS, str(item["object_number"]))
                 points.append(
-                    PointStruct(id=str(uuid.uuid4()), payload=payload, vector=vector)
+                    PointStruct(id=str(point_id), payload=payload, vector=vector)
                 )
             else:
                 print(
@@ -94,12 +93,12 @@ def main() -> None:
     """Main entry point of the script."""
 
     qdrant_service = get_qdrant_service()
-    clip_embedder = get_clip_embedder()
+    clip_embedder = get_clip_embedder(model_name=CLIP_MODEL_NAME)
 
     # Create collection if it doesn't exist
     qdrant_service.create_qdrant_collection(
-        collection_name=config.qdrant_collection_name,
-        dimensions=512,
+        collection_name=UPLOAD_COLLECTION_NAME,
+        dimensions=clip_embedder.embedding_dim,
     )
 
     offset = 0
@@ -107,8 +106,7 @@ def main() -> None:
 
     while True:
         QUERY_TEMPLATE["offset"] = offset
-        api_url = f"{BASE_URL}?{urlencode(QUERY_TEMPLATE)}"
-        data = fetch_data(api_url)
+        data = smk_api_client.fetch_data(QUERY_TEMPLATE)
 
         if not data or not data.get("items"):
             break
@@ -118,7 +116,7 @@ def main() -> None:
 
         if points:
             qdrant_service.qdrant_client.upsert(
-                collection_name=config.qdrant_collection_name, points=points
+                collection_name=UPLOAD_COLLECTION_NAME, points=points
             )
             total_points += len(points)
 

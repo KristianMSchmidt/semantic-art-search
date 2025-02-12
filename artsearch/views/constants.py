@@ -17,4 +17,6 @@ EXAMPLE_QUERIES = [
     "Winter landscape",
     "Woman by a window",
     "Ship in a storm",
+    "Bust",
+    "Watercolor",
 ]
