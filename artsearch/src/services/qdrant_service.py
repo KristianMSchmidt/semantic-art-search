@@ -1,5 +1,5 @@
 from qdrant_client import QdrantClient, models
-from qdrant_client.http.models.models import ScoredPoint, Payload
+from qdrant_client.http.models.models import ScoredPoint, Payload, Record
 from artsearch.src.services.smk_api_client import SMKAPIClient
 from artsearch.src.services.clip_embedder import get_clip_embedder
 from artsearch.src.utils.get_qdrant_client import get_qdrant_client
@@ -98,7 +98,7 @@ class QdrantService:
         )
         return self._format_hits(hits.points)
 
-    def get_random_sample(self, limit=10) -> list[dict]:
+    def get_random_sample(self, limit: int) -> list[dict]:
         """Get a random sample of items from the collection."""
         sampled = self.qdrant_client.query_points(
             collection_name=self.collection_name,
@@ -124,6 +124,26 @@ class QdrantService:
     def upload_points(self, points: list[models.PointStruct], collection_name) -> None:
         """Upload points to a Qdrant collection."""
         self.qdrant_client.upsert(collection_name=collection_name, points=points)
+
+    def fetch_points(self, collection_name: str | None = None) -> list[Record]:
+        """Fetch all points from a Qdrant collection."""
+        if collection_name is None:
+            collection_name = self.collection_name
+        points, _ = self.qdrant_client.scroll(
+            collection_name=collection_name,
+            scroll_filter=None,
+            with_payload=True,
+            with_vectors=False,
+            limit=1000000,
+        )
+        return points
+
+    def get_all_object_numbers(self, collection_name: str | None = None) -> set[str]:
+        points = self.fetch_points(collection_name=collection_name)
+        object_numbers = {
+            point.payload['object_number'] if point.payload else '' for point in points
+        }
+        return object_numbers
 
 
 def get_qdrant_service():

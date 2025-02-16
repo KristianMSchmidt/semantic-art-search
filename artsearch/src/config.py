@@ -3,6 +3,10 @@ from pathlib import Path
 import torch
 import dotenv
 from pydantic import BaseModel
+from typing import Literal
+
+
+clip_selection = Literal["ViT-B/32", "ViT-L/14"]
 
 
 class Config(BaseModel):
@@ -13,6 +17,7 @@ class Config(BaseModel):
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     allowed_hosts: list[str] = []
     debug: bool = False
+    clip_model_name: clip_selection
 
 
 def create_config():
@@ -52,6 +57,7 @@ def create_config():
         device=device,
         allowed_hosts=allowed_hosts,
         debug=debug,
+        clip_model_name="ViT-L/14",
     )
 
 

@@ -23,4 +23,3 @@ exec gunicorn djangoconfig.wsgi:application \
     --log-level=debug \
     --access-logfile /var/log/gunicorn/access.log \
     --error-logfile /var/log/gunicorn/error.log
-echo "${0}: Gunicorn started."
