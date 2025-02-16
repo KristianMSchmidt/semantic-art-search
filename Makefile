@@ -10,6 +10,14 @@ help:   # Show this help.
 
 # ---------- Development ---------- #
 
+install-dev-requirements:  ## Install dev requirements (for better VSCode experience)
+	rm -rf art_venv && \
+	python3.11 -m venv art_venv && \
+	. art_venv/bin/activate && \
+	pip install --upgrade pip && \
+	pip install -r requirements.txt && \
+	pip install -r requirements.dev.txt
+
 tailwind-install:  ## install tailwind
 	python manage.py tailwind install
 

@@ -1,6 +1,7 @@
 from PIL import Image
 import requests
 from artsearch.src.services.smk_api_client import SMKAPIClient
+from artsearch.src.services.qdrant_service import get_qdrant_service
 
 
 def make_favicon():
@@ -29,5 +30,6 @@ def make_favicon():
 
 
 if "__main__" == "__main__":
+    # get_all_object_numbers()
     pass
     # make_favicon()

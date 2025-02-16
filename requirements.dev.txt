@@ -1,5 +1,4 @@
 black
-django-tailwind[reload]
 
 # Data Science
 numpy
@@ -8,4 +7,3 @@ matplotlib
 Pillow
 tqdm
 scikit-learn
-qdrant-client

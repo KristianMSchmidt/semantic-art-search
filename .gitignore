@@ -1,4 +1,4 @@
-.env
+art_venv
 .env.dev
 .env.prod
 venv

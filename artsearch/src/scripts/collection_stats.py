@@ -1,13 +1,14 @@
 from collections import defaultdict
 from artsearch.src.services.qdrant_service import get_qdrant_service
-from artsearch.src.config import config
 
+from artsearch.src.config import config
+from qdrant_client.http.models.models import PointStruct, Record
 
 # Define source collection name
 SOURCE_COLLECTION = config.qdrant_collection_name
 
 
-def count_points(points):
+def count_points(points: list[Record]) -> tuple[dict, set]:
     object_numbers = set()
     object_name_counts = defaultdict(int)
     for point in points:
@@ -22,18 +23,11 @@ def count_points(points):
     return object_name_counts, object_numbers
 
 
-def fetch_point():
-    points, _ = qdrant_client.scroll(
-        collection_name=SOURCE_COLLECTION,
-        scroll_filter=None,
-        with_vectors=True,
-        limit=10_000,
-    )
-    return points
-
-
 def print_stats(object_name_counts, object_numbers, points_data):
     print("------ Collection stats ------")
+    print()
+    print("Qdrant collection:", SOURCE_COLLECTION)
+    print()
     # Print the counts (ordered by number of points)
     for object_name, count in sorted(
         object_name_counts.items(), key=lambda x: x[1], reverse=True
@@ -51,9 +45,8 @@ def print_stats(object_name_counts, object_numbers, points_data):
 if __name__ == "__main__":
 
     qdrant_service = get_qdrant_service()
-    qdrant_client = qdrant_service.qdrant_client
 
-    points = fetch_point()
+    points = qdrant_service.fetch_points(collection_name=SOURCE_COLLECTION)
 
     object_name_counts, object_numbers = count_points(points)
 

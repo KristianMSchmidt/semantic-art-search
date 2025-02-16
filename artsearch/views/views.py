@@ -24,7 +24,7 @@ def handle_search(request, params: SearchParams):
 
     query_param = request.GET.get('query')
 
-    limit = utils.get_valid_limit(request.GET.get('limit'))
+    limit = utils.get_valid_limit(request.GET.get('limit'), default=100)
 
     results = []
     random_results = []
@@ -57,13 +57,13 @@ def handle_search(request, params: SearchParams):
         'search_action_url': params.search_action_url,
         'about_text': params.about_text,
         'placeholder': params.placeholder,
-        'limit': limit,
         'query': query_param,
         'results': results,
         'error_message': error_message,
         'error_type': error_type,
         'example_queries': params.example_queries,
-        "limit_options": [5, 10, 20, 50, 100],
+        'limit': limit,
+        "limit_options": [50, 100, 200, 500],
     }
 
     return render(request, 'search.html', context)
