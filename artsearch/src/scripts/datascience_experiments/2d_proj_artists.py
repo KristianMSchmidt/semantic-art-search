@@ -30,6 +30,7 @@ qdrant_client = get_qdrant_client()
 print("Fetching data from Qdrant...")
 # The scroll method returns a tuple: (list_of_points, next_page_offset)
 
+# TODO: Use existing classes from artsearch/src/services/qdrant_service.py
 points_data, _ = qdrant_client.scroll(
     SOURCE_COLLECTION, scroll_filter=None, with_vectors=True, limit=10_000
 )
