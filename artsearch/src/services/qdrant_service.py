@@ -53,7 +53,6 @@ class QdrantService:
         """Get the vector for an object number if it exists in the collection."""
         result = self.qdrant_client.query_points(
             collection_name=self.collection_name,
-            query=None,
             query_filter=models.Filter(
                 must=[
                     models.FieldCondition(
@@ -66,10 +65,9 @@ class QdrantService:
             with_payload=False,
             with_vectors=True,
         )
-        if result.points == []:
-            return None
-        else:
-            return result.points[0].vector  # type: ignore
+        # Get the first result safely
+        point = next(iter(result.points), None)
+        return getattr(point, "vector", None)
 
     def search_text(self, query: str, limit: int = 5) -> list[dict]:
         """Search for similar items based on a text query."""

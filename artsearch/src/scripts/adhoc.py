@@ -1,3 +1,4 @@
+from qdrant_client import QdrantClient, models
 from PIL import Image
 import requests
 from artsearch.src.services.smk_api_client import SMKAPIClient
