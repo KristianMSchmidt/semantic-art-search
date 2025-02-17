@@ -4,6 +4,12 @@ from artsearch.src.services.smk_api_client import SMKAPIClient
 from artsearch.src.services.qdrant_service import get_qdrant_service
 
 
+def test_search():
+    query = "Test query"
+    qdrant_service = get_qdrant_service()
+    result = qdrant_service.search_text(query, 10)
+
+
 def make_favicon():
     # Initialize the SMK API client
     smk_client = SMKAPIClient()
@@ -30,6 +36,7 @@ def make_favicon():
 
 
 if "__main__" == "__main__":
+    # test_search()
     # get_all_object_numbers()
     pass
     # make_favicon()
