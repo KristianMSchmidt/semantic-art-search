@@ -19,7 +19,8 @@ class SMKAPIClient:
 
     def get_thumbnail_url(self, object_number: str) -> str:
         """Fetch the thumbnail URL for a given object number."""
-        assert object_number, "Object number must be provided"
+        if not object_number:
+            raise ValueError("Object number must be provided")
 
         url = f"{self.BASE_URL}?object_number={object_number}"
         response = self.http_session.get(url)
@@ -46,7 +47,7 @@ class SMKAPIClient:
         """Use SMK's search endpoint to fetch artwork data and return it as JSON."""
         api_url = f"{self.BASE_SEARCH_URL}?{urlencode(query_template)}"
         try:
-            response = requests.get(api_url)
+            response = self.http_session.get(api_url)
             response.raise_for_status()
             return response.json()
         except requests.RequestException as e:
