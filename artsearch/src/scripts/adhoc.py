@@ -38,6 +38,5 @@ def make_favicon():
 
 if "__main__" == "__main__":
     # test_search()
-    # get_all_object_numbers()
     pass
     # make_favicon()

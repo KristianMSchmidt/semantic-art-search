@@ -20,6 +20,7 @@ qdrant_service = get_qdrant_service()
 qdrant_client = qdrant_service.qdrant_client
 
 print("Fetching data from Qdrant...")
+# TODO: Use existing classes from artsearch/src/services/qdrant_service.py
 points_data, _ = qdrant_client.scroll(
     config.qdrant_collection_name, scroll_filter=None, with_vectors=True, limit=10_000
 )

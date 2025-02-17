@@ -7,15 +7,15 @@ import logging
 import uuid
 from typing import Any, List
 from qdrant_client.http.models import PointStruct
-from artsearch.src.services.qdrant_service import get_qdrant_service
-from artsearch.src.services.clip_embedder import get_clip_embedder
+from artsearch.src.services.qdrant_service import QdrantService, get_qdrant_service
+from artsearch.src.services.clip_embedder import _CLIPEmbedder, get_clip_embedder
 from artsearch.src.services.smk_api_client import SMKAPIClient
 from artsearch.src.config import clip_selection
 
 
 # Constants
 CLIP_MODEL_NAME: clip_selection = "ViT-L/14"
-UPLOAD_COLLECTION_NAME = "smk_artworks_dev_l_14"
+UPLOAD_COLLECTION_NAME = "smk_artworks_dev_l_14_test"
 FIELDS = [
     "titles",
     "artist",
@@ -29,10 +29,10 @@ END_DATE = "2026-12-31T23:59:59.999Z"
 OBJECT_NAMES = [
     'tegning',
     'akvatinte',
-    'Buste' 'Altertavle (maleri)',
     'akvarel',
     'Altertavle (maleri)',
-    'Buste' 'maleri',
+    'Buste',
+    'maleri',
     'pastel',
 ]
 
@@ -72,30 +72,40 @@ def prepare_payload(item: dict[str, Any]) -> dict[str, Any]:
 
 
 def process_items(
-    data: dict[str, Any], embedder, already_uploaded_object_numbers: set[str]
+    data: dict[str, Any], embedder: _CLIPEmbedder, qdrant_service: QdrantService
 ) -> List[PointStruct]:
-    """Process items from SMK API data and return a list of Qdrant PointStruct."""
+    """Process items and return a list of Qdrant PointStruct."""
     points = []
-    for item in data.get("items", []):
-        object_number = item['object_number']
-        if object_number in already_uploaded_object_numbers:
-            continue
+    items = data.get("items", [])
+
+    # Batch check for existing object numbers
+    object_numbers = [item["object_number"] for item in items]
+    existing_object_numbers = qdrant_service.get_existing_object_numbers(
+        UPLOAD_COLLECTION_NAME, object_numbers
+    )
+    for item in items:
+        object_number = item["object_number"]
+
+        if object_number in existing_object_numbers:
+            continue  # Skip if already uploaded
+
         try:
             payload = prepare_payload(item)
             vector = embedder.generate_thumbnail_embedding(
                 item["image_thumbnail"], item["object_number"], cache=True
             )
             if vector is not None:
-                point_id = uuid.uuid5(uuid.NAMESPACE_DNS, str(item["object_number"]))
+                point_id = uuid.uuid5(uuid.NAMESPACE_DNS, str(object_number))
                 points.append(
                     PointStruct(id=str(point_id), payload=payload, vector=vector)
                 )
             else:
                 logging.warning(
-                    f"Skipping item {item['object_number']} due to embedding failure."
+                    f"Skipping item {object_number} due to embedding failure."
                 )
         except KeyError as e:
             logging.error(f"Missing key in item: {e}")
+
     return points
 
 
@@ -108,10 +118,6 @@ def main() -> None:
     qdrant_service.create_qdrant_collection(
         collection_name=UPLOAD_COLLECTION_NAME,
         dimensions=clip_embedder.embedding_dim,
-    )
-
-    already_uploaded_object_numbers = qdrant_service.get_all_object_numbers(
-        collection_name=UPLOAD_COLLECTION_NAME
     )
 
     total_points = 0
@@ -127,7 +133,7 @@ def main() -> None:
                 "filters": f"[has_image:true],[object_names:{object_name}],[public_domain:true]",
                 "range": f"[production_dates_end:{{{START_DATE};{END_DATE}}}]",
                 "offset": offset,
-                "rows": 250,  # Max is 2000
+                "rows": 100,  # Max is 2000
             }
 
             data = smk_api_client.fetch_data(query)
@@ -141,7 +147,7 @@ def main() -> None:
             logging.info(
                 f"Processing {len(data.get('items', []))} items at offset {offset} for object name: {object_name}."
             )
-            points = process_items(data, clip_embedder, already_uploaded_object_numbers)
+            points = process_items(data, clip_embedder, qdrant_service)
 
             if points:
                 qdrant_service.qdrant_client.upsert(

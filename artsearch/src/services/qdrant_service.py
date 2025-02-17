@@ -129,24 +129,65 @@ class QdrantService:
         self.qdrant_client.upsert(collection_name=collection_name, points=points)
 
     def fetch_points(self, collection_name: str | None = None) -> list[Record]:
-        """Fetch all points from a Qdrant collection."""
+        """Fetch all points from a Qdrant collection with pagination."""
         if collection_name is None:
             collection_name = self.collection_name
-        points, _ = self.qdrant_client.scroll(
+
+        all_points = []
+        next_page_token = None  # Used for pagination
+
+        while True:
+            points, next_page_token = self.qdrant_client.scroll(
+                collection_name=collection_name,
+                scroll_filter=None,
+                with_payload=True,
+                with_vectors=False,
+                limit=1000,  # Fetch in small batches
+                offset=next_page_token,  # Fetch next batch
+            )
+
+            all_points.extend(points)
+
+            if next_page_token is None:  # No more points left
+                break
+
+        return all_points
+
+    def get_existing_object_numbers(
+        self, collection_name: str, object_numbers: list[str]
+    ) -> set[str]:
+        """
+        Given a list of object numbers, returns the set of object numbers from
+        the list that already exist in the collection.
+        """
+        query_filter = models.Filter(
+            must=[
+                models.FieldCondition(
+                    key="object_number",
+                    match=models.MatchAny(any=object_numbers),
+                )
+            ]
+        )
+
+        result = self.qdrant_client.query_points(
             collection_name=collection_name,
-            scroll_filter=None,
+            query_filter=query_filter,
+            limit=len(object_numbers),
             with_payload=True,
             with_vectors=False,
-            limit=1000000,
         )
-        return points
 
-    def get_all_object_numbers(self, collection_name: str | None = None) -> set[str]:
-        points = self.fetch_points(collection_name=collection_name)
-        object_numbers = {
-            point.payload['object_number'] if point.payload else '' for point in points
-        }
-        return object_numbers
+        existing_object_numbers = set()
+        for point in result.points:
+            if point.payload is None:
+                raise ValueError(f"Point {point.id} is missing payload!")
+            if "object_number" not in point.payload:
+                raise ValueError(
+                    f"Point {point.id} is missing 'object_number' in payload!"
+                )
+            existing_object_numbers.add(point.payload["object_number"])
+
+        return existing_object_numbers
 
 
 def get_qdrant_service():
