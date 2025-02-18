@@ -1,3 +1,4 @@
+from typing import cast
 from qdrant_client import QdrantClient, models
 from qdrant_client.http.models.models import ScoredPoint, Payload, Record
 from artsearch.src.services.smk_api_client import SMKAPIClient
@@ -19,7 +20,9 @@ class QdrantService:
         self.smk_api_client = smk_api_client
 
     def _format_payload(self, payload: Payload | None) -> dict:
-        assert payload
+        if payload is None:
+            raise ValueError("Payload cannot be None")
+
         if payload['production_date_start'] == payload['production_date_end']:
             period = payload['production_date_start']
         else:
@@ -65,9 +68,11 @@ class QdrantService:
             with_payload=False,
             with_vectors=True,
         )
-        # Get the first result safely
-        point = next(iter(result.points), None)
-        return getattr(point, "vector", None)
+
+        if not result.points or not result.points[0].vector:
+            return None
+
+        return cast(list[float], result.points[0].vector)
 
     def search_text(self, query: str, limit: int = 5) -> list[dict]:
         """Search for similar items based on a text query."""
@@ -83,12 +88,14 @@ class QdrantService:
         """Search for similar items based on an image embedding."""
         query_vector = self._get_vector_by_object_number(object_number)
 
+        # Generate a new embedding if the object number is not found
         if query_vector is None:
             thumbnail_url = self.smk_api_client.get_thumbnail_url(object_number)
             query_vector = get_clip_embedder().generate_thumbnail_embedding(
                 thumbnail_url, object_number, cache=False
             )
 
+        # If the object number is still not found, raise an error
         if query_vector is None:
             raise ValueError(
                 "Could not generate embedding for the provided object number"
@@ -179,11 +186,9 @@ class QdrantService:
 
         existing_object_numbers = set()
         for point in result.points:
-            if point.payload is None:
-                raise ValueError(f"Point {point.id} is missing payload!")
-            if "object_number" not in point.payload:
+            if not point.payload or "object_number" not in point.payload:
                 raise ValueError(
-                    f"Point {point.id} is missing 'object_number' in payload!"
+                    f"Point {point.id} has an invalid or missing payload: {point.payload}"
                 )
             existing_object_numbers.add(point.payload["object_number"])
 

@@ -42,16 +42,16 @@ djangoshell:  ## Open django shell in running docker development container
 
 # ---------- Data ---------- #
 adhoc: # Adhoc scripts only used during development
-	docker-compose -f docker-compose.dev.yml exec web python -m artsearch.src.scripts.adhoc
+	python -m artsearch.src.scripts.adhoc
 
 upload-to-qdrant: ## upload images to qdrant
-	docker-compose -f docker-compose.dev.yml exec web python -m artsearch.src.scripts.upload_to_qdrant
+	python -m artsearch.src.scripts.upload_to_qdrant
 
 stats: ## Print out collection stats
-	docker-compose -f docker-compose.dev.yml exec web python -m artsearch.src.scripts.collection_stats
+	python -m artsearch.src.scripts.collection_stats
 
 projection: ## Run projection
-	docker-compose -f docker-compose.dev.yml exec web python -m artsearch.src.scripts.datascience_experiments.2d_proj_artists
+	python -m artsearch.src.scripts.datascience_experiments.2d_proj_artists
 
 
 # ---------- Production ---------- #
