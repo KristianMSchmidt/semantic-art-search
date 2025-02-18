@@ -74,9 +74,8 @@ class QdrantService:
 
         return cast(list[float], result.points[0].vector)
 
-    def search_text(self, query: str, limit: int = 5) -> list[dict]:
-        """Search for similar items based on a text query."""
-        query_vector = get_clip_embedder().generate_text_embedding(query)
+    def _search(self, query_vector: list[float], limit: int) -> list[dict]:
+        """Search for similar items based on a query vector."""
         hits = self.qdrant_client.search(
             collection_name=self.collection_name,
             query_vector=query_vector,
@@ -84,7 +83,12 @@ class QdrantService:
         )
         return self._format_hits(hits)
 
-    def search_similar_images(self, object_number: str, limit: int = 6) -> list[dict]:
+    def search_text(self, text_query: str, limit: int) -> list[dict]:
+        """Search for similar items based on a text query."""
+        query_vector = get_clip_embedder().generate_text_embedding(text_query)
+        return self._search(query_vector, limit)
+
+    def search_similar_images(self, object_number: str, limit) -> list[dict]:
         """Search for similar items based on an image embedding."""
         query_vector = self._get_vector_by_object_number(object_number)
 
@@ -101,12 +105,7 @@ class QdrantService:
                 "Could not generate embedding for the provided object number"
             )
 
-        hits = self.qdrant_client.search(
-            collection_name=self.collection_name,
-            query_vector=query_vector,
-            limit=limit,
-        )
-        return self._format_hits(hits)
+        return self._search(query_vector, limit)
 
     def get_random_sample(self, limit: int) -> list[dict]:
         """Get a random sample of items from the collection."""
