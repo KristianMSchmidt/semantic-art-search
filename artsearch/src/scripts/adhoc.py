@@ -6,9 +6,10 @@ from artsearch.src.services.qdrant_service import get_qdrant_service
 
 
 def test_search():
-    query = "Test query"
     qdrant_service = get_qdrant_service()
-    result = qdrant_service.search_text(query, 10)
+    x = [0.1 for i in range(768)]
+    result = qdrant_service._search(x, 10)
+    breakpoint()
 
 
 def make_favicon():
@@ -37,6 +38,6 @@ def make_favicon():
 
 
 if "__main__" == "__main__":
-    # test_search()
+    test_search()
     pass
     # make_favicon()
