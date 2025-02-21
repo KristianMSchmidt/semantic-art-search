@@ -1,9 +1,15 @@
-from typing import NamedTuple, Callable
+from typing import Callable
+from dataclasses import dataclass
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from artsearch.src.services.smk_api_client import SMKAPIClientError
 from artsearch.views.constants import EXAMPLE_QUERIES
 from artsearch.src.services.qdrant_service import get_qdrant_service
+from artsearch.views.view_utils import (
+    retrieve_offset,
+    retrieve_search_action_url,
+    retrieve_search_function,
+)
 
 # Create a global instance (initialized once and reused)
 qdrant_service = get_qdrant_service()
@@ -12,26 +18,30 @@ qdrant_service = get_qdrant_service()
 RESULTS_PER_PAGE = 20
 
 
-class SearchParams(NamedTuple):
+@dataclass
+class SearchParams:
+    request: HttpRequest
     search_function: Callable[[str, int, int], list[dict]]
-    no_input_error_message: str
     search_action_url: str
-    about_text: str
-    placeholder: str
-    example_queries: list
+    offset: int
+    template_name: str
+    about_text: str | None = None
+    placeholder: str | None = None
+    example_queries: list | None = None
+    no_input_error_message: str | None = None
 
 
-def handle_search(
-    request: HttpRequest, params: SearchParams, limit: int = RESULTS_PER_PAGE
-) -> HttpResponse:
+def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpResponse:
     """Handles both text and similarity search in a generic way."""
 
-    query_param = request.GET.get("query")
+    offset = params.offset
+
+    # Initialize the context with the common parameters.
+    query_param = params.request.GET.get("query")
     text_above_results = ""
     results = []
     error_message = None
     error_type = None
-    offset = 0
 
     if query_param is None:
         # This is the initial page load.
@@ -59,73 +69,64 @@ def handle_search(
     offset += limit
 
     context = {
+        "query": query_param,
+        "results": results,
+        "text_above_results": text_above_results,
+        "error_message": error_message,
+        "error_type": error_type,
+        "offset": offset,
         "search_action_url": params.search_action_url,
         "about_text": params.about_text,
         "placeholder": params.placeholder,
-        "query": query_param,
-        "results": results,
-        "error_message": error_message,
-        "error_type": error_type,
         "example_queries": params.example_queries,
-        "text_above_results": text_above_results,
-        "offset": offset,
     }
 
-    return render(request, "search.html", context)
+    return render(params.request, params.template_name, context)
 
 
 def text_search(request) -> HttpResponse:
     params = SearchParams(
+        request=request,
         search_function=qdrant_service.search_text,
         no_input_error_message="Please enter a search query.",
         search_action_url="text-search",
         about_text="Explore the SMK collection through meaning-driven search!",
         placeholder="Search by theme, objects, style, or more...",
         example_queries=EXAMPLE_QUERIES,
+        offset=0,
+        template_name="search.html",
     )
-    return handle_search(request, params)
+    return handle_search(params)
 
 
 def similarity_search(request: HttpRequest) -> HttpResponse:
     params = SearchParams(
+        request=request,
         search_function=qdrant_service.search_similar_images,
         no_input_error_message="Please enter an inventory number.",
         search_action_url="similarity-search",
         about_text="Find similar artworks in the SMK collection.",
         placeholder="Enter the artwork's inventory number",
         example_queries=[],
+        offset=0,
+        template_name="search.html",
     )
-    return handle_search(request, params)
+    return handle_search(params)
 
 
-def more_results(request: HttpRequest, limit: int = RESULTS_PER_PAGE) -> HttpResponse:
+def more_results(request: HttpRequest) -> HttpResponse:
     """
     HTMX view that fetches more search results for infinite scrolling.
     """
-    query_param = request.GET.get("query")
-    search_action_url = request.GET.get("search_action_url")
-    offset = int(request.GET.get("offset", 1))
+    offset = retrieve_offset(request)
+    search_action_url = retrieve_search_action_url(request, qdrant_service)
+    search_function = retrieve_search_function(search_action_url, qdrant_service)
 
-    if query_param is None:
-        # This is the initial page load.
-        query_param = ""
-        results = qdrant_service.get_random_sample(limit=limit)
-    else:
-        # The user submitted a query.
-        query_param = query_param.strip()
-        if search_action_url == "text-search":
-            search_function = qdrant_service.search_text
-        else:
-            search_function = qdrant_service.search_similar_images
-        results = search_function(query_param, limit=limit, offset=offset)
-
-    offset += limit
-
-    context = {
-        "query": query_param,
-        "results": results,
-        "search_action_url": search_action_url,
-        "offset": offset,
-    }
-
-    return render(request, "partials/artwork_cards_and_trigger.html", context)
+    params = SearchParams(
+        request=request,
+        search_function=search_function,
+        search_action_url=search_action_url,
+        offset=offset,
+        template_name="partials/artwork_cards_and_trigger.html",
+    )
+    return handle_search(params)
