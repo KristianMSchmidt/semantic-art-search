@@ -22,17 +22,6 @@
                 class="w-full sm:w-auto flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required
             />
-            <!-- Dropdown for Limit -->
-            <div class="relative w-full sm:w-auto">
-                <select
-                    name="limit"
-                    class="block w-full px-3 py-2 border border-gray-300 rounded-lg appearance-none pr-8 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                    {% for value in limit_options %}
-                        <option value="{{ value }}" {% if limit == value %}selected{% endif %}>{{ value }}</option>
-                    {% endfor %}
-                </select>
-            </div>
             <!-- Search Button -->
             <button
                 type="submit"
@@ -113,26 +102,13 @@
         <!-- Search Results -->
         <div class="mb-2">
             <p class="text-sm text-gray-500">
-                Showing {{ results|length }} top results (best match first)
+                {{text_above_results}}
             </p>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {% for result in results %}
-                {% include 'partials/_artwork_card.html' %}
-            {% endfor %}
-        </div>
-    {% elif random_results %}
-        <!-- Random Artworks -->
-        <div class="mb-2">
-            <p class="text-sm text-gray-500">A glimpse into the archive</p>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {% for result in random_results %}
-                {% include 'partials/_artwork_card.html' %}
-            {% endfor %}
+            {% include 'partials/artwork_cards_and_trigger.html' %}
         </div>
     {% endif %}
-
     <!-- Thumbnail Image Modal -->
     <div x-data="{ isOpen: false, imageUrl: '' }"
          x-show="isOpen"

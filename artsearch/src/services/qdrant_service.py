@@ -8,7 +8,6 @@ from artsearch.src.config import config
 
 
 class QdrantService:
-
     def __init__(
         self,
         qdrant_client: QdrantClient,
@@ -23,22 +22,22 @@ class QdrantService:
         if payload is None:
             raise ValueError("Payload cannot be None")
 
-        if payload['production_date_start'] == payload['production_date_end']:
-            period = payload['production_date_start']
+        if payload["production_date_start"] == payload["production_date_end"]:
+            period = payload["production_date_start"]
         else:
             period = (
                 f"{payload['production_date_start']} - {payload['production_date_end']}"
             )
 
         return {
-            "title": payload['titles'][0]['title'],
-            "artist": ", ".join(payload['artist']),
+            "title": payload["titles"][0]["title"],
+            "artist": ", ".join(payload["artist"]),
             "object_names": ", ".join(
-                [object_name.get("name") for object_name in payload['object_names']]
+                [object_name.get("name") for object_name in payload["object_names"]]
             ),
-            "thumbnail_url": payload['thumbnail_url'],
+            "thumbnail_url": payload["thumbnail_url"],
             "period": period,
-            "object_number": payload['object_number'],
+            "object_number": payload["object_number"],
         }
 
     def _format_payloads(self, payloads: list[Payload | None]) -> list[dict]:
@@ -74,21 +73,24 @@ class QdrantService:
 
         return cast(list[float], result.points[0].vector)
 
-    def _search(self, query_vector: list[float], limit: int) -> list[dict]:
+    def _search(self, query_vector: list[float], limit: int, offset: int) -> list[dict]:
         """Search for similar items based on a query vector."""
         hits = self.qdrant_client.search(
             collection_name=self.collection_name,
             query_vector=query_vector,
             limit=limit,
+            offset=offset,
         )
         return self._format_hits(hits)
 
-    def search_text(self, text_query: str, limit: int) -> list[dict]:
+    def search_text(self, text_query: str, limit: int, offset: int) -> list[dict]:
         """Search for similar items based on a text query."""
         query_vector = get_clip_embedder().generate_text_embedding(text_query)
-        return self._search(query_vector, limit)
+        return self._search(query_vector, limit, offset)
 
-    def search_similar_images(self, object_number: str, limit) -> list[dict]:
+    def search_similar_images(
+        self, object_number: str, limit: int, offset: int
+    ) -> list[dict]:
         """Search for similar items based on an image embedding."""
         query_vector = self._get_vector_by_object_number(object_number)
 
@@ -105,7 +107,7 @@ class QdrantService:
                 "Could not generate embedding for the provided object number"
             )
 
-        return self._search(query_vector, limit)
+        return self._search(query_vector, limit, offset)
 
     def get_random_sample(self, limit: int) -> list[dict]:
         """Get a random sample of items from the collection."""
