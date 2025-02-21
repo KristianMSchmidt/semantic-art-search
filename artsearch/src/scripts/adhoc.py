@@ -7,9 +7,9 @@ from artsearch.src.services.qdrant_service import get_qdrant_service
 
 def test_search():
     qdrant_service = get_qdrant_service()
-    x = [0.1 for i in range(768)]
-    result = qdrant_service._search(x, 10)
-    breakpoint()
+    # x = [0.1 for i in range(768)]
+    # result = qdrant_service._search(x, 10)
+    result = qdrant_service.get_random_sample(10)
 
 
 def make_favicon():
@@ -17,7 +17,7 @@ def make_favicon():
     smk_client = SMKAPIClient()
 
     # Get the thumbnail URL for the specified artwork
-    object_number = 'KMSr171'
+    object_number = "KMSr171"
     thumbnail_url = smk_client.get_thumbnail_url(object_number)
 
     # Fetch the image from the URL

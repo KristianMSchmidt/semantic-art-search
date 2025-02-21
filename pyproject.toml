@@ -1,0 +1,13 @@
+[tool.ruff]
+# Set maximum line length (same as Black default)
+line-length = 88
+
+# Ignore specific rules if needed
+lint.ignore = []
+
+# Exclude specific files or directories from linting
+exclude = []
+
+# Use Ruff as a formatter
+[tool.ruff.format]
+quote-style = "double" # Choose between "single" or "double"
