@@ -119,7 +119,7 @@ def more_results(request: HttpRequest) -> HttpResponse:
     HTMX view that fetches more search results for infinite scrolling.
     """
     offset = retrieve_offset(request)
-    search_action_url = retrieve_search_action_url(request, qdrant_service)
+    search_action_url = retrieve_search_action_url(request)
     search_function = retrieve_search_function(search_action_url, qdrant_service)
 
     params = SearchParams(

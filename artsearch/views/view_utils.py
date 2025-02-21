@@ -10,9 +10,7 @@ def retrieve_offset(request: HttpRequest) -> int:
     return offset
 
 
-def retrieve_search_action_url(
-    request: HttpRequest, qdrant_service: QdrantService
-) -> str:
+def retrieve_search_action_url(request: HttpRequest) -> str:
     search_action_url = request.GET.get("search_action_url")
     assert search_action_url in ["text-search", "similarity-search"]
     return search_action_url
