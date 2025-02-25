@@ -6,6 +6,13 @@ from artsearch.src.services.qdrant_service import QdrantService
 from artsearch.views.constants import ARTWORK_TYPES
 
 
+def retrieve_query(request: HttpRequest) -> str | None:
+    query = request.GET.get("query")
+    if query is None:
+        return None
+    return query.strip()
+
+
 def retrieve_offset(request: HttpRequest) -> int:
     offset = request.GET.get("offset", None)
     assert offset is not None

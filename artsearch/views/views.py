@@ -6,6 +6,7 @@ from artsearch.src.services.smk_api_client import SMKAPIClientError
 from artsearch.views.constants import EXAMPLE_QUERIES, ARTWORK_TYPES
 from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.views.view_utils import (
+    retrieve_query,
     retrieve_offset,
     retrieve_search_action_url,
     retrieve_search_function,
@@ -36,9 +37,9 @@ class SearchParams:
 
 def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpResponse:
     """Handles both text and similarity search in a generic way."""
-    print("HANDLE SEARCH")
+
     offset = params.offset
-    query = params.request.GET.get("query")
+    query = retrieve_query(params.request)
     selected_artwork_types = retrieve_selected_artwork_types(params.request)
     artwork_types_prefilter = make_artwork_types_prefilter(selected_artwork_types)
 
@@ -53,12 +54,13 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
         query = ""
         results = qdrant_service.get_random_sample(limit=limit)
         text_above_results = "A glimpse into the archive"
-    elif query.strip() == "":
+
+    elif query == "":
         # The user submitted an empty query.
         error_message = params.no_input_error_message
         error_type = "warning"
+
     else:
-        print("Query is not empty")
         # The user submitted a query.
         query = query.strip()
         try:
