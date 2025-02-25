@@ -50,6 +50,10 @@ upload-to-qdrant: ## upload images to qdrant
 stats: ## Print out collection stats
 	python -m artsearch.src.scripts.collection_stats
 
+
+update-payload: ## Print out collection stats
+	python -m artsearch.src.scripts.update_payload
+
 projection: ## Run projection
 	python -m artsearch.src.scripts.datascience_experiments.2d_proj_artists
 

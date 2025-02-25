@@ -1,10 +1,13 @@
 {% for result in results %}
     {% include 'partials/artwork_card.html' %}
 {% endfor %}
+{% if results %}
 <!-- Infinite Scroll Trigger -->
 <div
-    hx-get="{% url 'more-results'%}?offset={{ offset }}&search_action_url={{ search_action_url }}{% if query %}&query={{ query }}{% endif %}"
+    hx-get="{{ urls.more_results}}"
     hx-trigger="revealed"
     hx-swap="outerHTML"
     class="py-4 text-center text-gray-500">
 </div>
+{% endif %}
+

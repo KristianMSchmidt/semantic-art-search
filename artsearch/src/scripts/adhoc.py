@@ -7,9 +7,30 @@ from artsearch.src.services.qdrant_service import get_qdrant_service
 
 def test_search():
     qdrant_service = get_qdrant_service()
+    qdrant_client = qdrant_service.qdrant_client
     # x = [0.1 for i in range(768)]
     # result = qdrant_service._search(x, 10)
-    result = qdrant_service.get_random_sample(10)
+
+    query_vector = [0.1 for i in range(768)]
+
+    # Filter for points where 'maleri' is in object_names_flattened
+    query_filter = models.Filter(
+        must=[
+            models.FieldCondition(
+                # key="object_names_flattened", match=models.MatchValue(value="akvarel")
+                key="object_names_flattened",
+                match=models.MatchAny(any=["akvarel", "grafik"]),
+            )
+        ]
+    )
+    hits = qdrant_client.search(
+        collection_name="smk_artworks_dev_l_14",
+        query_vector=query_vector,
+        limit=10,
+        offset=0,
+        query_filter=query_filter,
+    )
+    breakpoint()
 
 
 def make_favicon():

@@ -2,10 +2,11 @@ from collections import defaultdict
 from artsearch.src.services.qdrant_service import get_qdrant_service
 
 from artsearch.src.config import config
-from qdrant_client.http.models.models import PointStruct, Record
+from qdrant_client.http.models.models import Record
 
 # Define source collection name
-SOURCE_COLLECTION = config.qdrant_collection_name
+# SOURCE_COLLECTION = config.qdrant_collection_name
+SOURCE_COLLECTION = "smk_artworks_dev_l_14"
 
 
 def count_points(points: list[Record]) -> tuple[dict, set]:
@@ -15,11 +16,11 @@ def count_points(points: list[Record]) -> tuple[dict, set]:
         assert point.payload is not None
         object_names = [
             object_name.get("name").lower()
-            for object_name in point.payload.get('object_names', [])
+            for object_name in point.payload.get("object_names", [])
         ]
         for object_name in object_names:
             object_name_counts[object_name] += 1
-        object_numbers.add(point.payload.get('object_number'))
+        object_numbers.add(point.payload.get("object_number"))
     return object_name_counts, object_numbers
 
 
@@ -43,10 +44,9 @@ def print_stats(object_name_counts, object_numbers, points_data):
 
 
 if __name__ == "__main__":
-
     qdrant_service = get_qdrant_service()
 
-    points = qdrant_service.fetch_points(collection_name=SOURCE_COLLECTION)
+    points = qdrant_service.fetch_all_points(collection_name=SOURCE_COLLECTION)
 
     object_name_counts, object_numbers = count_points(points)
 

@@ -32,13 +32,13 @@
 
 				<!-- Links -->
 				<div class="flex space-x-4">
-				<a href="{% url 'text-search' %}"
+				<a href="{{ urls.text_search }}"
    						class="text-blue-100 hover:text-blue-50 {% if request.resolver_match.url_name == 'text-search' %}text-white font-bold{% endif %}">
 						Search By Text
 					</a>
-					<a href="{% url 'similarity-search' %}"
-						class="text-blue-100 hover:text-blue-50 {% if request.resolver_match.url_name == 'similarity-search' %}text-white font-bold{% endif %}">
-						Similarity Search
+					<a href="{{urls.find_similar}}"
+						class="text-blue-100 hover:text-blue-50 {% if request.resolver_match.url_name == 'find-similar' %}text-white font-bold{% endif %}">
+						Find Similar
 					</a>
 				</div>
 			</div>
