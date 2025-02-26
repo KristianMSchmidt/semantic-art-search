@@ -11,13 +11,22 @@ EXAMPLE_QUERIES = [
     "Martin Luther",
     "Fauvism",
     "Cubism",
-    "Old man",
-    "Painter",
     "Death",
     "Nature morte",
     "Winter landscape",
     "Woman by a window",
     "Ship in a storm",
     "Female sculture",
-    "Watercolor insect",
+    "Painter",
 ]
+
+ARTWORK_TYPES = {
+    1: {"id": 1, "name": "Paintings", "dk_name": "Maleri"},
+    2: {"id": 2, "name": "Drawings", "dk_name": "Tegning"},
+    3: {"id": 3, "name": "Aquatints", "dk_name": "Akvatinte"},
+    4: {"id": 4, "name": "Watercolors", "dk_name": "Akvarel"},
+    5: {"id": 5, "name": "Altarpieces", "dk_name": "Altertavle (maleri)"},
+    6: {"id": 6, "name": "Busts", "dk_name": "Buste"},
+    7: {"id": 7, "name": "Pastels", "dk_name": "Pastel"},
+    8: {"id": 8, "name": "Miniatures", "dk_name": "Miniature"},
+}

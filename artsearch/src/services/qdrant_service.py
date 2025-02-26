@@ -1,6 +1,6 @@
 from typing import cast
 from qdrant_client import QdrantClient, models
-from qdrant_client.http.models.models import ScoredPoint, Payload, Record
+from qdrant_client.conversions import common_types
 from artsearch.src.services.smk_api_client import SMKAPIClient
 from artsearch.src.services.clip_embedder import get_clip_embedder
 from artsearch.src.utils.get_qdrant_client import get_qdrant_client
@@ -18,7 +18,7 @@ class QdrantService:
         self.collection_name = collection_name
         self.smk_api_client = smk_api_client
 
-    def _format_payload(self, payload: Payload | None) -> dict:
+    def _format_payload(self, payload: models.Payload | None) -> dict:
         if payload is None:
             raise ValueError("Payload cannot be None")
 
@@ -40,15 +40,15 @@ class QdrantService:
             "object_number": payload["object_number"],
         }
 
-    def _format_payloads(self, payloads: list[Payload | None]) -> list[dict]:
+    def _format_payloads(self, payloads: list[models.Payload | None]) -> list[dict]:
         return [self._format_payload(payload) for payload in payloads]
 
-    def _format_hit(self, hit: ScoredPoint) -> dict:
+    def _format_hit(self, hit: models.ScoredPoint) -> dict:
         formatted_hit = self._format_payload(hit.payload)
         formatted_hit.update({"score": round(hit.score, 3)})
         return formatted_hit
 
-    def _format_hits(self, hits: list[ScoredPoint]) -> list[dict]:
+    def _format_hits(self, hits: list[models.ScoredPoint]) -> list[dict]:
         return [self._format_hit(hit) for hit in hits]
 
     def _get_vector_by_object_number(self, object_number: str) -> list[float] | None:
@@ -73,23 +73,51 @@ class QdrantService:
 
         return cast(list[float], result.points[0].vector)
 
-    def _search(self, query_vector: list[float], limit: int, offset: int) -> list[dict]:
+    def _search(
+        self,
+        query_vector: list[float],
+        limit: int,
+        offset: int,
+        artwork_types: list[str] | None,
+    ) -> list[dict]:
         """Search for similar items based on a query vector."""
+        if artwork_types is None:
+            query_filter = None
+        else:
+            query_filter = models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="object_names_flattened",
+                        match=models.MatchAny(any=artwork_types),
+                    )
+                ]
+            )
         hits = self.qdrant_client.search(
             collection_name=self.collection_name,
             query_vector=query_vector,
             limit=limit,
             offset=offset,
+            query_filter=query_filter,
         )
         return self._format_hits(hits)
 
-    def search_text(self, text_query: str, limit: int, offset: int) -> list[dict]:
+    def search_text(
+        self,
+        text_query: str,
+        limit: int,
+        offset: int,
+        artwork_types: list[str] | None = None,
+    ) -> list[dict]:
         """Search for similar items based on a text query."""
         query_vector = get_clip_embedder().generate_text_embedding(text_query)
-        return self._search(query_vector, limit, offset)
+        return self._search(query_vector, limit, offset, artwork_types)
 
     def search_similar_images(
-        self, object_number: str, limit: int, offset: int
+        self,
+        object_number: str,
+        limit: int,
+        offset: int,
+        artwork_types: list[str] | None = None,
     ) -> list[dict]:
         """Search for similar items based on an image embedding."""
         query_vector = self._get_vector_by_object_number(object_number)
@@ -107,7 +135,7 @@ class QdrantService:
                 "Could not generate embedding for the provided object number"
             )
 
-        return self._search(query_vector, limit, offset)
+        return self._search(query_vector, limit, offset, artwork_types)
 
     def get_random_sample(self, limit: int) -> list[dict]:
         """Get a random sample of items from the collection."""
@@ -136,7 +164,31 @@ class QdrantService:
         """Upload points to a Qdrant collection."""
         self.qdrant_client.upsert(collection_name=collection_name, points=points)
 
-    def fetch_points(self, collection_name: str | None = None) -> list[Record]:
+    def fetch_points(
+        self,
+        collection_name: str,
+        next_page_token,
+        limit: int = 1000,
+        with_vectors: bool = False,
+    ) -> tuple[list[models.Record], common_types.PointId | None]:
+        """Fetch points from a Qdrant collection with pagination."""
+        if collection_name is None:
+            collection_name = self.collection_name
+
+        points, next_page_token = self.qdrant_client.scroll(
+            collection_name=collection_name,
+            scroll_filter=None,
+            with_payload=True,
+            with_vectors=with_vectors,
+            limit=limit,  # Fetch in small batches
+            offset=next_page_token,  # Fetch next batch
+        )
+
+        return points, next_page_token
+
+    def fetch_all_points(
+        self, collection_name: str | None = None, limit: int = 1000
+    ) -> list[models.Record]:
         """Fetch all points from a Qdrant collection with pagination."""
         if collection_name is None:
             collection_name = self.collection_name
@@ -145,17 +197,12 @@ class QdrantService:
         next_page_token = None  # Used for pagination
 
         while True:
-            points, next_page_token = self.qdrant_client.scroll(
-                collection_name=collection_name,
-                scroll_filter=None,
-                with_payload=True,
-                with_vectors=False,
-                limit=1000,  # Fetch in small batches
-                offset=next_page_token,  # Fetch next batch
+            points, next_page_token = self.fetch_points(
+                collection_name,
+                next_page_token,
+                limit,
             )
-
             all_points.extend(points)
-
             if next_page_token is None:  # No more points left
                 break
 

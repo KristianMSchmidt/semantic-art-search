@@ -15,7 +15,8 @@ from artsearch.src.config import clip_selection
 
 # Constants
 CLIP_MODEL_NAME: clip_selection = "ViT-L/14"
-UPLOAD_COLLECTION_NAME = "smk_artworks_dev_l_14_test"
+UPLOAD_COLLECTION_NAME = "smk_artworks_dev_l_14"
+
 FIELDS = [
     "titles",
     "artist",
@@ -27,13 +28,13 @@ FIELDS = [
 START_DATE = "1000-01-01T00:00:00.000Z"
 END_DATE = "2026-12-31T23:59:59.999Z"
 OBJECT_NAMES = [
-    'tegning',
-    'akvatinte',
-    'akvarel',
-    'Altertavle (maleri)',
-    'Buste',
-    'maleri',
-    'pastel',
+    "tegning",
+    "akvatinte",
+    "akvarel",
+    "Altertavle (maleri)",
+    "Buste",
+    "maleri",
+    "pastel",
 ]
 
 # Initialize SMK API Client
@@ -41,7 +42,7 @@ smk_api_client = SMKAPIClient()
 
 # Configure logging
 logging.basicConfig(
-    format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO
+    format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 
 
