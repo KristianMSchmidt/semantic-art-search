@@ -1,31 +1,11 @@
-<div class="relative" x-data="{
-    open: false,
-    selectedArtworkTypes: {{ selected_artwork_types|default:'[]'|safe }},
-    allArtworkTypes: [{% for type_id in artwork_types.keys %}'{{ type_id }}',{% endfor %}],
-    toggleSelectAll() {
-        if (this.selectedArtworkTypes.length === this.allArtworkTypes.length) {
-            this.selectedArtworkTypes = [];
-        } else {
-            this.selectedArtworkTypes = [...this.allArtworkTypes];
-        }
-    },
-    buttonLabel() {
-        if (this.selectedArtworkTypes.length === this.allArtworkTypes.length) {
-            return 'All Work Types';
-        } else if (this.selectedArtworkTypes.length === 1) {
-            return '1 Work Type';
-        } else {
-            return `${this.selectedArtworkTypes.length} Work Types`;
-        }
-    }
-}">
+<div class="relative" x-data="dropdownComponent()">
     <!-- Button -->
     <button
         type="button"
         @click="open = !open"
         class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none flex items-center justify-between space-x-2 hover:bg-gray-100 hover:border-gray-400"
     >
-        <span x-text="buttonLabel()"></span>
+        <span x-text="buttonLabel"></span>
     </button>
 
     <!-- Dropdown -->
@@ -60,3 +40,32 @@
         </div>
     </div>
 </div>
+
+<script>
+function dropdownComponent() {
+    return {
+        open: false,
+        selectedArtworkTypes: {{ selected_artwork_types|default:'[]'|safe }},
+        allArtworkTypes: [{% for type_id in artwork_types.keys %}'{{ type_id }}',{% endfor %}],
+
+        toggleSelectAll() {
+            if (this.selectedArtworkTypes.length === this.allArtworkTypes.length) {
+                this.selectedArtworkTypes = [];
+            } else {
+                this.selectedArtworkTypes = [...this.allArtworkTypes];
+            }
+        },
+
+        get buttonLabel() {
+            if ((this.selectedArtworkTypes.length === this.allArtworkTypes.length)
+                || (this.selectedArtworkTypes.length === 0)) {
+                return 'All Work Types';
+            } else if (this.selectedArtworkTypes.length === 1) {
+                return '1 Work Type';
+            } else {
+                return `${this.selectedArtworkTypes.length} Work Types`;
+            }
+        }
+    };
+}
+</script
