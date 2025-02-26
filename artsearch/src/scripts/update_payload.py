@@ -15,6 +15,14 @@ logging.basicConfig(
 )
 
 
+def update_payload(old_payload: dict) -> dict:
+    new_payload = old_payload.copy()
+    new_payload["object_names_flattened"] = [
+        object_name.get("name").lower() for object_name in old_payload["object_names"]
+    ]
+    return new_payload
+
+
 def process_points(points: list[models.Record]) -> list[models.PointStruct]:
     processed_points = []
     for point in points:
@@ -26,11 +34,7 @@ def process_points(points: list[models.Record]) -> list[models.PointStruct]:
             raise ValueError(
                 f"Point {point.id} has an invalid or missing payload: {point.payload}"
             )
-        new_payload = point.payload.copy()
-        new_payload["object_names_flattened"] = [
-            object_name.get("name").lower()
-            for object_name in point.payload["object_names"]
-        ]
+        new_payload = update_payload(point.payload)
         new_vector = cast(list[float], point.vector)
         processed_points.append(
             models.PointStruct(id=str(point.id), payload=new_payload, vector=new_vector)
