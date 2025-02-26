@@ -19,7 +19,7 @@ from artsearch.views.view_utils import (
 qdrant_service = get_qdrant_service()
 
 # Number of search results to fetch at a time
-RESULTS_PER_PAGE = 10
+RESULTS_PER_PAGE = 20
 
 
 @dataclass
