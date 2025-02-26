@@ -51,7 +51,7 @@ stats: ## Print out collection stats
 	python -m artsearch.src.scripts.collection_stats
 
 
-update-payload: ## Print out collection stats
+update-payload: ## Update collection payload
 	python -m artsearch.src.scripts.update_payload
 
 projection: ## Run projection

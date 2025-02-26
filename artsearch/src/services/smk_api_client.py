@@ -30,14 +30,14 @@ class SMKAPIClient:
         data = response.json()
 
         # Ensure 'items' key exists and contains at least one item
-        if not data.get('items'):
+        if not data.get("items"):
             raise SMKAPIClientError(
                 f"No artwork found with inventory number: {object_number}"
             )
 
         # Extract thumbnail URL safely
         try:
-            return data['items'][0]['image_thumbnail']
+            return data["items"][0]["image_thumbnail"]
         except (KeyError, IndexError):
             raise SMKAPIClientError(
                 f"Missing expected data for object number: {object_number}"

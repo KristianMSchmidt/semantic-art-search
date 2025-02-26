@@ -8,7 +8,7 @@ from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.views.view_utils import (
     retrieve_query,
     retrieve_offset,
-    retrieve_search_action_url,
+    retrieve_search_action,
     retrieve_search_function,
     retrieve_selected_artwork_types,
     make_artwork_types_prefilter,
@@ -26,7 +26,7 @@ RESULTS_PER_PAGE = 10
 class SearchParams:
     request: HttpRequest
     search_function: Callable[[str, int, int, list[str] | None], list[dict]]
-    search_action_url: str
+    search_action: str
     offset: int
     template_name: str
     about_text: str | None = None
@@ -78,7 +78,7 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
 
     offset += limit
 
-    urls = make_urls(offset, params.search_action_url, query, selected_artwork_types)
+    urls = make_urls(offset, params.search_action, query, selected_artwork_types)
 
     context = {
         "artwork_types": ARTWORK_TYPES,
@@ -89,7 +89,6 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
         "error_message": error_message,
         "error_type": error_type,
         "offset": offset,
-        "search_action_url": params.search_action_url,
         "about_text": params.about_text,
         "placeholder": params.placeholder,
         "example_queries": params.example_queries,
@@ -103,7 +102,7 @@ def text_search(request) -> HttpResponse:
         request=request,
         search_function=qdrant_service.search_text,
         no_input_error_message="Please enter a search query.",
-        search_action_url="text-search",
+        search_action="text-search",
         about_text="Explore the SMK collection through meaning-driven search!",
         placeholder="Search by theme, objects, style, or more...",
         example_queries=EXAMPLE_QUERIES,
@@ -118,7 +117,7 @@ def find_similar(request: HttpRequest) -> HttpResponse:
         request=request,
         search_function=qdrant_service.search_similar_images,
         no_input_error_message="Please enter an inventory number.",
-        search_action_url="find-similar",
+        search_action="find-similar",
         about_text="Find similar artworks in the SMK collection.",
         placeholder="Enter the artwork's inventory number",
         example_queries=[],
@@ -133,13 +132,13 @@ def more_results(request: HttpRequest) -> HttpResponse:
     HTMX view that fetches more search results for infinite scrolling.
     """
     offset = retrieve_offset(request)
-    search_action_url = retrieve_search_action_url(request)
-    search_function = retrieve_search_function(search_action_url, qdrant_service)
+    search_action = retrieve_search_action(request)
+    search_function = retrieve_search_function(search_action, qdrant_service)
 
     params = SearchParams(
         request=request,
         search_function=search_function,
-        search_action_url=search_action_url,
+        search_action=search_action,
         offset=offset,
         template_name="partials/artwork_cards_and_trigger.html",
     )
