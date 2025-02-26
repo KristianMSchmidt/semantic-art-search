@@ -17,9 +17,8 @@ logging.basicConfig(
 
 def update_payload(old_payload: dict) -> dict:
     new_payload = old_payload.copy()
-    new_payload["object_names_flattened"] = [
-        object_name.get("name").lower() for object_name in old_payload["object_names"]
-    ]
+    # delete key 'object_names' from the payload
+    new_payload.pop("object_names", None)
     return new_payload
 
 

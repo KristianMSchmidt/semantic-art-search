@@ -33,7 +33,7 @@ class QdrantService:
             "title": payload["titles"][0]["title"],
             "artist": ", ".join(payload["artist"]),
             "object_names": ", ".join(
-                [object_name.get("name") for object_name in payload["object_names"]]
+                name.capitalize() for name in payload["object_names_flattened"]
             ),
             "thumbnail_url": payload["thumbnail_url"],
             "period": period,
@@ -59,7 +59,7 @@ class QdrantService:
                 must=[
                     models.FieldCondition(
                         key="object_number",
-                        match=models.MatchValue(value=object_number),
+                        match=models.MatchValue(value=object_number.upper()),
                     ),
                 ]
             ),

@@ -11,7 +11,7 @@
 
     <!-- Search Form -->
     <div class="mb-4 sm:mb-5">
-        <form id="search-form" method="GET" action="{% url search_action_url %}" class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
+        <form id="search-form" method="GET" action="{{ urls.search_action }}" class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
             <!-- Search Input -->
             <input
                 id="search-input"

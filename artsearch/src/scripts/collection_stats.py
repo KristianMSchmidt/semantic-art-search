@@ -14,11 +14,7 @@ def count_points(points: list[Record]) -> tuple[dict, set]:
     object_name_counts = defaultdict(int)
     for point in points:
         assert point.payload is not None
-        object_names = [
-            object_name.get("name").lower()
-            for object_name in point.payload.get("object_names", [])
-        ]
-        for object_name in object_names:
+        for object_name in point.payload["object_names_flattened"]:
             object_name_counts[object_name] += 1
         object_numbers.add(point.payload.get("object_number"))
     return object_name_counts, object_numbers

@@ -5,7 +5,8 @@ to a Qdrant collection.
 
 import logging
 import uuid
-from typing import Any, List
+from typing import Any, Optional
+from pydantic import BaseModel, HttpUrl
 from qdrant_client.http.models import PointStruct
 from artsearch.src.services.qdrant_service import QdrantService, get_qdrant_service
 from artsearch.src.services.clip_embedder import _CLIPEmbedder, get_clip_embedder
@@ -46,6 +47,16 @@ logging.basicConfig(
 )
 
 
+class ArtworkPayload(BaseModel):
+    object_number: str
+    titles: list[dict]
+    object_names_flattened: list[str]
+    artist: list[str]
+    production_date_start: int
+    production_date_end: int
+    thumbnail_url: Optional[HttpUrl]  # Ensures it's a valid URL
+
+
 def get_user_confirmation() -> None:
     """Prompt the user for confirmation before proceeding."""
     logging.info(
@@ -59,22 +70,27 @@ def get_user_confirmation() -> None:
     logging.info("Proceeding with the program...")
 
 
-def prepare_payload(item: dict[str, Any]) -> dict[str, Any]:
+def prepare_payload(item: dict[str, Any]) -> ArtworkPayload:
     """Prepare payload for Qdrant PointStruct."""
-    return {
-        "object_number": item["object_number"],
-        "titles": item.get("titles", []),
-        "object_names": item.get("object_names", []),
-        "artist": item.get("artist", []),
-        "production_date_start": item["production_date"][0]["start"].split("-")[0],
-        "production_date_end": item["production_date"][0]["end"].split("-")[0],
-        "thumbnail_url": item["image_thumbnail"],
-    }
+    titles = item.get("titles")
+    assert titles, f"Missing titles for item: {item['object_number']}"
+
+    return ArtworkPayload(
+        object_number=item["object_number"],
+        titles=titles,
+        object_names_flattened=[
+            object_name.get("name").lower() for object_name in item["object_names"]
+        ],
+        artist=item.get("artist", []),
+        production_date_start=item["production_date"][0]["start"].split("-")[0],
+        production_date_end=item["production_date"][0]["end"].split("-")[0],
+        thumbnail_url=item["image_thumbnail"],
+    )
 
 
 def process_items(
     data: dict[str, Any], embedder: _CLIPEmbedder, qdrant_service: QdrantService
-) -> List[PointStruct]:
+) -> list[PointStruct]:
     """Process items and return a list of Qdrant PointStruct."""
     points = []
     items = data.get("items", [])
@@ -91,7 +107,7 @@ def process_items(
             continue  # Skip if already uploaded
 
         try:
-            payload = prepare_payload(item)
+            payload = prepare_payload(item).model_dump()
             vector = embedder.generate_thumbnail_embedding(
                 item["image_thumbnail"], item["object_number"], cache=True
             )
