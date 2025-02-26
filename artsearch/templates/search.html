@@ -23,7 +23,8 @@
                 required
             />
 
-          <!-- Dropdown with Checkboxes for Artwork Types -->
+
+            <!-- Dropdown with Checkboxes for Artwork Types -->
 <div class="relative" x-data="{
         open: false,
         selectedArtworkTypes: {{ selected_artwork_types|default:'[]'|safe }},
@@ -39,19 +40,20 @@
     <button
         type="button"
         @click="open = !open"
-        class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none flex items-center justify-between space-x-2 hover:bg-gray-100 hover:border-gray-400"
     >
-        Artwork Types
+        <span>Select Artwork Types</span>
     </button>
+
     <div
         x-show="open"
         @click.away="open = false"
         class="absolute right-0 mt-1 w-56 bg-white border border-gray-300 rounded-md shadow-lg z-20"
         x-cloak
     >
-        <div class="p-2 space-y-2">
+        <div class="p-2 space-y-1">
             <!-- Select/Deselect All Option -->
-            <label class="flex items-center space-x-2 py-1 font-semibold text-gray-700">
+            <label class="flex items-center space-x-2 py-1 font-semibold text-gray-700 hover:bg-gray-100">
                 <input type="checkbox"
                        @click="toggleSelectAll()"
                        :checked="selectedArtworkTypes.length === allArtworkTypes.length"
@@ -61,7 +63,7 @@
 
             <!-- Individual Artwork Type Options -->
             {% for type_id, type_data in artwork_types.items %}
-            <label class="flex items-center space-x-2 py-1">
+            <label class="flex items-center space-x-2 py-1 hover:bg-gray-100 rounded-md px-2">
                 <input
                     type="checkbox"
                     name="artwork_types"

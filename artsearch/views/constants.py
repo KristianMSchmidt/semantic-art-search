@@ -28,5 +28,5 @@ ARTWORK_TYPES = {
     5: {"id": 5, "name": "Altarpieces", "dk_name": "Altertavle (maleri)"},
     6: {"id": 6, "name": "Busts", "dk_name": "Buste"},
     7: {"id": 7, "name": "Pastels", "dk_name": "Pastel"},
-    8: {"id": 8, "name": "Miniature", "dk_name": "Miniature"},
+    8: {"id": 8, "name": "Miniatures", "dk_name": "Miniature"},
 }
