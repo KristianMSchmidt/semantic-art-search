@@ -92,12 +92,22 @@ class QdrantService:
                     )
                 ]
             )
+        search_params = models.SearchParams(exact=True)
+        # exact=True is brute force search (ensures full recall)
+        # This is slower, but okay for smaller collections
+        # If speed becomes an issue, we can instead try
+        # models.SearchParams(hnsw_ef=128) # Try 128, 256, or 512...
+        # for a compromise between speed and recall.
+        # An index on object_names_flattened would speed up
+        # the payload filtering (happens before vector search),
+        # but seems not to be needed yet.
         hits = self.qdrant_client.search(
             collection_name=self.collection_name,
             query_vector=query_vector,
             limit=limit,
             offset=offset,
             query_filter=query_filter,
+            search_params=search_params,
         )
         return self._format_hits(hits)
 
