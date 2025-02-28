@@ -4,6 +4,7 @@ from qdrant_client.conversions import common_types
 from artsearch.src.services.smk_api_client import SMKAPIClient
 from artsearch.src.services.clip_embedder import get_clip_embedder
 from artsearch.src.utils.get_qdrant_client import get_qdrant_client
+from artsearch.src.utils.translate_work_type import work_type_to_english
 from artsearch.src.config import config
 
 
@@ -33,7 +34,8 @@ class QdrantService:
             "title": payload["titles"][0]["title"],
             "artist": ", ".join(payload["artist"]),
             "object_names": ", ".join(
-                name.capitalize() for name in payload["object_names_flattened"]
+                work_type_to_english(name).capitalize()
+                for name in payload["object_names_flattened"]
             ),
             "thumbnail_url": payload["thumbnail_url"],
             "period": period,
@@ -59,7 +61,7 @@ class QdrantService:
                 must=[
                     models.FieldCondition(
                         key="object_number",
-                        match=models.MatchValue(value=object_number.upper()),
+                        match=models.MatchValue(value=object_number),
                     ),
                 ]
             ),
@@ -78,17 +80,17 @@ class QdrantService:
         query_vector: list[float],
         limit: int,
         offset: int,
-        artwork_types: list[str] | None,
+        work_types: list[str] | None,
     ) -> list[dict]:
         """Search for similar items based on a query vector."""
-        if artwork_types is None:
+        if work_types is None:
             query_filter = None
         else:
             query_filter = models.Filter(
                 must=[
                     models.FieldCondition(
                         key="object_names_flattened",
-                        match=models.MatchAny(any=artwork_types),
+                        match=models.MatchAny(any=work_types),
                     )
                 ]
             )
@@ -116,18 +118,18 @@ class QdrantService:
         text_query: str,
         limit: int,
         offset: int,
-        artwork_types: list[str] | None = None,
+        work_types: list[str] | None = None,
     ) -> list[dict]:
         """Search for similar items based on a text query."""
         query_vector = get_clip_embedder().generate_text_embedding(text_query)
-        return self._search(query_vector, limit, offset, artwork_types)
+        return self._search(query_vector, limit, offset, work_types)
 
     def search_similar_images(
         self,
         object_number: str,
         limit: int,
         offset: int,
-        artwork_types: list[str] | None = None,
+        work_types: list[str] | None = None,
     ) -> list[dict]:
         """Search for similar items based on an image embedding."""
         query_vector = self._get_vector_by_object_number(object_number)
@@ -145,7 +147,7 @@ class QdrantService:
                 "Could not generate embedding for the provided object number"
             )
 
-        return self._search(query_vector, limit, offset, artwork_types)
+        return self._search(query_vector, limit, offset, work_types)
 
     def get_random_sample(self, limit: int) -> list[dict]:
         """Get a random sample of items from the collection."""

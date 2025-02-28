@@ -20,21 +20,21 @@
             <label class="flex items-center space-x-2 py-1 font-semibold text-gray-700 hover:bg-gray-100">
                 <input type="checkbox"
                     @click="toggleSelectAll()"
-                    :checked="selectedArtworkTypes.length === allArtworkTypes.length"
+                    :checked="selectedWorkTypes.length === allWorkTypes.length"
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                 <span>Select All</span>
             </label>
 
             <!-- Individual Artwork Type Options -->
-            {% for type_id, type_data in artwork_types.items %}
+            {% for type_id, type_data in work_types.items %}
             <label class="flex items-center space-x-2 py-1 hover:bg-gray-100 rounded-md px-2">
                 <input
                     type="checkbox"
-                    name="artwork_types"
+                    name="work_types"
                     value="{{ type_id }}"
-                    x-model="selectedArtworkTypes"
+                    x-model="selectedWorkTypes"
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                <span>{{ type_data.name }}</span>
+                <span>{{ type_data.name_plural | capfirst }}</span>
             </label>
             {% endfor %}
         </div>
@@ -45,25 +45,25 @@
 function dropdownComponent() {
     return {
         open: false,
-        selectedArtworkTypes: {{ selected_artwork_types|default:'[]'|safe }},
-        allArtworkTypes: [{% for type_id in artwork_types.keys %}'{{ type_id }}',{% endfor %}],
+        selectedWorkTypes: {{ selected_work_types|default:'[]'|safe }},
+        allWorkTypes: [{% for type_id in work_types.keys %}'{{ type_id }}',{% endfor %}],
 
         toggleSelectAll() {
-            if (this.selectedArtworkTypes.length === this.allArtworkTypes.length) {
-                this.selectedArtworkTypes = [];
+            if (this.selectedWorkTypes.length === this.allWorkTypes.length) {
+                this.selectedWorkTypes = [];
             } else {
-                this.selectedArtworkTypes = [...this.allArtworkTypes];
+                this.selectedWorkTypes = [...this.allWorkTypes];
             }
         },
 
         get buttonLabel() {
-            if ((this.selectedArtworkTypes.length === this.allArtworkTypes.length)
-                || (this.selectedArtworkTypes.length === 0)) {
+            if ((this.selectedWorkTypes.length === this.allWorkTypes.length)
+                || (this.selectedWorkTypes.length === 0)) {
                 return 'All Work Types';
-            } else if (this.selectedArtworkTypes.length === 1) {
+            } else if (this.selectedWorkTypes.length === 1) {
                 return '1 Work Type';
             } else {
-                return `${this.selectedArtworkTypes.length} Work Types`;
+                return `${this.selectedWorkTypes.length} Work Types`;
             }
         }
     };

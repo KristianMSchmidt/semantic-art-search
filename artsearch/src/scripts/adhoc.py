@@ -30,7 +30,6 @@ def test_search():
         offset=0,
         query_filter=query_filter,
     )
-    breakpoint()
 
 
 def make_favicon():

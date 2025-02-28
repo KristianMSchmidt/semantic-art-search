@@ -3,7 +3,7 @@ from typing import Callable
 from django.http import HttpRequest
 from django.urls import reverse
 from artsearch.src.services.qdrant_service import QdrantService
-from artsearch.views.constants import ARTWORK_TYPES
+from artsearch.src.constants import WORK_TYPES
 
 
 def retrieve_query(request: HttpRequest) -> str | None:
@@ -35,24 +35,21 @@ def retrieve_search_function(
         return qdrant_service.search_similar_images
 
 
-def retrieve_selected_artwork_types(request: HttpRequest) -> list[str]:
-    selected_artwork_types = request.GET.getlist("artwork_types")
-    # If no artwork types are selected, return all artwork types
-    if not selected_artwork_types:
-        return list(map(str, ARTWORK_TYPES.keys()))
-    return selected_artwork_types
+def retrieve_selected_work_types(request: HttpRequest) -> list[str]:
+    selected_work_types = request.GET.getlist("work_types")
+    # If no work types are selected, return all work types
+    if not selected_work_types:
+        return list(map(str, WORK_TYPES.keys()))
+    return selected_work_types
 
 
-def make_artwork_types_prefilter(
-    selected_artwork_types: list[str],
+def make_work_types_prefilter(
+    selected_work_types: list[str],
 ) -> list[str] | None:
-    # If all artwork types are selected, or none are selected, return None (We don't need to filter by artwork type)
-    if not selected_artwork_types or len(selected_artwork_types) == len(ARTWORK_TYPES):
+    # If all work types are selected, or none are selected, return None (We don't need to filter by work type)
+    if not selected_work_types or len(selected_work_types) == len(WORK_TYPES):
         return None
-    return [
-        ARTWORK_TYPES[int(artwork_type)]["dk_name"].lower()
-        for artwork_type in selected_artwork_types
-    ]
+    return [WORK_TYPES[int(work_type)].dk_name for work_type in selected_work_types]
 
 
 def make_url(
@@ -60,7 +57,7 @@ def make_url(
     offset: int | None = None,
     search_action: str | None = None,
     query: str | None = None,
-    selected_artwork_types: list[str] = [],
+    selected_work_types: list[str] = [],
 ) -> str:
     query_params = {}
     if offset is not None:
@@ -69,8 +66,8 @@ def make_url(
         query_params["search_action"] = search_action
     if query:
         query_params["query"] = query
-    if selected_artwork_types:
-        query_params["artwork_types"] = selected_artwork_types
+    if selected_work_types:
+        query_params["work_types"] = selected_work_types
 
     return f"{reverse(url_name)}?{urlencode(query_params, doseq=True)}"
 
@@ -79,7 +76,7 @@ def make_urls(
     offset: int,
     search_action: str,
     query: str | None,
-    selected_artwork_types: list[str],
+    selected_work_types: list[str],
 ) -> dict[str, str]:
     return {
         "home": make_url("text-search"),
@@ -87,6 +84,6 @@ def make_urls(
         "find_similar": make_url("find-similar"),
         "search_action": make_url(search_action),
         "more_results": make_url(
-            "more-results", offset, search_action, query, selected_artwork_types
+            "more-results", offset, search_action, query, selected_work_types
         ),
     }

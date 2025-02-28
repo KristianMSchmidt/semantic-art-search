@@ -3,15 +3,15 @@ from dataclasses import dataclass
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from artsearch.src.services.smk_api_client import SMKAPIClientError
-from artsearch.views.constants import EXAMPLE_QUERIES, ARTWORK_TYPES
+from artsearch.src.constants import EXAMPLE_QUERIES, WORK_TYPES
 from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.views.view_utils import (
     retrieve_query,
     retrieve_offset,
     retrieve_search_action,
     retrieve_search_function,
-    retrieve_selected_artwork_types,
-    make_artwork_types_prefilter,
+    retrieve_selected_work_types,
+    make_work_types_prefilter,
     make_urls,
 )
 
@@ -40,8 +40,8 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
 
     offset = params.offset
     query = retrieve_query(params.request)
-    selected_artwork_types = retrieve_selected_artwork_types(params.request)
-    artwork_types_prefilter = make_artwork_types_prefilter(selected_artwork_types)
+    selected_work_types = retrieve_selected_work_types(params.request)
+    work_types_prefilter = make_work_types_prefilter(selected_work_types)
 
     # Set default context paramters
     text_above_results = ""
@@ -64,9 +64,7 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
         # The user submitted a query.
         query = query.strip()
         try:
-            results = params.search_function(
-                query, limit, offset, artwork_types_prefilter
-            )
+            results = params.search_function(query, limit, offset, work_types_prefilter)
             text_above_results = "Search results (best match first)"
         except SMKAPIClientError as e:
             error_message = str(e)
@@ -78,11 +76,11 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
 
     offset += limit
 
-    urls = make_urls(offset, params.search_action, query, selected_artwork_types)
+    urls = make_urls(offset, params.search_action, query, selected_work_types)
 
     context = {
-        "artwork_types": ARTWORK_TYPES,
-        "selected_artwork_types": selected_artwork_types,
+        "work_types": WORK_TYPES,
+        "selected_work_types": selected_work_types,
         "query": query,
         "results": results,
         "text_above_results": text_above_results,
@@ -142,4 +140,5 @@ def more_results(request: HttpRequest) -> HttpResponse:
         offset=offset,
         template_name="partials/artwork_cards_and_trigger.html",
     )
+
     return handle_search(params)
