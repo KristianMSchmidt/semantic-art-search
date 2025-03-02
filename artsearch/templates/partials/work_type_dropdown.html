@@ -22,11 +22,12 @@
                     @click="toggleSelectAll()"
                     :checked="selectedWorkTypes.length === allWorkTypes.length"
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                <span>Select All</span>
+                <span class="text-nowrap">Select All <span class="text-gray-600 font-normal">({{work_types.0.count}} works)</span></span>
             </label>
 
             <!-- Individual Artwork Type Options -->
             {% for type_id, type_data in work_types.items %}
+            {% if type_data.name != 'total'%}
             <label class="flex items-center space-x-2 py-1 hover:bg-gray-100 rounded-md px-2">
                 <input
                     type="checkbox"
@@ -34,8 +35,9 @@
                     value="{{ type_id }}"
                     x-model="selectedWorkTypes"
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                <span>{{ type_data.name_plural | capfirst }}</span>
+                <span class="text-nowrap">{{ type_data.name_plural | capfirst }} <span class="text-gray-600 font-normal">({{type_data.count}} works)</span></span>
             </label>
+            {% endif %}
             {% endfor %}
         </div>
     </div>

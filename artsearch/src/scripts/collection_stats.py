@@ -26,10 +26,10 @@ def print_stats(object_name_counts, object_numbers, points_data):
     print("Qdrant collection:", SOURCE_COLLECTION)
     print()
     # Print the counts (ordered by number of points)
-    for object_name, count in sorted(
-        object_name_counts.items(), key=lambda x: x[1], reverse=True
+    for index, (object_name, count) in enumerate(
+        sorted(object_name_counts.items(), key=lambda x: x[1], reverse=True)
     ):
-        print(f"'{object_name}': {count}")
+        print(f"{index + 1}. '{object_name}': {count}")
 
     # Print the total number of points
     print(f"Total number of artworks: {len(points_data)}")
