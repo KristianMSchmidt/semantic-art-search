@@ -39,7 +39,6 @@ class WorkType:
 
 # TODO: Avoid hardcoding the count
 WORK_TYPES: dict[int, WorkType] = {
-    0: WorkType(id=0, name="total", name_plural="total", dk_name="total", count=19027),
     1: WorkType(
         id=1, name="drawing", name_plural="drawings", dk_name="tegning", count=13795
     ),
@@ -80,3 +79,6 @@ WORK_TYPES = dict(
 # Assert id is equal to the key in WORK_TYPES
 for id, work_type in WORK_TYPES.items():
     assert id == work_type.id
+
+# TODO: Avoid hardcoding the count
+TOTAL_WORK_COUNT = 19027

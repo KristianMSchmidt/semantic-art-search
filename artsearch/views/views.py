@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from artsearch.src.services.smk_api_client import SMKAPIClientError
-from artsearch.src.constants import EXAMPLE_QUERIES, WORK_TYPES
+from artsearch.src.constants import EXAMPLE_QUERIES, WORK_TYPES, TOTAL_WORK_COUNT
 from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.views.view_utils import (
     retrieve_query,
@@ -80,6 +80,7 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
 
     context = {
         "work_types": WORK_TYPES,
+        "total_work_count": TOTAL_WORK_COUNT,
         "selected_work_types": selected_work_types,
         "query": query,
         "results": results,
