@@ -9,6 +9,11 @@ Semantic Art Search offers two ways to explore artworks:
 - **Search by text** – Describe what you're looking for in natural language, and find paintings that match the meaning.
 - **Find similar** – Select an artwork and discover visually or thematically related pieces.
 
+## 💡 Pro Tip: Refining Your Search
+For even better results, try combining both search methods:
+1. **Start with a text search** – Enter a broad description (e.g., a theme or motif).
+2. **Refine with "Find Similar"** – Select the artwork that best fits your intent and discover related pieces.
+
 ## 🖼️ Behind the Scenes
 The system uses **CLIP, a multimodal neural network**, to transform both images and text into a shared vector space. Searches are performed using **vector-based nearest neighbor retrieval**, enabling more intuitive and meaningful results.
 
