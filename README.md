@@ -14,6 +14,8 @@ The system uses **CLIP, a multimodal neural network**, to transform both images 
 
 Unlike traditional search methods, **this system does not use titles, artist names, or other metadata** — it relies entirely on the **visual and semantic content** of the artworks.
 
+Currently, **text search is only available in English** due to the model's training data. However, **multilingual support could be added by using a larger model trained on multiple languages**.
+
 ## 🎨 Artwork Coverage
 Currently, the search covers a **subset of SMK's collection**, including artworks that:
 - Are in the **public domain**
