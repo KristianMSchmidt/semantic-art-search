@@ -12,6 +12,8 @@ Semantic Art Search offers two ways to explore artworks:
 ## 🖼️ Behind the Scenes
 The system uses **CLIP, a multimodal neural network**, to transform both images and text into a shared vector space. Searches are performed using **vector-based nearest neighbor retrieval**, enabling more intuitive and meaningful results.
 
+Unlike traditional search methods, **this system does not use titles, artist names, or other metadata** — it relies entirely on the **visual and semantic content** of the artworks.
+
 ## 🎨 Artwork Coverage
 Currently, the search covers a **subset of SMK's collection**, including artworks that:
 - Are in the **public domain**
