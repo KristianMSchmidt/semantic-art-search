@@ -6,7 +6,7 @@
 
 ## 🔎 How It Works
 Semantic Art Search offers two ways to explore artworks:
-- **Search by text** – Describe what you're looking for in natural language, and find paintings that match the meaning. The search engine understands short phrases and abstract concepts, so go ahead and try queries like *"War"* or *"Reading child"*.
+- **Search by text** – Describe what you're looking for in natural language, and find paintings that match the meaning. The search engine understands short phrases and abstract concepts, so go ahead and try queries like *"Ancient Rome"*, *"War"*,  or *"Reading child"*.
 - **Find similar** – Select an artwork and discover visually or thematically related pieces.
 
 ## 💡 Pro Tip: Refining Your Search
