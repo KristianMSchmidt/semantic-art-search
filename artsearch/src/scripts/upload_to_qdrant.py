@@ -10,13 +10,13 @@ from pydantic import BaseModel, HttpUrl
 from qdrant_client.http.models import PointStruct
 from artsearch.src.services.qdrant_service import QdrantService, get_qdrant_service
 from artsearch.src.services.clip_embedder import _CLIPEmbedder, get_clip_embedder
-from artsearch.src.services.smk_api_client import SMKAPIClient
+from artsearch.src.services.museum_clients import SMKAPIClient
 from artsearch.src.config import clip_selection
 
 
 # Constants
 CLIP_MODEL_NAME: clip_selection = "ViT-L/14"
-UPLOAD_COLLECTION_NAME = "smk_artworks_dev_l_14"
+UPLOAD_COLLECTION_NAME = "artworks_dev"
 
 FIELDS = [
     "titles",
@@ -55,6 +55,7 @@ class ArtworkPayload(BaseModel):
     production_date_start: int
     production_date_end: int
     thumbnail_url: Optional[HttpUrl]  # Ensures it's a valid URL
+    museum: str
 
 
 def get_user_confirmation() -> None:
@@ -85,6 +86,7 @@ def prepare_payload(item: dict[str, Any]) -> ArtworkPayload:
         production_date_start=item["production_date"][0]["start"].split("-")[0],
         production_date_end=item["production_date"][0]["end"].split("-")[0],
         thumbnail_url=item["image_thumbnail"],
+        museum="SMK",
     )
 
 

@@ -1,7 +1,7 @@
 from typing import cast
 from qdrant_client import QdrantClient, models
 from qdrant_client.conversions import common_types
-from artsearch.src.services.smk_api_client import SMKAPIClient
+from artsearch.src.services.museum_clients import SMKAPIClient
 from artsearch.src.services.clip_embedder import get_clip_embedder
 from artsearch.src.utils.get_qdrant_client import get_qdrant_client
 from artsearch.src.utils.translate_work_type import work_type_to_english

@@ -1,8 +1,25 @@
 from qdrant_client import QdrantClient, models
 from PIL import Image
 import requests
-from artsearch.src.services.smk_api_client import SMKAPIClient
+from artsearch.src.services.museum_clients import SMKAPIClient
 from artsearch.src.services.qdrant_service import get_qdrant_service
+from artsearch.src.services.museum_clients import CMAAPIClient
+
+
+def test_CMAAPIClient():
+    cma_client = CMAAPIClient()
+    thumbnail_url = cma_client.get_thumbnail_url("1998.78.14")
+    print(thumbnail_url)
+    query = {
+        "skip": 7,
+        "limit": 100,
+        "has_image": 1,
+        "type": "Painting",
+        "cc0": 1,
+    }
+
+    results = cma_client.fetch_data(query)
+    print(results)
 
 
 def test_search():
@@ -58,6 +75,7 @@ def make_favicon():
 
 
 if "__main__" == "__main__":
-    test_search()
+    test_CMAAPIClient()
+    # test_search()
     pass
     # make_favicon()

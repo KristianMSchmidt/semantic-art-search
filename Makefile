@@ -47,6 +47,10 @@ adhoc: # Adhoc scripts only used during development
 upload-to-qdrant: ## upload images to qdrant
 	python -m artsearch.src.scripts.upload_to_qdrant
 
+upload-to-qdrant-CMA: ## upload images to qdrant
+	python -m artsearch.src.scripts.upload_to_qdrant_CMA
+
+
 stats: ## Print out collection stats
 	python -m artsearch.src.scripts.collection_stats
 
