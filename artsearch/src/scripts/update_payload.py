@@ -7,7 +7,7 @@ from typing import cast
 from qdrant_client import models
 from artsearch.src.services.qdrant_service import get_qdrant_service
 
-COLLECTION_NAME = "smk_artworks_dev_l_14"
+COLLECTION_NAME = "artworks_dev_2"
 
 # Configure logging
 logging.basicConfig(
@@ -18,7 +18,10 @@ logging.basicConfig(
 def update_payload(old_payload: dict) -> dict:
     new_payload = old_payload.copy()
     # delete key 'object_names' from the payload
-    new_payload.pop("object_names", None)
+    museum = new_payload.pop("museum", None)
+    if not museum:
+        raise ValueError(f"Missing museum in payload: {old_payload}")
+    new_payload["museum"] = museum.lower()
     return new_payload
 
 
@@ -29,10 +32,8 @@ def process_points(points: list[models.Record]) -> list[models.PointStruct]:
             raise ValueError(
                 f"Point {point.id} has an invalid or missing vector: {point.vector}"
             )
-        if not point.payload or "object_names" not in point.payload:
-            raise ValueError(
-                f"Point {point.id} has an invalid or missing payload: {point.payload}"
-            )
+        if not point.payload:
+            raise ValueError(f"Point {point.id} has a missing payload: {point.payload}")
         new_payload = update_payload(point.payload)
         new_vector = cast(list[float], point.vector)
         processed_points.append(

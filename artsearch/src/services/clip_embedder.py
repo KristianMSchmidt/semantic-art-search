@@ -1,5 +1,5 @@
 import time
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from io import BytesIO
 import requests
 import os
@@ -8,8 +8,15 @@ from functools import lru_cache
 import clip
 import torch
 from artsearch.src.utils.session_config import get_configured_session
+from artsearch.src.services.museum_clients import MuseumName
 from artsearch.src.config import clip_selection
 from artsearch.src.config import config
+
+
+class ImageDownloadError(Exception):
+    """Custom exception for image download failures."""
+
+    pass
 
 
 class _CLIPEmbedder:
@@ -58,31 +65,46 @@ class _CLIPEmbedder:
         print(f"Model loaded on in {time.time() - start_time:.2f}s")
         return model, preprocess
 
-    def _get_local_image_path(self, object_number: str) -> str:
+    def _get_local_image_path(self, museum_name: MuseumName, object_number: str) -> str:
         """Return the local file path for a cached image."""
-        return os.path.join(self.cache_dir, f"{object_number}.jpg")
+        return os.path.join(self.cache_dir, museum_name, f"{object_number}.jpg")
 
     def _download_image(self, url: str, save_path: str, cache: bool) -> Image.Image:
-        """Download an image from a URL and optionally save it locally."""
-        response = self.http_session.get(url)
-        response.raise_for_status()
+        """Download an image from a URL and optionally save it locally.
+        Raises an exception if the request fails or the image cannot be processed.
+        """
+        try:
+            response = self.http_session.get(str(url), timeout=10)
+            response.raise_for_status()
 
-        image_bytes = response.content
+            if not response.content:  # Handle empty responses
+                raise ImageDownloadError(f"Empty response from URL: {url}")
 
-        if cache:
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            with open(save_path, "wb") as f:
-                f.write(image_bytes)
-            return Image.open(save_path).convert("RGB")
+            image_bytes = response.content
 
-        return Image.open(BytesIO(image_bytes)).convert("RGB")
+            if cache:
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                with open(save_path, "wb") as f:
+                    f.write(image_bytes)
+                return Image.open(save_path).convert("RGB")
+
+            return Image.open(BytesIO(image_bytes)).convert("RGB")
+
+        except requests.RequestException as e:
+            raise ImageDownloadError(f"Error downloading image from {url}: {e}")
+
+        except (UnidentifiedImageError, OSError, ValueError) as e:
+            raise ImageDownloadError(f"Invalid or corrupted image from {url}: {e}")
 
     def _load_image(
-        self, thumbnail_url: str, object_number: str, cache: bool
+        self,
+        thumbnail_url: str,
+        museum_name: MuseumName,
+        object_number: str,
+        cache: bool,
     ) -> Image.Image:
         """Load an image from the cache or download it."""
-        local_path = self._get_local_image_path(object_number)
-
+        local_path = self._get_local_image_path(museum_name, object_number)
         if cache and os.path.exists(local_path):
             print(f"Using cached image: {local_path}")
             return Image.open(local_path).convert("RGB")
@@ -91,7 +113,11 @@ class _CLIPEmbedder:
             return self._download_image(thumbnail_url, local_path, cache)
 
     def generate_thumbnail_embedding(
-        self, thumbnail_url: str, object_number: str, cache: bool
+        self,
+        thumbnail_url: str,
+        museum_name: MuseumName,
+        object_number: str,
+        cache: bool,
     ) -> list[float] | None:
         """
         Generate an image embedding from a URL or cached image.
@@ -104,7 +130,7 @@ class _CLIPEmbedder:
             list[float]: The embedding vector as a list, or None if an error occurs.
         """
         try:
-            img = self._load_image(thumbnail_url, object_number, cache)
+            img = self._load_image(thumbnail_url, museum_name, object_number, cache)
             image_tensor = self.preprocess(img).unsqueeze(0).to(self.device)
             with torch.no_grad():
                 embedding = (

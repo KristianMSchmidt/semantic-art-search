@@ -1,10 +1,13 @@
 from typing import cast
 from qdrant_client import QdrantClient, models
 from qdrant_client.conversions import common_types
-from artsearch.src.services.museum_clients import SMKAPIClient
+from artsearch.src.services.museum_clients import (
+    SMKAPIClient,
+    CMAAPIClient,
+    MuseumName,
+)
 from artsearch.src.services.clip_embedder import get_clip_embedder
 from artsearch.src.utils.get_qdrant_client import get_qdrant_client
-from artsearch.src.utils.translate_work_type import work_type_to_english
 from artsearch.src.config import config
 
 
@@ -13,11 +16,13 @@ class QdrantService:
         self,
         qdrant_client: QdrantClient,
         smk_api_client: SMKAPIClient,
+        cma_api_client: CMAAPIClient,
         collection_name: str,
     ):
         self.qdrant_client = qdrant_client
         self.collection_name = collection_name
         self.smk_api_client = smk_api_client
+        self.cma_api_client = cma_api_client
 
     def _format_payload(self, payload: models.Payload | None) -> dict:
         if payload is None:
@@ -33,9 +38,8 @@ class QdrantService:
         return {
             "title": payload["titles"][0]["title"],
             "artist": ", ".join(payload["artist"]),
-            "object_names": ", ".join(
-                work_type_to_english(name).capitalize()
-                for name in payload["object_names_flattened"]
+            "work_types": ", ".join(
+                name.capitalize() for name in payload["work_types"]
             ),
             "thumbnail_url": payload["thumbnail_url"],
             "period": period,
@@ -81,26 +85,34 @@ class QdrantService:
         limit: int,
         offset: int,
         work_types: list[str] | None,
+        museum: MuseumName,
     ) -> list[dict]:
         """Search for similar items based on a query vector."""
-        if work_types is None:
-            query_filter = None
-        else:
-            query_filter = models.Filter(
-                must=[
-                    models.FieldCondition(
-                        key="object_names_flattened",
-                        match=models.MatchAny(any=work_types),
-                    )
-                ]
+        conditions = []
+
+        conditions.append(
+            models.FieldCondition(
+                key="museum",
+                match=models.MatchValue(value=museum),
             )
+        )
+
+        if work_types is not None:
+            conditions.append(
+                models.FieldCondition(
+                    key="work_types",
+                    match=models.MatchAny(any=work_types),
+                )
+            )
+
+        query_filter = models.Filter(must=conditions)
         search_params = models.SearchParams(exact=True)
         # exact=True is brute force search (ensures full recall)
         # This is slower, but okay for smaller collections
         # If speed becomes an issue, we can instead try
         # models.SearchParams(hnsw_ef=128) # Try 128, 256, or 512...
         # for a compromise between speed and recall.
-        # An index on object_names_flattened would speed up
+        # An index on work_types would speed up
         # the payload filtering (happens before vector search),
         # but seems not to be needed yet.
         hits = self.qdrant_client.search(
@@ -116,17 +128,19 @@ class QdrantService:
     def search_text(
         self,
         text_query: str,
+        museum: MuseumName,
         limit: int,
         offset: int,
         work_types: list[str] | None = None,
     ) -> list[dict]:
         """Search for similar items based on a text query."""
         query_vector = get_clip_embedder().generate_text_embedding(text_query)
-        return self._search(query_vector, limit, offset, work_types)
+        return self._search(query_vector, limit, offset, work_types, museum)
 
     def search_similar_images(
         self,
         object_number: str,
+        museum: MuseumName,
         limit: int,
         offset: int,
         work_types: list[str] | None = None,
@@ -136,9 +150,12 @@ class QdrantService:
 
         # Generate a new embedding if the object number is not found
         if query_vector is None:
-            thumbnail_url = self.smk_api_client.get_thumbnail_url(object_number)
+            if museum == "smk":
+                thumbnail_url = self.smk_api_client.get_thumbnail_url(object_number)
+            elif museum == "cma":
+                thumbnail_url = self.cma_api_client.get_thumbnail_url(object_number)
             query_vector = get_clip_embedder().generate_thumbnail_embedding(
-                thumbnail_url, object_number, cache=False
+                thumbnail_url, museum, object_number, cache=False
             )
 
         # If the object number is still not found, raise an error
@@ -146,12 +163,21 @@ class QdrantService:
             raise ValueError(
                 "Could not generate embedding for the provided object number"
             )
+        return self._search(query_vector, limit, offset, work_types, museum)
 
-        return self._search(query_vector, limit, offset, work_types)
-
-    def get_random_sample(self, limit: int) -> list[dict]:
+    def get_random_sample(self, museum: MuseumName, limit: int) -> list[dict]:
         """Get a random sample of items from the collection."""
+
+        query_filter = models.Filter(
+            must=[
+                models.FieldCondition(
+                    key="museum",
+                    match=models.MatchValue(value=museum),
+                )
+            ]
+        )
         sampled = self.qdrant_client.query_points(
+            query_filter=query_filter,
             collection_name=self.collection_name,
             query=models.SampleQuery(sample=models.Sample.RANDOM),
             with_vectors=False,
@@ -182,6 +208,7 @@ class QdrantService:
         next_page_token,
         limit: int = 1000,
         with_vectors: bool = False,
+        with_payload: bool | list[str] = True,
     ) -> tuple[list[models.Record], common_types.PointId | None]:
         """Fetch points from a Qdrant collection with pagination."""
         if collection_name is None:
@@ -190,7 +217,7 @@ class QdrantService:
         points, next_page_token = self.qdrant_client.scroll(
             collection_name=collection_name,
             scroll_filter=None,
-            with_payload=True,
+            with_payload=with_payload,
             with_vectors=with_vectors,
             limit=limit,  # Fetch in small batches
             offset=next_page_token,  # Fetch next batch
@@ -198,30 +225,8 @@ class QdrantService:
 
         return points, next_page_token
 
-    def fetch_all_points(
-        self, collection_name: str | None = None, limit: int = 1000
-    ) -> list[models.Record]:
-        """Fetch all points from a Qdrant collection with pagination."""
-        if collection_name is None:
-            collection_name = self.collection_name
-
-        all_points = []
-        next_page_token = None  # Used for pagination
-
-        while True:
-            points, next_page_token = self.fetch_points(
-                collection_name,
-                next_page_token,
-                limit,
-            )
-            all_points.extend(points)
-            if next_page_token is None:  # No more points left
-                break
-
-        return all_points
-
     def get_existing_object_numbers(
-        self, collection_name: str, object_numbers: list[str]
+        self, collection_name: str, object_numbers: list[str], museum: MuseumName
     ) -> set[str]:
         """
         Given a list of object numbers, returns the set of object numbers from
@@ -232,7 +237,11 @@ class QdrantService:
                 models.FieldCondition(
                     key="object_number",
                     match=models.MatchAny(any=object_numbers),
-                )
+                ),
+                models.FieldCondition(
+                    key="museum",
+                    match=models.MatchValue(value=museum),
+                ),
             ]
         )
 
@@ -255,9 +264,10 @@ class QdrantService:
         return existing_object_numbers
 
 
-def get_qdrant_service():
+def get_qdrant_service() -> QdrantService:
     return QdrantService(
         qdrant_client=get_qdrant_client(),
         smk_api_client=SMKAPIClient(),
+        cma_api_client=CMAAPIClient(),
         collection_name=config.qdrant_collection_name,
     )

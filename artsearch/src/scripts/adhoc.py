@@ -3,7 +3,110 @@ from PIL import Image
 import requests
 from artsearch.src.services.museum_clients import SMKAPIClient
 from artsearch.src.services.qdrant_service import get_qdrant_service
-from artsearch.src.services.museum_clients import CMAAPIClient
+from artsearch.src.services.museum_clients import CMAAPIClient, MuseumName
+from artsearch.src.services.qdrant_service import QdrantService
+from qdrant_client.models import CollectionInfo, PointStruct, Distance, VectorParams
+import uuid
+from typing import Literal
+import time
+
+import logging
+
+logging.basicConfig(level=logging.WARNING)
+
+
+def count_work_types():
+    from collections import defaultdict
+
+    qdrant_service = get_qdrant_service()
+
+    # Parameters
+    collection_name = "artworks_dev_2"
+
+    # Step 1: Scroll through all points to get museum and work_types
+    all_counts = defaultdict(lambda: defaultdict(int))
+    next_page_token = None
+
+    while True:
+        points, next_page_token = qdrant_service.fetch_points(
+            collection_name,
+            next_page_token,
+            limit=100,
+            with_payload=["museum", "work_types"],
+        )
+
+        for point in points:
+            payload = point.payload
+            if payload is None:
+                logging.warning(f"Skipping point with missing payload: {point}")
+                continue
+            museum = payload.get("museum")
+            if museum is None:
+                logging.warning(f"Skipping point with missing museum: {point}")
+                continue
+            work_types = payload.get("work_types", [])
+            if not isinstance(work_types, list):
+                logging.warning(f"Skipping point with invalid work_types: {point}")
+                continue
+            for work_type in work_types:
+                all_counts[museum][work_type] += 1
+                all_counts[museum]["total"] += 1
+
+        if next_page_token is None:
+            break
+
+    # Print the result
+    for museum, counts in all_counts.items():
+        print(f"Museum: {museum}")
+        for work_type, count in counts.items():
+            print(f"  {work_type}: {count}")
+
+
+def control():
+    id = uuid.uuid5(uuid.NAMESPACE_DNS, "SMK-KKS596a verso")
+    print(id)
+
+
+def generate_id(museum_name: MuseumName, object_number: str) -> str:
+    id = uuid.uuid5(uuid.NAMESPACE_DNS, f"{museum_name.upper()}-{str(object_number)}")
+    return str(id)
+
+
+def copy():
+    # Retrieve all points (handle pagination for large datasets)
+    qdrant_service = get_qdrant_service()
+    qdrant_client = qdrant_service.qdrant_client
+
+    batch_size = 1000
+    offset = None
+
+    while True:
+        points, next_offset = qdrant_client.scroll(
+            collection_name="artworks_dev",
+            limit=batch_size,
+            with_vectors=True,
+            offset=offset,
+        )
+        if not points:
+            break
+        # Define new IDs (example: incrementing by 1000)
+        updated_points = [
+            PointStruct(
+                id=generate_id("smk", p.payload["object_number"]),
+                vector=p.vector,
+                payload=p.payload,
+            )
+            for p in points
+        ]
+
+        qdrant_client.upsert(collection_name="artworks_dev_2", points=updated_points)
+
+        print(f"Processed {len(points)} points")
+
+        # Stop when the last batch is smaller than batch_size
+        if len(points) < batch_size:
+            break
+        offset = next_offset
 
 
 def test_CMAAPIClient():
@@ -14,12 +117,9 @@ def test_CMAAPIClient():
         "skip": 7,
         "limit": 100,
         "has_image": 1,
-        "type": "Painting",
+        "type": "Drawing",
         "cc0": 1,
     }
-
-    results = cma_client.fetch_data(query)
-    print(results)
 
 
 def test_search():
@@ -30,12 +130,12 @@ def test_search():
 
     query_vector = [0.1 for i in range(768)]
 
-    # Filter for points where 'maleri' is in object_names_flattened
+    # Filter for points where 'maleri' is in work_types
     query_filter = models.Filter(
         must=[
             models.FieldCondition(
-                # key="object_names_flattened", match=models.MatchValue(value="akvarel")
-                key="object_names_flattened",
+                # key="work_types", match=models.MatchValue(value="akvarel")
+                key="work_types",
                 match=models.MatchAny(any=["akvarel", "grafik"]),
             )
         ]
@@ -75,7 +175,11 @@ def make_favicon():
 
 
 if "__main__" == "__main__":
-    test_CMAAPIClient()
+    print("Running adhoc script")
+    count_work_types()
+    # control()
+    # copy()
+    # test_CMAAPIClient()
     # test_search()
     pass
     # make_favicon()

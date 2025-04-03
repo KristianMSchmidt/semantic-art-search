@@ -22,22 +22,20 @@
                     @click="toggleSelectAll()"
                     :checked="selectedWorkTypes.length === allWorkTypes.length"
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                <span class="text-nowrap">Select All <span class="text-gray-600 font-normal">({{total_work_count}} works)</span></span>
+                <span class="text-nowrap">Select All <span class="text-gray-600 font-normal">({{work_count.total}} works)</span></span>
             </label>
 
             <!-- Individual Artwork Type Options -->
-            {% for type_id, type_data in work_types.items %}
-            {% if type_data.name != 'total'%}
+            {% for work_type, count in work_count.work_types.items %}
             <label class="flex items-center space-x-2 py-1 hover:bg-gray-100 rounded-md px-2">
                 <input
                     type="checkbox"
                     name="work_types"
-                    value="{{ type_id }}"
+                    value="{{ work_type }}"
                     x-model="selectedWorkTypes"
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                <span class="text-nowrap">{{ type_data.name_plural | capfirst }} <span class="text-gray-600 font-normal">({{type_data.count}} works)</span></span>
+                <span class="text-nowrap">{{ work_type | capfirst }}s <span class="text-gray-600 font-normal">({{count}} works)</span></span>
             </label>
-            {% endif %}
             {% endfor %}
         </div>
     </div>
@@ -47,8 +45,8 @@
 function dropdownComponent() {
     return {
         open: false,
-        selectedWorkTypes: {{ selected_work_types|default:'[]'|safe }},
-        allWorkTypes: [{% for type_id in work_types.keys %}'{{ type_id }}',{% endfor %}],
+        selectedWorkTypes: {{ selected_work_types|safe }},
+        allWorkTypes: {{all_work_types|safe}},
 
         toggleSelectAll() {
             if (this.selectedWorkTypes.length === this.allWorkTypes.length) {
@@ -70,4 +68,4 @@ function dropdownComponent() {
         }
     };
 }
-</script
+</script>

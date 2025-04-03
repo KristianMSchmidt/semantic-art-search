@@ -44,16 +44,14 @@ djangoshell:  ## Open django shell in running docker development container
 adhoc: # Adhoc scripts only used during development
 	python -m artsearch.src.scripts.adhoc
 
-upload-to-qdrant: ## upload images to qdrant
-	python -m artsearch.src.scripts.upload_to_qdrant
+upload-to-qdrant-SMK: ## upload SMK data to qdrant
+	python -m artsearch.src.scripts.upload_to_qdrant.SMK
 
-upload-to-qdrant-CMA: ## upload images to qdrant
-	python -m artsearch.src.scripts.upload_to_qdrant_CMA
+upload-to-qdrant-CMA: ## upload CMA data images to qdrant
+	python -m artsearch.src.scripts.upload_to_qdrant.CMA
 
-
-stats: ## Print out collection stats
-	python -m artsearch.src.scripts.collection_stats
-
+stats: ## Get work type stats
+	python -m artsearch.src.services.museum_stats_service
 
 update-payload: ## Update collection payload
 	python -m artsearch.src.scripts.update_payload
