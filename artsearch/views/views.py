@@ -3,8 +3,10 @@ from dataclasses import dataclass
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from artsearch.src.services.museum_clients import MuseumAPIClientError, MuseumName
-from artsearch.src.constants import EXAMPLE_QUERIES
-from artsearch.src.services.qdrant_service import get_qdrant_service
+from artsearch.src.constants import EXAMPLE_QUERIES, SUPPORTED_MUSEUMS
+from artsearch.src.services.qdrant_service import SearchFunctionArguments
+from artsearch.src.services.service_factory import get_qdrant_service
+
 from artsearch.src.services.museum_stats_service import (
     get_work_type_counts_for_museum,
 )
@@ -27,15 +29,17 @@ RESULTS_PER_PAGE = 20
 
 @dataclass
 class SearchParams:
+    """Parameters for the handle_search view"""
+
     request: HttpRequest
-    search_function: Callable[[str, MuseumName, int, int, list[str] | None], list[dict]]
+    search_function: Callable[[SearchFunctionArguments], list[dict]]
     search_action: str
     offset: int
     template_name: str
     museum: MuseumName
     about_text: str | None = None
     placeholder: str | None = None
-    example_queries: list | None = None
+    example_queries: list[str] | None = None
     no_input_error_message: str | None = None
 
 
@@ -63,7 +67,7 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
     if query is None:
         # This is the initial page load.
         query = ""
-        results = qdrant_service.get_random_sample(museum=museum, limit=limit)
+        results = qdrant_service.get_random_sample(museum_filter=museum, limit=limit)
         text_above_results = "A glimpse into the archive"
 
     elif query == "":
@@ -73,10 +77,15 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
 
     else:
         # The user submitted a query.
-        query = query.strip()
         try:
             results = params.search_function(
-                query, museum, limit, offset, work_types_prefilter
+                SearchFunctionArguments(
+                    query=query,
+                    museum_filter=museum,
+                    limit=limit,
+                    offset=offset,
+                    work_types_prefilter=work_types_prefilter,
+                )
             )
             text_above_results = "Search results (best match first)"
         except MuseumAPIClientError as e:
@@ -91,7 +100,7 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
         offset, params.search_action, query, selected_work_types, museum=museum
     )
     context = {
-        "work_count": work_type_counts_for_museum,  # Don't send this to the template
+        "work_count": work_type_counts_for_museum,
         "all_work_types": work_types_at_museum,
         "selected_work_types": selected_work_types,
         "query": query,
@@ -109,12 +118,18 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
 
 
 def text_search(request, museum: MuseumName) -> HttpResponse:
+    if museum == "all":
+        about_text = "Explore all collections though meaning-driven search!"
+    else:
+        about_text = (
+            f"Explore the {museum.upper()} collection through meaning-driven search!"
+        )
     params = SearchParams(
         request=request,
         search_function=qdrant_service.search_text,
         no_input_error_message="Please enter a search query.",
         search_action="text-search",
-        about_text=f"Explore the {museum.upper()} collection through meaning-driven search!",
+        about_text=about_text,
         placeholder="Search by theme, objects, style, or more...",
         example_queries=EXAMPLE_QUERIES,
         offset=0,
@@ -130,7 +145,7 @@ def find_similar(request: HttpRequest, museum: MuseumName) -> HttpResponse:
         search_function=qdrant_service.search_similar_images,
         no_input_error_message="Please enter an inventory number.",
         search_action="find-similar",
-        about_text=f"Find similar artworks in the {museum.upper()} collection.",
+        about_text=f"Find similar artworks in the {museum.upper()} collection",
         placeholder="Enter an artwork inventory number",
         example_queries=[],
         offset=0,
@@ -162,28 +177,7 @@ def more_results(request: HttpRequest, museum: MuseumName) -> HttpResponse:
 
 def home_page(request):
     """Home page view"""
-    museums = [
-        {
-            "slug": "smk",
-            "short_name": "SMK",
-            "vernacular_name": "Statens Museum for Kunst",
-            "full_name": "National Gallery of Denmark",
-        },
-        {
-            "slug": "cma",
-            "short_name": "CMA",
-            "full_name": "Cleveland Museum of Art",
-        },
-    ]
-
-    example_prompts = [
-        {"query": "sorrow", "museum": "smk"},
-        {"query": "modern architecture", "museum": "smk"},
-        {"query": "mother and child", "museum": "cma"},
-        {"query": "boats", "museum": "cma"},
-    ]
     context = {
-        "museums": museums,
-        "example_prompts": example_prompts,
+        "museums": SUPPORTED_MUSEUMS,
     }
     return render(request, "home.html", context)

@@ -1,3 +1,17 @@
+SUPPORTED_MUSEUMS = [
+    {
+        "slug": "smk",
+        "short_name": "SMK",
+        "vernacular_name": "Statens Museum for Kunst",
+        "full_name": "National Gallery of Denmark",
+    },
+    {
+        "slug": "cma",
+        "short_name": "CMA",
+        "full_name": "Cleveland Museum of Art",
+    },
+]
+
 EXAMPLE_QUERIES = [
     "Reading child",
     "Orientalism",

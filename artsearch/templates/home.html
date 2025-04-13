@@ -24,6 +24,16 @@ title="View on GitHub">
 
     <!-- Museum Buttons -->
     <div class="grid grid-cols-1 gap-4">
+        <!-- All Museums Button -->
+        <a href="{% url 'text-search' museum='all' %}"
+        class="w-full text-lg bg-indigo-700 hover:bg-indigo-800 text-white font-semibold py-4 px-6 rounded-lg shadow text-center">
+            <div class="text-xl font-bold">
+                All Museums
+                <div class="text-base font-normal text-indigo-100">
+                    Cross-collection semantic search
+                </div>
+            </div>
+        </a>
         {% for museum in museums %}
             <a href="{% url 'text-search' museum=museum.slug %}"
                class="w-full text-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-lg shadow text-center">
@@ -40,44 +50,5 @@ title="View on GitHub">
             </a>
         {% endfor %}
     </div>
-
-    {% comment %} <div class="grid grid-cols-1 gap-4">
-        {% for museum in museums %}
-            <a href="{% url 'text-search' museum=museum.slug %}"
-            class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl shadow transition duration-200 text-center">
-                <div class="text-xl font-bold">
-                    {{ museum.short_name }}
-                </div>
-                {% if museum.vernacular_name %}
-                    <div class="text-sm italic text-blue-100">
-                        {{ museum.vernacular_name }}
-                    </div>
-                {% endif %}
-                <div class="text-base text-blue-100">
-                    {{ museum.full_name }}
-                </div>
-            </a>
-        {% endfor %}
-    </div> {% endcomment %}
-
-    <!-- Example Prompts -->
-    <div class="mt-12 text-left">
-        <h2 class="text-lg font-semibold text-gray-800 mb-2 tracking-wide uppercase">
-            Try searching for:
-        </h2>
-        <ul class="space-y-1">
-            {% for prompt in example_prompts %}
-            <li>
-                <a href="{% url 'text-search' museum=prompt.museum %}?query={{ prompt.query|urlencode }}"
-                class="text-blue-600 hover:text-blue-800 hover:underline transition">
-                {{ prompt.query|title }}
-                <span class="text-sm text-gray-500">({{ prompt.museum|upper }})</span>
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
-    </div>
-
-
  </div>
 {% endblock content %}

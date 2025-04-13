@@ -125,7 +125,7 @@ class _CLIPEmbedder:
         Args:
             thumbnail_url (str): URL of the thumbnail image.
             object_number (str): Object number associated with the image.
-
+            cashe (bool): Whether to cache the image locally.
         Returns:
             list[float]: The embedding vector as a list, or None if an error occurs.
         """

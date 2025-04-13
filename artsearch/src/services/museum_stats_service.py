@@ -1,7 +1,7 @@
 import time
 from functools import lru_cache
 from collections import defaultdict
-from artsearch.src.services.qdrant_service import get_qdrant_service
+from artsearch.src.services.service_factory import get_qdrant_service
 from artsearch.src.services.museum_clients import MuseumName
 from artsearch.src.config import config
 from dataclasses import dataclass
@@ -73,21 +73,39 @@ def aggregate_work_type_counts(
     return work_counts, total_counts
 
 
-@lru_cache(maxsize=1)
 def get_work_type_counts_for_museum(
     museum: MuseumName,
 ) -> MuseumWorkTypeSummary:
     work_counts, total_counts = aggregate_work_type_counts()
+
+    if museum == "all":
+        # Combine work types across all museums
+        combined_work_types: dict[str, int] = defaultdict(int)
+        for museum_work_types in work_counts.values():
+            for work_type, count in museum_work_types.items():
+                combined_work_types[work_type] += count
+
+        # Correct total count: sum artworks per museum, not per type
+        combined_total = sum(total_counts.values())
+
+        # Sort combined work types
+        sorted_work_types = dict(
+            sorted(combined_work_types.items(), key=lambda x: x[1], reverse=True)
+        )
+        return MuseumWorkTypeSummary(work_types=sorted_work_types, total=combined_total)
+
+    # Regular single-museum case
     work_types = work_counts[museum]
     total = total_counts[museum]
     return MuseumWorkTypeSummary(work_types=work_types, total=total)
 
 
 if __name__ == "__main__":
-    work_counts, total_counts = aggregate_work_type_counts()
-    for museum, counts in work_counts.items():
-        print(f"Museum: {museum}")
-        for work_type, count in counts.items():
+    musems: list[MuseumName] = ["smk", "cma", "all"]
+    for museum in musems:
+        work_type_summary = get_work_type_counts_for_museum(museum)
+        print(f"Combined work types for {museum}:")
+        for work_type, count in work_type_summary.work_types.items():
             print(f"  {work_type}: {count}")
-        print(f"  Total: {total_counts[museum]}")
+        print(f"  Total: {work_type_summary.total}")
         print()

@@ -56,9 +56,6 @@ stats: ## Get work type stats
 update-payload: ## Update collection payload
 	python -m artsearch.src.scripts.update_payload
 
-projection: ## Run projection
-	python -m artsearch.src.scripts.datascience_experiments.2d_proj_artists
-
 
 # ---------- Production ---------- #
 production_stop: ## Stop production server

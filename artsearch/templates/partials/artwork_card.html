@@ -9,8 +9,15 @@
         <p class="text-sm text-gray-500">{{ result.work_types}}</p>
         <p class="text-sm text-gray-500">{{ result.period }}</p>
         {% if result.score is not None %}
-        <p class="text-sm text-gray-400">Score: {{ result.score }}</p>
+        <p class="text-sm text-gray-400">
+        Score: {{ result.score }}
+            {% if result.score == 1.0 %}
+            <span class="ml-2 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                Target
+            </span>
+            {% endif %}
         {% endif %}
+        </p>
         <a href="{{urls.find_similar}}&query={{ result.object_number }}"
            class="text text-blue-500 hover:underline ">
             Find similar
