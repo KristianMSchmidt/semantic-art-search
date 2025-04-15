@@ -1,13 +1,12 @@
-from qdrant_client import QdrantClient, models
+from qdrant_client import models
 from PIL import Image
 import requests
 from artsearch.src.services.museum_clients import SMKAPIClient
 from artsearch.src.services.museum_clients import CMAAPIClient, MuseumName
-from artsearch.src.services.service_factory import get_qdrant_service
-from qdrant_client.models import CollectionInfo, PointStruct, Distance, VectorParams
+from artsearch.src.services.qdrant_service import QdrantService, get_qdrant_service
+
+from qdrant_client.models import PointStruct
 import uuid
-from typing import Literal
-import time
 
 import logging
 
@@ -91,8 +90,8 @@ def copy():
         # Define new IDs (example: incrementing by 1000)
         updated_points = [
             PointStruct(
-                id=generate_id("smk", p.payload["object_number"]),
-                vector=p.vector,
+                id=generate_id("smk", p.payload["object_number"]),  # type: ignore
+                vector=p.vector,  # type: ignore
                 payload=p.payload,
             )
             for p in points

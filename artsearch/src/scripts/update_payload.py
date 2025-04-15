@@ -5,7 +5,7 @@ Script to update the payload of existing qdrant collection.
 import logging
 from typing import cast
 from qdrant_client import models
-from artsearch.src.services.service_factory import get_qdrant_service
+from artsearch.src.services.qdrant_service import get_qdrant_service
 
 COLLECTION_NAME = "artworks_dev_2"
 

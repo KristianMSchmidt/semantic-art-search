@@ -4,8 +4,10 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from artsearch.src.services.museum_clients import MuseumAPIClientError, MuseumName
 from artsearch.src.constants import EXAMPLE_QUERIES, SUPPORTED_MUSEUMS
-from artsearch.src.services.qdrant_service import SearchFunctionArguments
-from artsearch.src.services.service_factory import get_qdrant_service
+from artsearch.src.services.qdrant_service import (
+    SearchFunctionArguments,
+    get_qdrant_service,
+)
 
 from artsearch.src.services.museum_stats_service import (
     get_work_type_counts_for_museum,

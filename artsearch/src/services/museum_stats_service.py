@@ -1,7 +1,7 @@
 import time
 from functools import lru_cache
 from collections import defaultdict
-from artsearch.src.services.service_factory import get_qdrant_service
+from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.src.services.museum_clients import MuseumName
 from artsearch.src.config import config
 from dataclasses import dataclass

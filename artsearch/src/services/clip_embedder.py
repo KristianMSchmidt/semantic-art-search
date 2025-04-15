@@ -19,18 +19,19 @@ class ImageDownloadError(Exception):
     pass
 
 
-class _CLIPEmbedder:
+class CLIPEmbedder:
     """A class for generating image embeddings using OpenAI's CLIP model."""
 
-    _instance = None  # Store singleton instance
+    _instantiated = False
 
     def __new__(cls, *args, **kwargs):
-        if cls._instance is not None:
+        """Ensure that only one instance of CLIPEmbedder is created."""
+        if cls._instantiated:
             raise RuntimeError(
                 "Use get_clip_embedder() instead of creating CLIPEmbedder directly."
             )
-        cls._instance = super(_CLIPEmbedder, cls).__new__(cls)
-        return cls._instance
+        cls._instantiated = True
+        return super().__new__(cls)
 
     def __init__(
         self,
@@ -159,8 +160,8 @@ class _CLIPEmbedder:
 @lru_cache(maxsize=1)
 def get_clip_embedder(
     model_name: clip_selection = config.clip_model_name,
-) -> _CLIPEmbedder:
+) -> CLIPEmbedder:
     """
     Always return the same instance of CLIPEmbedder (one per worker).
     """
-    return _CLIPEmbedder(model_name=model_name)  # Loads only once
+    return CLIPEmbedder(model_name=model_name)  # Loads only once

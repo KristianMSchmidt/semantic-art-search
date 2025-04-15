@@ -6,11 +6,10 @@ to a Qdrant collection.
 import logging
 import uuid
 from qdrant_client.http.models import PointStruct
-from artsearch.src.services.qdrant_service import QdrantService
-from artsearch.src.services.service_factory import get_qdrant_service
+from artsearch.src.services.qdrant_service import QdrantService, get_qdrant_service
 
 from artsearch.src.services.clip_embedder import (
-    _CLIPEmbedder,
+    CLIPEmbedder,
     get_clip_embedder,
     clip_selection,
 )
@@ -57,7 +56,7 @@ def generate_uuid5(museum_name: MuseumName, object_number: str) -> str:
 
 def process_payloads(
     payloads: list[ArtworkPayload],
-    embedder: _CLIPEmbedder,
+    embedder: CLIPEmbedder,
     qdrant_service: QdrantService,
     museum_name: MuseumName,
     upload_collection_name: str,

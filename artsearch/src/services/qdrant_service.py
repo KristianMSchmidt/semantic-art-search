@@ -8,11 +8,15 @@ from artsearch.src.services.museum_clients import (
     MuseumName,
     get_metadata_and_museum,
 )
-from artsearch.src.services.clip_embedder import _CLIPEmbedder
+from artsearch.src.services.clip_embedder import CLIPEmbedder
 from artsearch.src.utils.qdrant_formatting import (
     format_payloads,
     format_hits,
 )
+from artsearch.src.services.clip_embedder import get_clip_embedder
+from artsearch.src.utils.get_qdrant_client import get_qdrant_client
+from artsearch.src.config import config
+
 
 # Type aliases
 TextQuery = str
@@ -36,7 +40,7 @@ class QdrantService:
         qdrant_client: QdrantClient,
         smk_api_client: SMKAPIClient,
         cma_api_client: CMAAPIClient,
-        embedder: _CLIPEmbedder,
+        embedder: CLIPEmbedder,
         collection_name: str,
     ):
         self.qdrant_client = qdrant_client
@@ -284,3 +288,13 @@ class QdrantService:
             existing_object_numbers.add(point.payload["object_number"])
 
         return existing_object_numbers
+
+
+def get_qdrant_service() -> QdrantService:
+    return QdrantService(
+        qdrant_client=get_qdrant_client(),
+        smk_api_client=SMKAPIClient(),
+        cma_api_client=CMAAPIClient(),
+        embedder=get_clip_embedder(),
+        collection_name=config.qdrant_collection_name,
+    )
