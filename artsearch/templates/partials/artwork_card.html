@@ -1,9 +1,23 @@
 <div class="bg-white shadow-md rounded-lg overflow-hidden">
+
+    <!-- ❌ This version forces all images into a fixed 3:4 aspect ratio.
+        It crops tall or wide images using object-cover to fill the box,
+        which may distort or hide parts of otherwise well-behaved images. -->
+    {% comment %} <div class="aspect-[3/4] overflow-hidden">
+        <img src="{{ result.thumbnail_url }}"
+            alt="{{ result.title }}"
+            class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition"
+            onclick="openModal('{{ result.thumbnail_url }}')">
+    </div> {% endcomment %}
+
+    <!-- ✅ This version keeps natural aspect ratios and only shrinks very tall images.
+     It uses object-contain and max-h to gracefully handle odd-sized images without cropping. -->
     <img src="{{ result.thumbnail_url }}"
-         alt="{{ result.title }}"
-         class="w-full h-auto cursor-pointer hover:opacity-80 transition"
-         onclick="openModal('{{ result.thumbnail_url }}')">
-    <div class="p-4">
+     alt="{{ result.title }}"
+     class="w-full h-auto max-h-96 object-contain cursor-pointer hover:opacity-80 transition"
+     onclick="openModal('{{ result.thumbnail_url }}')">
+
+     <div class="p-4">
         <h3 class="text-lg font-semibold text-gray-800">{{ result.title }}</h3>
         <p class="text-sm text-gray-600">{{ result.artist }}</p>
         <p class="text-sm text-gray-500">{{ result.work_types}}</p>
