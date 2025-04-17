@@ -40,14 +40,12 @@ class QdrantService:
         qdrant_client: QdrantClient,
         smk_api_client: SMKAPIClient,
         cma_api_client: CMAAPIClient,
-        embedder: CLIPEmbedder,
         collection_name: str,
     ):
         self.qdrant_client = qdrant_client
         self.collection_name = collection_name
         self.smk_api_client = smk_api_client
         self.cma_api_client = cma_api_client
-        self.embedder = embedder
 
     def _get_vector_by_object_number(self, object_number: str) -> list[float] | None:
         """Get the vector for an object number if it exists in the qdrant collection."""
@@ -149,7 +147,7 @@ class QdrantService:
         offset = search_function_args.offset
         work_types = search_function_args.work_types_prefilter
 
-        query_vector = self.embedder.generate_text_embedding(query)
+        query_vector = get_clip_embedder().generate_text_embedding(query)
         return self._search(
             query_vector, limit, offset, work_types, museum_filter, object_number=None
         )
@@ -176,7 +174,7 @@ class QdrantService:
             thumbnail_url, object_museum = get_metadata_and_museum(
                 object_number, museum_filter
             )
-            query_vector = self.embedder.generate_thumbnail_embedding(
+            query_vector = get_clip_embedder().generate_thumbnail_embedding(
                 thumbnail_url, object_museum, object_number, cache=False
             )
 
@@ -295,6 +293,5 @@ def get_qdrant_service() -> QdrantService:
         qdrant_client=get_qdrant_client(),
         smk_api_client=SMKAPIClient(),
         cma_api_client=CMAAPIClient(),
-        embedder=get_clip_embedder(),
         collection_name=config.qdrant_collection_name,
     )

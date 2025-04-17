@@ -19,6 +19,7 @@ def format_payload(payload: models.Payload | None) -> dict:
         "thumbnail_url": payload["thumbnail_url"],
         "period": period,
         "object_number": payload["object_number"],
+        "museum": payload["museum"].upper(),
     }
 
 
