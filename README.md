@@ -26,14 +26,14 @@ The system uses **CLIP, a multimodal neural network**, to transform both images 
 
 Unlike traditional search methods, **this system does not use titles, artist names, or other metadata** — it relies entirely on the **visual and semantic content** of the artworks.
 
-Currently, **text search is only available in English** due to the model's training data. However, **multilingual support could be added by using a larger model trained on multiple languages**.
+Currently, **text search is only available in English** due to the model's training data. However, multilingual support could be added by using a larger model trained on multiple languages.
 
 ## 🎨 Artwork Coverage
 The search covers selected artworks from participating museums that:
 - Are in the **public domain**
-- Have a **high-quality image available** in the museum database
+- Have a **photograph available** in the museum database
 
-Not all types of artworks are included yet, but the dataset may expand in the future.
+Not all types of artworks from the selected museums are included yet, but the dataset may expand in the future.
 
 ## 🙌 Acknowledgments
 This project is made possible by the **open data initiatives** of the participating museums:
