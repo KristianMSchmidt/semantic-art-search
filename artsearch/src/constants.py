@@ -1,3 +1,6 @@
+from typing import Dict
+from artsearch.src.services.museum_clients import MuseumName
+
 SUPPORTED_MUSEUMS = [
     {
         "slug": "smk",
@@ -12,29 +15,74 @@ SUPPORTED_MUSEUMS = [
     },
 ]
 
-EXAMPLE_QUERIES = [
-    "Reading child",
-    "Orientalism",
-    "Blue dress",
-    "Inside cathedral",
-    "Ancient Rome",
-    "War",
-    "Music",
-    "Raw meat",
-    "Moonlight by the sea",
-    "Martin Luther",
-    "Fauvism",
-    "Cubism",
-    "Death",
-    "Nature morte",
-    "Winter landscape",
-    "Woman by a window",
-    "Ship in a storm",
-    "Female sculture",
-    "Painter",
-]
+EXAMPLE_QUERIES: dict[MuseumName, list[str]] = {
+    "smk": [
+        "Reading child",
+        "Orientalism",
+        "Blue dress",
+        "Inside cathedral",
+        "Ancient Rome",
+        "War",
+        "Music",
+        "Raw meat",
+        "Moonlight by the sea",
+        "Martin Luther",
+        "Fauvism",
+        "Cubism",
+        "Death",
+        "Nature morte",
+        "Winter landscape",
+        "Woman by a window",
+        "Ship in a storm",
+        "Female sculture",
+        "Painter",
+    ],
+    "cma": [
+        "Hindu deity",
+        "Impressionism",
+        "Arabia",
+        "Inside cathedral",
+        "Calligraphy",
+        "Elephant",
+        "Reading",
+        "Birds",
+        "Ancient Rome",
+        "War",
+        "Music",
+        "Raw meat",
+        "Moonlight by the sea",
+        "Cubism",
+        "Nature morte",
+        "Winter landscape",
+        "Ship in a storm",
+        "Crucifixion",
+    ],
+    "all": [
+        "Calligraphy",
+        "Orientalism",
+        "Hindu deity",
+        "Ancient Rome",
+        "War",
+        "Music",
+        "Moonlight by the sea",
+        "Martin Luther",
+        "Fauvism",
+        "Cubism",
+        "Reading child",
+        "Impressionism",
+        "Blue dress",
+        "Death",
+        "Nature morte",
+        "Woman by a window",
+        "Painter",
+        "Inside cathedral",
+        "Elephant",
+        "Birds",
+        "Ship in a storm",
+        "Crucifixion",
+    ],
+}
 
-EXAMPLE_QUERIES_CMA = ["Passion of Christ"]
 
 WORK_TYPES_DANISH_TO_ENGLISH = {
     "tegning": "drawing",

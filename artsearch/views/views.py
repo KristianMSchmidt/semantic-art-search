@@ -133,7 +133,7 @@ def text_search(request, museum: MuseumName) -> HttpResponse:
         search_action="text-search",
         about_text=about_text,
         placeholder="Search by theme, objects, style, or more...",
-        example_queries=EXAMPLE_QUERIES,
+        example_queries=EXAMPLE_QUERIES[museum],
         offset=0,
         template_name="search.html",
         museum=museum,
