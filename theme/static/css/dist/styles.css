@@ -909,6 +909,10 @@ select {
   height: 1.5rem;
 }
 
+.h-auto {
+  height: auto;
+}
+
 .h-full {
   height: 100%;
 }
@@ -917,16 +921,12 @@ select {
   height: 100vh;
 }
 
-.h-auto {
-  height: auto;
+.max-h-96 {
+  max-height: 24rem;
 }
 
 .max-h-\[80vh\] {
   max-height: 80vh;
-}
-
-.max-h-96 {
-  max-height: 24rem;
 }
 
 .w-4 {
