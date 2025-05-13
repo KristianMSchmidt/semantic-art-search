@@ -2,13 +2,8 @@ from dataclasses import dataclass
 from typing import cast
 from qdrant_client import QdrantClient, models
 from qdrant_client.conversions.common_types import PointId
-from artsearch.src.services.museum_clients import (
-    SMKAPIClient,
-    CMAAPIClient,
-    MuseumName,
-    get_metadata_and_museum,
-)
-from artsearch.src.services.clip_embedder import CLIPEmbedder
+from artsearch.src.services.museum_clients.base_client import MuseumName
+from artsearch.src.utils.get_metadata_and_museum import get_metadata_and_museum
 from artsearch.src.utils.qdrant_formatting import (
     format_payloads,
     format_hits,
@@ -38,14 +33,10 @@ class QdrantService:
     def __init__(
         self,
         qdrant_client: QdrantClient,
-        smk_api_client: SMKAPIClient,
-        cma_api_client: CMAAPIClient,
         collection_name: str,
     ):
         self.qdrant_client = qdrant_client
         self.collection_name = collection_name
-        self.smk_api_client = smk_api_client
-        self.cma_api_client = cma_api_client
 
     def _get_vector_by_object_number(self, object_number: str) -> list[float] | None:
         """Get the vector for an object number if it exists in the qdrant collection."""
@@ -93,7 +84,7 @@ class QdrantService:
         if work_types is not None:
             standard_conditions.append(
                 models.FieldCondition(
-                    key="work_types",
+                    key="searchable_work_types",
                     match=models.MatchAny(any=work_types),
                 )
             )
@@ -166,7 +157,7 @@ class QdrantService:
         offset = search_function_args.offset
         work_types = search_function_args.work_types_prefilter
 
-        # Fetch vector and paylod of target object from Qdrant collection (it might not exist)
+        # Fetch vector and paylod of target object from Qdrant collection (if object exists in collection)
         query_vector = self._get_vector_by_object_number(object_number)
 
         if query_vector is None:
@@ -235,8 +226,6 @@ class QdrantService:
         with_payload: bool | list[str] = True,
     ) -> tuple[list[models.Record], PointId | None]:
         """Fetch points from a Qdrant collection with pagination."""
-        if collection_name is None:
-            collection_name = self.collection_name
 
         points, next_page_token = self.qdrant_client.scroll(
             collection_name=collection_name,
@@ -256,6 +245,8 @@ class QdrantService:
         Given a list of object numbers, returns the set of object numbers from
         the list that already exist in the collection.
         """
+        if not object_numbers:
+            return set()
         query_filter = models.Filter(
             must=[
                 models.FieldCondition(
@@ -291,7 +282,5 @@ class QdrantService:
 def get_qdrant_service() -> QdrantService:
     return QdrantService(
         qdrant_client=get_qdrant_client(),
-        smk_api_client=SMKAPIClient(),
-        cma_api_client=CMAAPIClient(),
         collection_name=config.qdrant_collection_name,
     )

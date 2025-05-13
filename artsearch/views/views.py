@@ -1,8 +1,12 @@
+import json
 from typing import Callable
 from dataclasses import dataclass
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
-from artsearch.src.services.museum_clients import MuseumAPIClientError, MuseumName
+from artsearch.src.services.museum_clients.base_client import (
+    MuseumAPIClientError,
+    MuseumName,
+)
 from artsearch.src.constants import EXAMPLE_QUERIES, SUPPORTED_MUSEUMS
 from artsearch.src.services.qdrant_service import (
     SearchFunctionArguments,
@@ -20,6 +24,7 @@ from artsearch.views.view_utils import (
     retrieve_selected_work_types,
     make_work_types_prefilter,
     make_urls,
+    prepare_work_types_for_dropdown,
 )
 
 # Create a global instance (initialized once and reused)
@@ -49,8 +54,8 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
     """Handles both text and similarity search in a generic way."""
     offset = params.offset
     museum = params.museum
-    work_type_counts_for_museum = get_work_type_counts_for_museum(museum)
-    work_types_at_museum = list(work_type_counts_for_museum.work_types.keys())
+    museum_work_type_summary = get_work_type_counts_for_museum(museum)
+    work_types_at_museum = list(museum_work_type_summary.work_types.keys())
     query = retrieve_query(params.request)
 
     selected_work_types = retrieve_selected_work_types(
@@ -101,10 +106,14 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
     urls = make_urls(
         offset, params.search_action, query, selected_work_types, museum=museum
     )
+    prepared_work_types = prepare_work_types_for_dropdown(
+        museum_work_type_summary.work_types
+    )
     context = {
-        "work_count": work_type_counts_for_museum,
-        "all_work_types": work_types_at_museum,
-        "selected_work_types": selected_work_types,
+        "total_work_count": museum_work_type_summary.total,
+        "work_types": prepared_work_types,
+        "all_work_types_json": json.dumps(work_types_at_museum),
+        "selected_work_types_json": json.dumps(selected_work_types),
         "query": query,
         "results": results,
         "text_above_results": text_above_results,

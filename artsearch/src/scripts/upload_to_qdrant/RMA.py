@@ -1,5 +1,5 @@
 """
-This script fetches data from the CMA API, processes it, and uploads it
+This script fetches data from the RMA API, processes it, and uploads it
 to a Qdrant collection.
 """
 
@@ -8,17 +8,12 @@ from artsearch.src.services.museum_clients.base_client import MuseumName
 
 
 # Constants
-MUSEUM_NAME: MuseumName = "cma"
+MUSEUM_NAME: MuseumName = "rma"
 WORK_TYPES = [
-    "Print",
-    "Painting",
-    "Drawing",
+    "painting",
+    "drawing",
 ]
-QUERY_TEMPLATE = {
-    "q": "",
-    "has_image": 1,
-    "cc0": 1,
-}
+QUERY_TEMPLATE = {}
 
 
 def main() -> None:

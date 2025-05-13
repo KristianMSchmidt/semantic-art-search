@@ -6,6 +6,7 @@ import logging
 from typing import cast
 from qdrant_client import models
 from artsearch.src.services.qdrant_service import get_qdrant_service
+from artsearch.src.scripts.update_payload_helpers import searchle_work_types
 
 COLLECTION_NAME = "artworks_dev_2"
 
@@ -15,26 +16,36 @@ logging.basicConfig(
 )
 
 
-def update_payload(old_payload: dict) -> dict:
+def set_searchable_work_types(old_payload: dict) -> dict:
     new_payload = old_payload.copy()
-    # delete key 'object_names' from the payload
-    museum = new_payload.pop("museum", None)
-    if not museum:
-        raise ValueError(f"Missing museum in payload: {old_payload}")
-    new_payload["museum"] = museum.lower()
+    searchable_work_types = searchle_work_types(new_payload["work_types"])
+    new_payload["searchable_work_types"] = searchable_work_types
+
+    return new_payload
+
+
+def adhoc_update_payload(old_payload: dict) -> dict:
+    new_payload = old_payload.copy()
+
+    ##### Change the section below depending on the update needed #####
+    # new_payload["some key"] = "some value"
+    #################
+
     return new_payload
 
 
 def process_points(points: list[models.Record]) -> list[models.PointStruct]:
     processed_points = []
-    for point in points:
+    for idx, point in enumerate(points):
         if not point.vector:
             raise ValueError(
                 f"Point {point.id} has an invalid or missing vector: {point.vector}"
             )
         if not point.payload:
             raise ValueError(f"Point {point.id} has a missing payload: {point.payload}")
-        new_payload = update_payload(point.payload)
+
+        new_payload = adhoc_update_payload(point.payload)
+        # new_payload = set_searchable_work_types(new_payload)
         new_vector = cast(list[float], point.vector)
         processed_points.append(
             models.PointStruct(id=str(point.id), payload=new_payload, vector=new_vector)

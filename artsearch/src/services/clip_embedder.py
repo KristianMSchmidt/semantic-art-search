@@ -8,8 +8,8 @@ from functools import lru_cache
 import clip
 import torch
 from artsearch.src.utils.session_config import get_configured_session
-from artsearch.src.services.museum_clients import MuseumName
-from artsearch.src.config import clip_selection
+from artsearch.src.services.museum_clients.base_client import MuseumName
+from artsearch.src.config import ClipSelection
 from artsearch.src.config import config
 
 
@@ -35,7 +35,7 @@ class CLIPEmbedder:
 
     def __init__(
         self,
-        model_name: clip_selection,
+        model_name: ClipSelection,
         cache_dir: str = "data/images",
         http_session: requests.Session | None = None,
         device: str | None = None,
@@ -51,7 +51,7 @@ class CLIPEmbedder:
             cache_dir (str): Directory to store cached images.
             http_session (requests.Session): Shared HTTP session for all requests.
         """
-        self.model_name: clip_selection = model_name
+        self.model_name: ClipSelection = model_name
         self.device = device or config.device
         self.model, self.preprocess = self._load_model(model_name, self.device)
         self.embedding_dim = self.model.visual.proj.shape[1]
@@ -159,7 +159,7 @@ class CLIPEmbedder:
 
 @lru_cache(maxsize=1)
 def get_clip_embedder(
-    model_name: clip_selection = config.clip_model_name,
+    model_name: ClipSelection = config.clip_model_name,
 ) -> CLIPEmbedder:
     """
     Always return the same instance of CLIPEmbedder (one per worker).

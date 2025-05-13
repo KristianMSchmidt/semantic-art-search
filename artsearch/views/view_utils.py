@@ -3,7 +3,8 @@ from typing import Callable, Iterable
 from django.http import HttpRequest
 from django.urls import reverse
 from artsearch.src.services.qdrant_service import QdrantService
-from artsearch.src.services.museum_clients import MuseumName
+from artsearch.src.services.museum_clients.base_client import MuseumName
+from artsearch.src.constants import WORK_TYPES_DICT
 
 
 def retrieve_query(request: HttpRequest) -> str | None:
@@ -53,6 +54,30 @@ def make_work_types_prefilter(
     if not selected_work_types or len(selected_work_types) == len(list(work_types)):
         return None
     return selected_work_types
+
+
+def prepare_work_types_for_dropdown(
+    work_types_count: dict[str, int],
+) -> list[dict]:
+    """
+    Prepare work types for the dropdown menu.
+    """
+    work_types_for_dropdown = []
+
+    for work_type, count in work_types_count.items():
+        try:
+            eng_plural = WORK_TYPES_DICT[work_type]["eng_plural"]
+        except KeyError:
+            eng_plural = work_type + "s"  # Fallback to a simple pluralization
+
+        work_types_for_dropdown.append(
+            {
+                "work_type": work_type,
+                "count": count,
+                "eng_plural": eng_plural,
+            }
+        )
+    return work_types_for_dropdown
 
 
 def make_url(

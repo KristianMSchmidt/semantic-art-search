@@ -921,6 +921,10 @@ select {
   height: 100vh;
 }
 
+.max-h-64 {
+  max-height: 16rem;
+}
+
 .max-h-96 {
   max-height: 24rem;
 }
@@ -943,6 +947,10 @@ select {
 
 .w-full {
   width: 100%;
+}
+
+.min-w-56 {
+  min-width: 14rem;
 }
 
 .max-w-3xl {
@@ -1031,6 +1039,10 @@ select {
 
 .overflow-hidden {
   overflow: hidden;
+}
+
+.overflow-y-auto {
+  overflow-y: auto;
 }
 
 .text-nowrap {
@@ -1190,6 +1202,10 @@ select {
 .py-4 {
   padding-top: 1rem;
   padding-bottom: 1rem;
+}
+
+.pr-2 {
+  padding-right: 0.5rem;
 }
 
 .text-center {

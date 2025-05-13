@@ -1,7 +1,21 @@
+from artsearch.src.constants import WORK_TYPES_DICT
 from qdrant_client import models
 
 
+def get_work_type_translation(work_type: str) -> str:
+    """
+    Get work type in English singular form.
+    """
+    try:
+        return WORK_TYPES_DICT[work_type]["eng_sing"]
+    except KeyError:
+        return work_type
+
+
 def format_payload(payload: models.Payload | None) -> dict:
+    """
+    Make payload ready for display in the frontend.
+    """
     if payload is None:
         raise ValueError("Payload cannot be None")
 
@@ -11,11 +25,13 @@ def format_payload(payload: models.Payload | None) -> dict:
         period = (
             f"{payload['production_date_start']} - {payload['production_date_end']}"
         )
-
+    work_types = ", ".join(
+        get_work_type_translation(name).capitalize() for name in payload["work_types"]
+    )
     return {
         "title": payload["titles"][0]["title"],
         "artist": ", ".join(payload["artist"]),
-        "work_types": ", ".join(name.capitalize() for name in payload["work_types"]),
+        "work_types": work_types,
         "thumbnail_url": payload["thumbnail_url"],
         "period": period,
         "object_number": payload["object_number"],

@@ -1,16 +1,40 @@
 from qdrant_client import models
 from PIL import Image
 import requests
-from artsearch.src.services.museum_clients import SMKAPIClient
-from artsearch.src.services.museum_clients import CMAAPIClient, MuseumName
 from artsearch.src.services.qdrant_service import QdrantService, get_qdrant_service
-
+from artsearch.src.services.museum_clients.base_client import MuseumName
+from artsearch.src.services.museum_clients.factory import get_museum_client
 from qdrant_client.models import PointStruct
 import uuid
-
 import logging
 
 logging.basicConfig(level=logging.WARNING)
+
+
+def delete_rma_works():
+    """
+    Delete all works from the collection "artworks_dev_2" that are from the RMA museum
+    (these have 'museum' set to 'rma' in their payload).
+    """
+    qdrant_service = get_qdrant_service()
+    qdrant_client = qdrant_service.qdrant_client
+
+    collection_name = "artworks_dev_2"
+
+    # Build a filter to match payloads where 'museum' == 'rma'
+    from qdrant_client.http import models
+
+    filter_condition = models.Filter(
+        must=[models.FieldCondition(key="museum", match=models.MatchValue(value="rma"))]
+    )
+
+    # Issue the delete command
+    result = qdrant_client.delete(
+        collection_name=collection_name,
+        points_selector=models.FilterSelector(filter=filter_condition),
+    )
+
+    print(f"Deleted RMA works: {result}")
 
 
 def count_work_types():
@@ -108,7 +132,7 @@ def copy():
 
 
 def test_CMAAPIClient():
-    cma_client = CMAAPIClient()
+    cma_client = get_museum_client("cma")
     thumbnail_url = cma_client.get_thumbnail_url("1998.78.14")
     print(thumbnail_url)
     query = {
@@ -149,7 +173,7 @@ def test_search():
 
 def make_favicon():
     # Initialize the SMK API client
-    smk_client = SMKAPIClient()
+    smk_client = get_museum_client("smk")
 
     # Get the thumbnail URL for the specified artwork
     object_number = "KMSr171"
@@ -174,7 +198,7 @@ def make_favicon():
 
 if "__main__" == "__main__":
     print("Running adhoc script")
-    count_work_types()
+    # delete_rma_works()
     # control()
     # copy()
     # test_CMAAPIClient()

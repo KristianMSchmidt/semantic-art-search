@@ -3,11 +3,9 @@ This script fetches data from the SMK API, processes it, and uploads it
 to a Qdrant collection.
 """
 
-from artsearch.src.services.museum_clients import MuseumName
+from artsearch.src.services.museum_clients.base_client import MuseumName
 from artsearch.src.scripts.upload_to_qdrant.upload_utils import upload_to_qdrant
-from artsearch.src.constants import WORK_TYPES_DANISH_TO_ENGLISH
 
-# Constants
 MUSEUM_NAME: MuseumName = "smk"
 
 FIELDS = [
@@ -39,10 +37,10 @@ QUERY_TEMPLATE = {
 
 def main() -> None:
     upload_to_qdrant(
+        limit=100,
         work_types=WORK_TYPES,
         query_template=QUERY_TEMPLATE,
         museum_name=MUSEUM_NAME,
-        work_type_translations=WORK_TYPES_DANISH_TO_ENGLISH,
     )
 
 
