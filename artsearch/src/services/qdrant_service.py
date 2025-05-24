@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import cast
+from functools import lru_cache
 from qdrant_client import QdrantClient, models
 from qdrant_client.conversions.common_types import PointId
 from artsearch.src.services.museum_clients.base_client import MuseumName
@@ -38,6 +39,7 @@ class QdrantService:
         self.qdrant_client = qdrant_client
         self.collection_name = collection_name
 
+    @lru_cache(maxsize=1)
     def _get_vector_by_object_number(self, object_number: str) -> list[float] | None:
         """Get the vector for an object number if it exists in the qdrant collection."""
         result = self.qdrant_client.query_points(
@@ -58,6 +60,12 @@ class QdrantService:
             return None
         vector = cast(list[float], result.points[0].vector)
         return vector
+
+    @lru_cache(maxsize=1)
+    def item_exists(self, object_number: str) -> bool:
+        """Check if an object number exists in the qdrant collection."""
+        # Make sure this is not called every time on infinite scroll (is lru cache the right choice?)
+        return self._get_vector_by_object_number(object_number) is not None
 
     def _search(
         self,

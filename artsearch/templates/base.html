@@ -28,19 +28,10 @@
 		<nav class="bg-blue-500 p-4">
 			<div class="container mx-auto flex justify-between items-center">
 				<!-- Website Name -->
-				<a href="{{ urls.home }}" class="text-blue-50 text-lg font-bold">Semantic Art Search</a>
+				<a href="{{ urls.search }}" class="text-blue-50 text-lg font-bold">Semantic Art Search</a>
 				<!-- Navbar links -->
 				<div class="flex space-x-4 items-center">
 					{% block nav_links %}
-					<!-- Default links -->
-					<a href="{{ urls.text_search }}"
-						class="text-blue-100 hover:text-blue-50 {% if request.resolver_match.url_name == 'text-search' %}text-white font-bold{% endif %}">
-						Search By Text
-					</a>
-					<a href="{{ urls.find_similar }}"
-						class="text-blue-100 hover:text-blue-50 {% if request.resolver_match.url_name == 'find-similar' %}text-white font-bold{% endif %}">
-						Find Similar
-					</a>
 					{% endblock %}
 				</div>
 			</div>

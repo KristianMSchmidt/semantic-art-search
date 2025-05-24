@@ -1,36 +1,38 @@
-<div class="bg-white shadow-md rounded-lg overflow-hidden">
+<!-- Card container with conditional highlight for the top (exact match) result -->
+<div class="relative bg-white shadow-md rounded-lg overflow-hidden {% if result.score == 1 %}ring-2 ring-blue-400 ring-opacity-75{% endif %}">
 
-    <!-- ❌ This version forces all images into a fixed 3:4 aspect ratio.
-        It crops tall or wide images using object-cover to fill the box,
-        which may distort or hide parts of otherwise well-behaved images. -->
-    {% comment %} <div class="aspect-[3/4] overflow-hidden">
-        <img src="{{ result.thumbnail_url }}"
-            alt="{{ result.title }}"
-            class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition"
-            onclick="openModal('{{ result.thumbnail_url }}')">
-    </div> {% endcomment %}
-
-    <!-- ✅ This version keeps natural aspect ratios and only shrinks very tall images.
-     It uses object-contain and max-h to gracefully handle odd-sized images without cropping. -->
+    <!-- Badge for exact match with tooltip explanation -->
+    {% if result.score == 1 %}
+    <span class="absolute top-2 right-2 flex items-center bg-blue-500 text-white text-xs font-semibold px-2 py-1 rounded-md cursor-default" title="This artwork was identified by its inventory number.">
+      <!-- Info icon (Heroicons mini) -->
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 mr-1" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8zm-9-3a1 1 0 112 0v1a1 1 0 11-2 0V7zm0 4a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1z" clip-rule="evenodd" />
+      </svg>
+      Exact match
+    </span>
+    {% endif %}
+  
+    <!-- Image: preserves natural aspect ratio, max height, and interactive hover -->
     <img src="{{ result.thumbnail_url }}"
-     alt="{{ result.title }}"
-     class="w-full h-auto max-h-96 object-contain cursor-pointer hover:opacity-80 transition"
-     onclick="openModal('{{ result.thumbnail_url }}')">
-
-     <div class="p-4">
-        <h3 class="text-lg font-semibold text-gray-800">{{ result.title }}</h3>
-        <p class="text-sm text-gray-600">{{ result.artist }}</p>
-        <p class="text-sm text-gray-500">{{ result.work_types}}</p>
-        <p class="text-sm text-gray-500">{{ result.museum }}</p>    
-        <p class="text-sm text-gray-500">{{ result.period }}</p>
-        {% if result.score is not None %}
-        <p class="text-sm text-gray-400">
-        Score: {{ result.score }}
-        {% endif %}
-        </p>
-        <a href="{{urls.find_similar}}&query={{ result.object_number }}"
-           class="text text-blue-500 hover:underline ">
-            Find similar
-        </a>
+         alt="{{ result.title }}"
+         class="w-full h-auto max-h-96 object-contain cursor-pointer hover:opacity-80 transition"
+         onclick="openModal('{{ result.thumbnail_url }}')">
+  
+    <!-- Content details -->
+    <div class="p-4">
+      <h3 class="text-lg font-semibold text-gray-800">{{ result.title }}</h3>
+      <p class="text-sm text-gray-600">{{ result.artist }}</p>
+      <p class="text-sm text-gray-500">{{ result.work_types }}</p>
+      <p class="text-sm text-gray-500">{{ result.museum }}</p>
+      <p class="text-sm text-gray-500">{{ result.period }}</p>
+      {% if result.score is not None %}
+      <p class="text-sm text-gray-400">Score: {{ result.score }}</p>
+      {% endif %}
+  
+      <a href="{{ urls.search }}&query={{ result.object_number }}"
+         class="text-sm text-blue-500 hover:underline mt-2 inline-block">
+        Find similar
+      </a>
     </div>
-</div>
+  </div>
+  

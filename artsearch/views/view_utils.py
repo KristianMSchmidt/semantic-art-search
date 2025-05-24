@@ -1,8 +1,7 @@
 from urllib.parse import urlencode
-from typing import Callable, Iterable
+from typing import Iterable
 from django.http import HttpRequest
 from django.urls import reverse
-from artsearch.src.services.qdrant_service import QdrantService
 from artsearch.src.services.museum_clients.base_client import MuseumName
 from artsearch.src.constants import WORK_TYPES_DICT
 
@@ -19,21 +18,6 @@ def retrieve_offset(request: HttpRequest) -> int:
     assert offset is not None
     offset = int(offset)
     return offset
-
-
-def retrieve_search_action(request: HttpRequest) -> str:
-    search_action = request.GET.get("search_action")
-    assert search_action in ["text-search", "find-similar"]
-    return search_action
-
-
-def retrieve_search_function(
-    search_action: str, qdrant_service: QdrantService
-) -> Callable:
-    if search_action == "text-search":
-        return qdrant_service.search_text
-    else:
-        return qdrant_service.search_similar_images
 
 
 def retrieve_selected_work_types(
@@ -83,7 +67,6 @@ def prepare_work_types_for_dropdown(
 def make_url(
     url_name: str,
     offset: int | None = None,
-    search_action: str | None = None,
     query: str | None = None,
     selected_work_types: list[str] = [],
     museum: MuseumName | None = None,
@@ -91,8 +74,6 @@ def make_url(
     query_params = {}
     if offset is not None:
         query_params["offset"] = offset
-    if search_action is not None:
-        query_params["search_action"] = search_action
     if query:
         query_params["query"] = query
     if selected_work_types:
@@ -105,20 +86,15 @@ def make_url(
 
 def make_urls(
     offset: int,
-    search_action: str,
     query: str | None,
     selected_work_types: list[str],
     museum: MuseumName | None = None,
 ) -> dict[str, str]:
     return {
-        "home": make_url("home", museum=None),
-        "text_search": make_url("text-search", museum=museum),
-        "find_similar": make_url("find-similar", museum=museum),
-        "search_action": make_url(search_action, museum=museum),
+        "search": make_url("search", museum=museum),
         "more_results": make_url(
             "more-results",
             offset,
-            search_action,
             query,
             selected_work_types,
             museum=museum,

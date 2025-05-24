@@ -1,6 +1,20 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block nav_links %}
+<a
+href="https://github.com/KristianMSchmidt/semantic-art-search/blob/master/README.md"
+target="_blank" rel="noopener noreferrer"
+class="text-blue-100 hover:text-blue-50"
+title="View on GitHub"
+>
+    <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.207 11.387.6.11.793-.26.793-.577v-2.234c-3.338.724-4.033-1.61-4.033-1.61-.547-1.387-1.335-1.756-1.335-1.756-1.092-.746.083-.731.083-.731 1.206.084 1.84 1.238 1.84 1.238 1.073 1.837 2.812 1.306 3.497.998.11-.777.42-1.305.763-1.605-2.665-.305-5.466-1.332-5.466-5.931 0-1.31.467-2.381 1.235-3.221-.124-.303-.535-1.527.117-3.176 0 0 1.008-.322 3.3 1.23.957-.266 1.984-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.29-1.552 3.296-1.23 3.296-1.23.653 1.649.242 2.873.118 3.176.77.84 1.233 1.911 1.233 3.221 0 4.61-2.804 5.624-5.475 5.921.43.372.814 1.102.814 2.222v3.293c0 .32.192.694.8.576C20.565 21.796 24 17.297 24 12c0-6.63-5.37-12-12-12z"/>
+    </svg>
+</a>
+{% endblock %}
+
+
 {% block content %}
 <div class="container mx-auto p-4">
 
@@ -11,13 +25,13 @@
 
     <!-- Search Form -->
     <div class="mb-4 sm:mb-5">
-        <form id="search-form" method="GET" action="{{ urls.search_action }}" class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
+        <form id="search-form" method="GET" action="{{ urls.search }}" class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
             <!-- Search Input -->
             <input
                 id="search-input"
                 type="text"
                 name="query"
-                placeholder="{{ placeholder }}"
+                placeholder="Search by theme, object, style, emotion, or more..."
                 value="{{ query|default:'' }}"
                 class="w-full sm:w-auto flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required

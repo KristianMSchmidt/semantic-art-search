@@ -1,14 +1,29 @@
-from qdrant_client import models
 from PIL import Image
 import requests
-from artsearch.src.services.qdrant_service import QdrantService, get_qdrant_service
-from artsearch.src.services.museum_clients.base_client import MuseumName
-from artsearch.src.services.museum_clients.factory import get_museum_client
-from qdrant_client.models import PointStruct
 import uuid
 import logging
 
+from qdrant_client import models
+from qdrant_client.models import PointStruct
+
+from artsearch.src.services.qdrant_service import QdrantService, get_qdrant_service
+from artsearch.src.services.museum_clients.base_client import MuseumName
+from artsearch.src.services.museum_clients.factory import get_museum_client
+
 logging.basicConfig(level=logging.WARNING)
+
+
+def create_index():
+    qdrant_service = get_qdrant_service()
+    client = qdrant_service.qdrant_client
+    collection_name = "artworks_dev_2"
+    x = client.create_payload_index(
+        collection_name=collection_name,
+        field_name="object_number",
+        field_schema="keyword",
+        wait=True,
+    )
+    breakpoint()
 
 
 def delete_rma_works():
@@ -198,6 +213,7 @@ def make_favicon():
 
 if "__main__" == "__main__":
     print("Running adhoc script")
+    create_index()
     # delete_rma_works()
     # control()
     # copy()

@@ -142,6 +142,9 @@ class CLIPEmbedder:
             print(f"Error generating embedding for object {object_number}: {e}")
             return None
 
+    # Maxsize is set to 50 to cache the most common queries
+    # Should be atleast 1 to cache the item in question on infinite scroll
+    @lru_cache(maxsize=50)
     def generate_text_embedding(self, query: str) -> list[float]:
         """
         Generate a text embedding from a given query string.
