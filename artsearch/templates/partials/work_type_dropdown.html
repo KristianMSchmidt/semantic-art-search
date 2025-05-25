@@ -9,39 +9,38 @@
     </button>
 
     <!-- Dropdown -->
-<div
-x-show="open"
-@click.away="open = false"
-class="absolute right-0 mt-1 min-w-56 bg-white border border-gray-300 rounded-md shadow-lg z-20"
-x-cloak
->
-<div class="p-2 space-y-1">
-    <!-- Select/Deselect All Option -->
-    <label class="flex items-center space-x-2 py-1 font-semibold text-gray-700 hover:bg-gray-100">
-        <input type="checkbox"
-            @click="toggleSelectAll()"
-            :checked="selectedWorkTypes.length === allWorkTypes.length"
-            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-        <span class="text-nowrap">Select All <span class="text-gray-600 font-normal">({{ total_work_count }} works)</span></span>
-    </label>
+    <div
+        x-show="open"
+        @click.away="open = false"
+        class="absolute right-0 mt-1 min-w-56 bg-white border border-gray-300 rounded-md shadow-lg z-20"
+        x-cloak
+    >
+        <div class="p-2 space-y-1">
+            <!-- Select/Deselect All Option -->
+            <label class="flex items-center space-x-2 py-1 font-semibold text-gray-700 hover:bg-gray-100">
+                <input type="checkbox"
+                    @click="toggleSelectAll()"
+                    :checked="selectedWorkTypes.length === allWorkTypes.length"
+                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                <span class="text-nowrap">Select All <span class="text-gray-600 font-normal">({{ total_work_count }} works)</span></span>
+            </label>
 
-    <!-- Scrollable area for many work types -->
-    <div class="max-h-64 overflow-y-auto space-y-1 pr-2">
-        {% for work_type in work_types %}
-        <label class="flex items-center space-x-2 py-1 hover:bg-gray-100 rounded-md px-2">
-            <input
-                type="checkbox"
-                name="work_types"
-                value="{{ work_type.work_type }}"
-                x-model="selectedWorkTypes"
-                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-            <span class="text-nowrap">{{ work_type.eng_plural | capfirst }} <span class="text-gray-600 font-normal">({{ work_type.count }} works)</span></span>
-        </label>
-        {% endfor %}
+            <!-- Scrollable area for many work types -->
+            <div class="max-h-64 overflow-y-auto space-y-1 pr-2">
+                {% for work_type in work_types %}
+                <label class="flex items-center space-x-2 py-1 hover:bg-gray-100 rounded-md px-2">
+                    <input
+                        type="checkbox"
+                        name="work_types"
+                        value="{{ work_type.work_type }}"
+                        x-model="selectedWorkTypes"
+                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <span class="text-nowrap">{{ work_type.eng_plural | capfirst }} <span class="text-gray-600 font-normal">({{ work_type.count }} works)</span></span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
     </div>
-</div>
-</div>
-
 </div>
 
 <script>
