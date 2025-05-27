@@ -1,11 +1,9 @@
 import requests
-from typing import Any, Optional, Literal
+from typing import Any, Optional
 from urllib.parse import urlencode
 from abc import ABC, abstractmethod
 from pydantic import BaseModel, ValidationError
 from artsearch.src.utils.session_config import get_configured_session
-
-MuseumName = Literal["smk", "cma", "rma", "all"]
 
 
 class MuseumAPIClientError(Exception):

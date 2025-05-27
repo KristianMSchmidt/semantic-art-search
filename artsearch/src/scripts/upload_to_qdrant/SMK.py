@@ -3,10 +3,9 @@ This script fetches data from the SMK API, processes it, and uploads it
 to a Qdrant collection.
 """
 
-from artsearch.src.services.museum_clients.base_client import MuseumName
 from artsearch.src.scripts.upload_to_qdrant.upload_utils import upload_to_qdrant
 
-MUSEUM_NAME: MuseumName = "smk"
+MUSEUM_NAME = "smk"
 
 FIELDS = [
     "titles",

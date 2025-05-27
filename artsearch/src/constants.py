@@ -1,5 +1,3 @@
-from artsearch.src.services.museum_clients.base_client import MuseumName
-
 SUPPORTED_MUSEUMS = [
     {
         "slug": "smk",
@@ -15,7 +13,7 @@ SUPPORTED_MUSEUMS = [
     {
         "slug": "rma",
         "short_name": "RMA",
-        "full_name": "Rijksmuseum Amsterdam",
+        "full_name": "Rijksmuseum",
     },
 ]
 
@@ -38,7 +36,7 @@ SEARCHABLE_WORK_TYPES = set(
 )
 
 
-EXAMPLE_QUERIES: dict[MuseumName, list[str]] = {
+EXAMPLE_QUERIES: dict[str, list[str]] = {
     "smk": [
         "Reading child",
         "Orientalism",

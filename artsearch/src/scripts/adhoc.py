@@ -6,8 +6,7 @@ import logging
 from qdrant_client import models
 from qdrant_client.models import PointStruct
 
-from artsearch.src.services.qdrant_service import QdrantService, get_qdrant_service
-from artsearch.src.services.museum_clients.base_client import MuseumName
+from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.src.services.museum_clients.factory import get_museum_client
 
 logging.basicConfig(level=logging.WARNING)
@@ -104,7 +103,7 @@ def control():
     print(id)
 
 
-def generate_id(museum_name: MuseumName, object_number: str) -> str:
+def generate_id(museum_name: str, object_number: str) -> str:
     id = uuid.uuid5(uuid.NAMESPACE_DNS, f"{museum_name.upper()}-{str(object_number)}")
     return str(id)
 

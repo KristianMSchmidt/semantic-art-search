@@ -2,7 +2,6 @@ from urllib.parse import urlencode
 from typing import Iterable
 from django.http import HttpRequest
 from django.urls import reverse
-from artsearch.src.services.museum_clients.base_client import MuseumName
 from artsearch.src.constants import WORK_TYPES_DICT
 
 
@@ -20,24 +19,30 @@ def retrieve_offset(request: HttpRequest) -> int:
     return offset
 
 
-def retrieve_selected_work_types(
-    work_types_at_museum: Iterable[str], request: HttpRequest
+def retrieve_selected(
+    all_items: Iterable[str], request: HttpRequest, param_name: str
 ) -> list[str]:
-    selected_work_types = request.GET.getlist("work_types")
-    # If no work types are selected, return all work types
-    if not selected_work_types:
-        return list(map(str, work_types_at_museum))
-    return selected_work_types
+    """
+    Retrieve selected items (work_types or museums) from the request.
+    """
+    selected_items = request.GET.getlist(param_name)
+    # If no items are selected, return all items
+    if not selected_items:
+        return list(all_items)
+    return selected_items
 
 
-def make_work_types_prefilter(
-    work_types: Iterable[str],
-    selected_work_types: list[str],
+def make_prefilter(
+    all_items: Iterable[str],
+    selected_items: list[str],
 ) -> list[str] | None:
-    # If all work types are selected, or none are selected, return None (We don't need to filter by work type)
-    if not selected_work_types or len(selected_work_types) == len(list(work_types)):
+    """
+    Generalized prefilter function for work types and museums.
+    If all items are selected, or none are selected, return None.
+    """
+    if not selected_items or len(selected_items) == len(list(all_items)):
         return None
-    return selected_work_types
+    return selected_items
 
 
 def prepare_work_types_for_dropdown(
@@ -69,7 +74,7 @@ def make_url(
     offset: int | None = None,
     query: str | None = None,
     selected_work_types: list[str] = [],
-    museum: MuseumName | None = None,
+    selected_museums: list[str] = [],
 ) -> str:
     query_params = {}
     if offset is not None:
@@ -78,9 +83,8 @@ def make_url(
         query_params["query"] = query
     if selected_work_types:
         query_params["work_types"] = selected_work_types
-
-    if museum:
-        return f"{reverse(url_name, kwargs={'museum': museum})}?{urlencode(query_params, doseq=True)}"
+    if selected_museums:
+        query_params["museums"] = selected_museums
     return f"{reverse(url_name)}?{urlencode(query_params, doseq=True)}"
 
 
@@ -88,15 +92,15 @@ def make_urls(
     offset: int,
     query: str | None,
     selected_work_types: list[str],
-    museum: MuseumName | None = None,
+    selected_museums: list[str],
 ) -> dict[str, str]:
     return {
-        "search": make_url("search", museum=museum),
+        "search": make_url("search"),
         "more_results": make_url(
             "more-results",
             offset,
             query,
             selected_work_types,
-            museum=museum,
+            selected_museums,
         ),
     }

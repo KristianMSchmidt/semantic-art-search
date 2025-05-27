@@ -8,7 +8,6 @@ from functools import lru_cache
 import clip
 import torch
 from artsearch.src.utils.session_config import get_configured_session
-from artsearch.src.services.museum_clients.base_client import MuseumName
 from artsearch.src.config import ClipSelection
 from artsearch.src.config import config
 
@@ -66,7 +65,7 @@ class CLIPEmbedder:
         print(f"Model loaded on in {time.time() - start_time:.2f}s")
         return model, preprocess
 
-    def _get_local_image_path(self, museum_name: MuseumName, object_number: str) -> str:
+    def _get_local_image_path(self, museum_name: str, object_number: str) -> str:
         """Return the local file path for a cached image."""
         return os.path.join(self.cache_dir, museum_name, f"{object_number}.jpg")
 
@@ -100,7 +99,7 @@ class CLIPEmbedder:
     def _load_image(
         self,
         thumbnail_url: str,
-        museum_name: MuseumName,
+        museum_name: str,
         object_number: str,
         cache: bool,
     ) -> Image.Image:
@@ -116,7 +115,7 @@ class CLIPEmbedder:
     def generate_thumbnail_embedding(
         self,
         thumbnail_url: str,
-        museum_name: MuseumName,
+        museum_name: str,
         object_number: str,
         cache: bool,
     ) -> list[float] | None:

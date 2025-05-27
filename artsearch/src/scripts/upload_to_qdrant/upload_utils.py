@@ -17,7 +17,6 @@ from artsearch.src.services.clip_embedder import (
 )
 from artsearch.src.services.museum_clients.base_client import (
     ArtworkPayload,
-    MuseumName,
 )
 from artsearch.src.services.museum_clients.factory import get_museum_client
 
@@ -35,7 +34,7 @@ logging.basicConfig(
 def get_user_confirmation(
     clip_model_name: ClipSelection,
     upload_collection_name: str,
-    museum_name: MuseumName,
+    museum_name: str,
 ) -> None:
     """Prompt the user for confirmation before proceeding."""
     logging.info(
@@ -49,7 +48,7 @@ def get_user_confirmation(
     logging.info("Proceeding with the program...")
 
 
-def generate_uuid5(museum_name: MuseumName, object_number: str) -> str:
+def generate_uuid5(museum_name: str, object_number: str) -> str:
     """Generate a UUID5 from the museum name and object number."""
     return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{museum_name}-{object_number}"))
 
@@ -58,7 +57,7 @@ def process_payloads(
     payloads: list[ArtworkPayload],
     embedder: CLIPEmbedder,
     qdrant_service: QdrantService,
-    museum_name: MuseumName,
+    museum_name: str,
     upload_collection_name: str,
 ) -> list[PointStruct]:
     """Process items and return a list of Qdrant PointStruct."""
@@ -137,7 +136,7 @@ def build_query(
 def upload_to_qdrant(
     work_types: list[str],
     query_template: dict[str, Any],
-    museum_name: MuseumName,
+    museum_name: str,
     limit: int,
     clip_model_name: ClipSelection = CLIP_MODEL_NAME,
     upload_collection_name: str = UPLOAD_COLLECTION_NAME,
@@ -153,7 +152,7 @@ def upload_to_qdrant(
     Args:
         work_types (list[str]): List of work types to process.
         query_template (dict): Base query template for the museum API.
-        museum_name (MuseumName): Identifier for the museum ("smk", "cma", "rma").
+        museum_name (str): Identifier for the museum ("smk", "cma", "rma").
         limit (int): Number of items fetched per request (default 100).
         clip_model_name (ClipSelection): CLIP model used for embedding.
         upload_collection_name (str): Target Qdrant collection name.

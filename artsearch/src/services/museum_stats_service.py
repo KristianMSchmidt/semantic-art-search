@@ -2,7 +2,7 @@ import time
 from functools import lru_cache
 from collections import defaultdict
 from artsearch.src.services.qdrant_service import get_qdrant_service
-from artsearch.src.services.museum_clients.base_client import MuseumName
+from artsearch.src.utils.get_museums import get_museum_slugs
 from artsearch.src.config import config
 from dataclasses import dataclass
 
@@ -12,8 +12,8 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 
-MuseumWorkTypeCount = dict[MuseumName, dict[str, int]]
-MuseumTotalCount = dict[MuseumName, int]
+MuseumWorkTypeCount = dict[str, dict[str, int]]
+MuseumTotalCount = dict[str, int]
 
 
 @dataclass
@@ -74,7 +74,7 @@ def aggregate_work_type_counts(
 
 
 def get_work_type_counts_for_museum(
-    museum: MuseumName,
+    museum: str,
     work_type_key: str = "searchable_work_types",
 ) -> MuseumWorkTypeSummary:
     work_counts, total_counts = aggregate_work_type_counts(work_type_key=work_type_key)
@@ -107,10 +107,11 @@ def get_work_type_counts_for_museum(
 
 
 if __name__ == "__main__":
-    # work_type_key = "work_types" # All the work types in original language
-    work_type_key = "searchable_work_types"  # The shortened work types in English
+    # Set work_type_key = "work_types" to get all the work types in original language
+    # Set work_type_key = "searchable_work_types" to get the shortened work types in English
+    work_type_key = "searchable_work_types"
 
-    musems: list[MuseumName] = ["smk", "cma", "rma", "all"]
+    musems = get_museum_slugs() + ["all"]
     for museum in musems:
         work_type_summary = get_work_type_counts_for_museum(museum, work_type_key)
         print(f"Combined work types for {museum}:")

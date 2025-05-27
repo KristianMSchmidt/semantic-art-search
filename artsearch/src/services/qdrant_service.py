@@ -3,8 +3,6 @@ from typing import cast
 from functools import lru_cache
 from qdrant_client import QdrantClient, models
 from qdrant_client.conversions.common_types import PointId
-from artsearch.src.services.museum_clients.base_client import MuseumName
-from artsearch.src.utils.get_metadata_and_museum import get_metadata_and_museum
 from artsearch.src.utils.qdrant_formatting import (
     format_payloads,
     format_hits,
@@ -24,10 +22,10 @@ class SearchFunctionArguments:
     """Parameters for search function"""
 
     query: TextQuery | TargetObjectNumber
-    museum_filter: MuseumName
     limit: int
     offset: int
     work_types_prefilter: list[str] | None
+    museum_prefilter: list[str] | None = None
 
 
 class QdrantService:
@@ -73,7 +71,7 @@ class QdrantService:
         limit: int,
         offset: int,
         work_types: list[str] | None,
-        museum_filter: MuseumName,
+        museums: list[str] | None,
         object_number: str | None,
     ) -> list[dict]:
         """
@@ -82,11 +80,11 @@ class QdrantService:
         Note that in qdrant 'should' means 'or' & 'must' means 'and'.
         """
         standard_conditions = []
-        if museum_filter != "all":
+        if museums is not None:
             standard_conditions.append(
                 models.FieldCondition(
                     key="museum",
-                    match=models.MatchValue(value=museum_filter),
+                    match=models.MatchAny(any=museums),
                 )
             )
         if work_types is not None:
@@ -141,14 +139,13 @@ class QdrantService:
         """Search for related artworks based on a text query."""
         # Unpack the search function arguments
         query: TextQuery = search_function_args.query
-        museum_filter = search_function_args.museum_filter
         limit = search_function_args.limit
         offset = search_function_args.offset
         work_types = search_function_args.work_types_prefilter
-
+        museums = search_function_args.museum_prefilter
         query_vector = get_clip_embedder().generate_text_embedding(query)
         return self._search(
-            query_vector, limit, offset, work_types, museum_filter, object_number=None
+            query_vector, limit, offset, work_types, museums, object_number=None
         )
 
     def search_similar_images(
@@ -160,47 +157,24 @@ class QdrantService:
         """
         # Unpack the search function arguments
         object_number: TargetObjectNumber = search_function_args.query
-        museum_filter = search_function_args.museum_filter
         limit = search_function_args.limit
         offset = search_function_args.offset
         work_types = search_function_args.work_types_prefilter
+        museums = search_function_args.museum_prefilter
 
         # Fetch vector and paylod of target object from Qdrant collection (if object exists in collection)
         query_vector = self._get_vector_by_object_number(object_number)
 
-        if query_vector is None:
-            # If the vector does not exist already, try to generate it from the thumbnail URL
-            thumbnail_url, object_museum = get_metadata_and_museum(
-                object_number, museum_filter
-            )
-            query_vector = get_clip_embedder().generate_thumbnail_embedding(
-                thumbnail_url, object_museum, object_number, cache=False
-            )
-
         # If the embedding could not be generated, raise an error
         if query_vector is None:
-            raise ValueError(
-                "Could not generate embedding for the provided object number"
-            )
+            raise ValueError("No vector found for the given object number. ")
         return self._search(
-            query_vector, limit, offset, work_types, museum_filter, object_number
+            query_vector, limit, offset, work_types, museums, object_number
         )
 
-    def get_random_sample(self, museum_filter: MuseumName, limit: int) -> list[dict]:
+    def get_random_sample(self, limit: int) -> list[dict]:
         """Get a random sample of items from the collection."""
-        if museum_filter == "all":
-            query_filter = None
-        else:
-            query_filter = models.Filter(
-                must=[
-                    models.FieldCondition(
-                        key="museum",
-                        match=models.MatchValue(value=museum_filter),
-                    )
-                ]
-            )
         sampled = self.qdrant_client.query_points(
-            query_filter=query_filter,
             collection_name=self.collection_name,
             query=models.SampleQuery(sample=models.Sample.RANDOM),
             with_vectors=False,
@@ -247,7 +221,7 @@ class QdrantService:
         return points, next_page_token
 
     def get_existing_object_numbers(
-        self, collection_name: str, object_numbers: list[str], museum: MuseumName
+        self, collection_name: str, object_numbers: list[str], museum: str
     ) -> set[str]:
         """
         Given a list of object numbers, returns the set of object numbers from

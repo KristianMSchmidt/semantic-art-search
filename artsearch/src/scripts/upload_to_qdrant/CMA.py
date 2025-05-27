@@ -4,11 +4,10 @@ to a Qdrant collection.
 """
 
 from artsearch.src.scripts.upload_to_qdrant.upload_utils import upload_to_qdrant
-from artsearch.src.services.museum_clients.base_client import MuseumName
 
 
 # Constants
-MUSEUM_NAME: MuseumName = "cma"
+MUSEUM_NAME = "cma"
 WORK_TYPES = [
     "Print",
     "Painting",
