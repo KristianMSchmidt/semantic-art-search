@@ -20,6 +20,7 @@ from artsearch.views.view_utils import (
     make_prefilter,
     make_urls,
     prepare_work_types_for_dropdown,
+    prepare_initial_label,
 )
 
 # Create a global instance (initialized once and reused)
@@ -101,8 +102,16 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
     prepared_work_types = prepare_work_types_for_dropdown(
         museum_work_type_summary.work_types
     )
+    initial_work_types_label = prepare_initial_label(
+        selected_work_types, work_types_at_museum, "work_types"
+    )
+    initial_museums_label = prepare_initial_label(
+        selected_museums, museum_names, "museums"
+    )
 
     context = {
+        "initial_museums_label": initial_museums_label,
+        "initial_work_types_label": initial_work_types_label,
         "total_work_count": museum_work_type_summary.total,
         "work_types": prepared_work_types,
         "all_work_types_json": json.dumps(work_types_at_museum),

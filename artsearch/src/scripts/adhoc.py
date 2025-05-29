@@ -25,79 +25,6 @@ def create_index():
     breakpoint()
 
 
-def delete_rma_works():
-    """
-    Delete all works from the collection "artworks_dev_2" that are from the RMA museum
-    (these have 'museum' set to 'rma' in their payload).
-    """
-    qdrant_service = get_qdrant_service()
-    qdrant_client = qdrant_service.qdrant_client
-
-    collection_name = "artworks_dev_2"
-
-    # Build a filter to match payloads where 'museum' == 'rma'
-    from qdrant_client.http import models
-
-    filter_condition = models.Filter(
-        must=[models.FieldCondition(key="museum", match=models.MatchValue(value="rma"))]
-    )
-
-    # Issue the delete command
-    result = qdrant_client.delete(
-        collection_name=collection_name,
-        points_selector=models.FilterSelector(filter=filter_condition),
-    )
-
-    print(f"Deleted RMA works: {result}")
-
-
-def count_work_types():
-    from collections import defaultdict
-
-    qdrant_service = get_qdrant_service()
-
-    # Parameters
-    collection_name = "artworks_dev_2"
-
-    # Step 1: Scroll through all points to get museum and work_types
-    all_counts = defaultdict(lambda: defaultdict(int))
-    next_page_token = None
-
-    while True:
-        points, next_page_token = qdrant_service.fetch_points(
-            collection_name,
-            next_page_token,
-            limit=100,
-            with_payload=["museum", "work_types"],
-        )
-
-        for point in points:
-            payload = point.payload
-            if payload is None:
-                logging.warning(f"Skipping point with missing payload: {point}")
-                continue
-            museum = payload.get("museum")
-            if museum is None:
-                logging.warning(f"Skipping point with missing museum: {point}")
-                continue
-            work_types = payload.get("work_types", [])
-            if not isinstance(work_types, list):
-                logging.warning(f"Skipping point with invalid work_types: {point}")
-                continue
-            for work_type in work_types:
-                all_counts[museum][work_type] += 1
-                all_counts[museum]["total"] += 1
-
-        if next_page_token is None:
-            break
-
-    # Print the result
-    for museum, counts in all_counts.items():
-        print(f"Museum: {museum}")
-        for work_type, count in counts.items():
-            print(f"  {work_type}: {count}")
-
-
 def control():
     id = uuid.uuid5(uuid.NAMESPACE_DNS, "SMK-KKS596a verso")
     print(id)
@@ -212,7 +139,7 @@ def make_favicon():
 
 if "__main__" == "__main__":
     print("Running adhoc script")
-    create_index()
+    # create_index()
     # delete_rma_works()
     # control()
     # copy()

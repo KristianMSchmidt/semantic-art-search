@@ -1,5 +1,5 @@
 from urllib.parse import urlencode
-from typing import Iterable
+from typing import Iterable, Literal
 from django.http import HttpRequest
 from django.urls import reverse
 from artsearch.src.constants import WORK_TYPES_DICT
@@ -67,6 +67,26 @@ def prepare_work_types_for_dropdown(
             }
         )
     return work_types_for_dropdown
+
+
+def prepare_initial_label(
+    selected_items: list[str],
+    all_items: list[str],
+    label_type: Literal["work_types", "museums"],
+) -> str:
+    """
+    Prepare the initial label for the dropdowns based on selected items.
+    """
+    if label_type == "work_types":
+        name = "Work Type"
+    elif label_type == "museums":
+        name = "Museum"
+    if not selected_items or len(selected_items) == len(all_items):
+        return f"All {name}s"
+    elif len(selected_items) == 1:
+        return f"1 {name}"
+    else:
+        return f"{len(selected_items)} {name}s"
 
 
 def make_url(

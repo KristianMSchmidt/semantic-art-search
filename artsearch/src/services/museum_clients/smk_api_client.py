@@ -1,4 +1,4 @@
-from typing import Any, Tuple
+from typing import Any
 
 from artsearch.src.services.museum_clients.base_client import (
     MuseumAPIClient,

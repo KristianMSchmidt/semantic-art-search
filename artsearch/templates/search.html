@@ -25,13 +25,15 @@ title="View on GitHub"
 
     <!-- Search Form -->
     <div class="mb-4 sm:mb-5">
-        <form id="search-form" method="GET" action="{{ urls.search }}" class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
+        <form id="search-form" method="GET" action="{{ urls.search }}" 
+            class="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
+            
             <!-- Search Input -->
             <input
                 id="search-input"
                 type="text"
                 name="query"
-                placeholder="Search by theme, object, style, emotion, or more..."
+                placeholder="Search by theme, motif, style, emotion, or more..."
                 value="{{ query|default:'' }}"
                 class="w-full sm:w-auto flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required
@@ -44,10 +46,11 @@ title="View on GitHub"
             <!-- Search Button -->
             <button
                 type="submit"
-                class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="bg-blue-500 text-white px-8 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
                 Search
             </button>
+
         </form>
     </div> <!-- End Search Form -->
 

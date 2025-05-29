@@ -6,7 +6,7 @@
         class="w-full h-auto max-h-96 object-contain cursor-pointer hover:opacity-80 transition"
         onclick="openModal('{{ result.thumbnail_url }}')">
 
-  <div class="p-4 flex flex-col h-full">
+  <div class="p-4 flex flex-col h-full mb-2">
     <div class="space-y-0">
       <h3 class="text-lg font-semibold text-gray-800">{{ result.title }}</h3>
       <p class="text-sm text-gray-600">{{ result.artist }}</p>
@@ -16,13 +16,23 @@
       {% if result.score is not None %}
         <p class="text-sm text-gray-400">Score: {{ result.score }}</p>
       {% endif %}
-    </div>
-    <a
-      href="{{ urls.search }}&query={{ result.object_number }}"
-      class="mt-2 mb-2 block text-base text-blue-500 hover:underline"
+    </div> 
+    <button
+      type="button"
+      class="mt-1 text-sm text-gray-600 hover:text-blue-600 underline self-start"
+      onclick="submitQuery('{{ result.object_number }}')"
     >
-      Find similar
-  </a>
+     Find similar
+    </button>
   </div>  
 </div>
-  
+
+<!-- JavaScript Functions -->
+<script>
+
+  function submitQuery(query) {
+      document.getElementById('search-input').value = query;
+      document.getElementById('search-form').submit();
+  }
+</script>
+
