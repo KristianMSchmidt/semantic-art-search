@@ -56,7 +56,6 @@ EXAMPLE_QUERIES: dict[str, list[str]] = {
         "Painter",
         "Fish still life",
         "Anatomy lesson",
-        "Breastfeeding",
         "Winter landscape",
         "Red flowers",
         "Crucifixion",

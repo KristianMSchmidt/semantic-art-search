@@ -6,10 +6,11 @@ from artsearch.views.view_utils import (
     retrieve_offset,
 )
 from artsearch.views.context_builders import (
-    build_full_search_context,
+    build_main_context,
+    build_search_context,
     build_filter_context,
+    SearchParams,
 )
-from artsearch.views.models import SearchParams
 
 
 def search(request: HttpRequest) -> HttpResponse:
@@ -17,8 +18,7 @@ def search(request: HttpRequest) -> HttpResponse:
         request=request,
         example_queries=EXAMPLE_QUERIES["chosen"],
     )
-
-    context = build_full_search_context(params)
+    context = build_search_context(params)
     return render(request, "search.html", context)
 
 
@@ -30,7 +30,7 @@ def more_results(request: HttpRequest) -> HttpResponse:
         request=request,
         offset=retrieve_offset(request),
     )
-    context = build_full_search_context(params)
+    context = build_main_context(params)
     return render(request, "partials/artwork_cards_and_trigger.html", context)
 
 

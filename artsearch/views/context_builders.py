@@ -1,5 +1,7 @@
+from dataclasses import dataclass
 import json
 from typing import Any
+from django.http import HttpRequest
 from artsearch.src.services.museum_stats_service import (
     get_work_type_names,
     aggregate_work_type_count_for_selected_museums,
@@ -18,56 +20,35 @@ from artsearch.views.view_utils import (
     make_urls,
 )
 from artsearch.src.services.museum_clients.base_client import MuseumAPIClientError
-from artsearch.views.models import SearchParams
 from artsearch.src.constants import SUPPORTED_MUSEUMS
+
+
+RESULTS_PER_PAGE = 20
+
+
+@dataclass
+class SearchParams:
+    """Parameters for the handle_search view"""
+
+    request: HttpRequest
+    offset: int = 0
+    limit: int = RESULTS_PER_PAGE
+    example_queries: list[str] | None = None
+
 
 # Create a global instance (initialized once and reused)
 qdrant_service = get_qdrant_service()
 
 
-def build_filter_context(request):
-    """
-    Build the template context for search and dropdown templates
-    The 'initial labels' are only used for the search template, the rest is used for both.
-    """
-    museum_names = get_museum_names()
-    selected_museums = retrieve_selected(museum_names, request, "museums")
-
-    work_type_names = get_work_type_names()
-    selected_work_types = retrieve_selected(work_type_names, request, "work_types")
-
-    work_type_summary = aggregate_work_type_count_for_selected_museums(selected_museums)
-    total_work_count = work_type_summary.total
-    prepared_work_types = prepare_work_types_for_dropdown(work_type_summary.work_types)
-
-    initial_work_types_label = prepare_initial_label(
-        selected_work_types, work_type_names, "work_types"
-    )
-    initial_museums_label = prepare_initial_label(
-        selected_museums, museum_names, "museums"
-    )
-
-    return {
-        "total_work_count": total_work_count,
-        "work_types": prepared_work_types,
-        "initial_museums_label": initial_museums_label,
-        "initial_work_types_label": initial_work_types_label,
-        "all_work_types_json": json.dumps(work_type_names),
-        "selected_work_types_json": json.dumps(selected_work_types),
-        "all_museums_json": json.dumps(museum_names),
-        "selected_museums_json": json.dumps(selected_museums),
-    }
-
-
-def build_search_context(
-    query,
+def handle_search(
+    query: str | None,
     offset: int,
     limit: int,
     museum_prefilter,
     work_type_prefilter,
 ) -> dict[Any, Any]:
     """
-    Build the context for search results based on the query and filters.
+    Handle the search logic based on the provided query and filters.
     """
     text_above_results = ""
     results = []
@@ -104,7 +85,7 @@ def build_search_context(
         except MuseumAPIClientError as e:
             error_message = str(e)
             error_type = "warning"
-        except Exception as e:
+        except Exception:
             error_message = "An unexpected error occurred. Please try again."
             error_type = "error"
 
@@ -116,7 +97,10 @@ def build_search_context(
     }
 
 
-def build_full_search_context(params: SearchParams) -> dict[Any, Any]:
+def build_main_context(params: SearchParams) -> dict[Any, Any]:
+    """
+    Build the main context for the search view.
+    """
     request = params.request
     offset = params.offset
     limit = params.limit
@@ -128,7 +112,7 @@ def build_full_search_context(params: SearchParams) -> dict[Any, Any]:
     work_type_names = get_work_type_names()
     selected_work_types = retrieve_selected(work_type_names, request, "work_types")
 
-    search_ctx = build_search_context(
+    search_results = handle_search(
         query=query,
         offset=offset,
         limit=limit,
@@ -145,14 +129,57 @@ def build_full_search_context(params: SearchParams) -> dict[Any, Any]:
         selected_work_types=selected_work_types,
     )
 
-    filter_ctx = build_filter_context(params.request)
-
     return {
-        **filter_ctx,
-        **search_ctx,
+        **search_results,
         "query": query,
         "offset": offset,
-        "example_queries": params.example_queries,
-        "museums": SUPPORTED_MUSEUMS,
         "urls": urls,
+    }
+
+
+def build_filter_context(request):
+    """
+    Build the template context for search and dropdown templates
+    The 'initial labels' are only used for the search template, the rest is used for both.
+    """
+    museum_names = get_museum_names()
+    selected_museums = retrieve_selected(museum_names, request, "museums")
+
+    work_type_names = get_work_type_names()
+    selected_work_types = retrieve_selected(work_type_names, request, "work_types")
+
+    work_type_summary = aggregate_work_type_count_for_selected_museums(selected_museums)
+    total_work_count = work_type_summary.total
+    prepared_work_types = prepare_work_types_for_dropdown(work_type_summary.work_types)
+
+    initial_work_types_label = prepare_initial_label(
+        selected_work_types, work_type_names, "work_types"
+    )
+    initial_museums_label = prepare_initial_label(
+        selected_museums, museum_names, "museums"
+    )
+
+    return {
+        "total_work_count": total_work_count,
+        "work_types": prepared_work_types,
+        "initial_museums_label": initial_museums_label,
+        "initial_work_types_label": initial_work_types_label,
+        "all_work_types_json": json.dumps(work_type_names),
+        "selected_work_types_json": json.dumps(selected_work_types),
+        "all_museums_json": json.dumps(museum_names),
+        "selected_museums_json": json.dumps(selected_museums),
+        "museums": SUPPORTED_MUSEUMS,
+    }
+
+
+def build_search_context(params: SearchParams) -> dict[Any, Any]:
+    """
+    Build the full context for the search view.
+    """
+    filter_context = build_filter_context(params.request)
+    main_context = build_main_context(params)
+    return {
+        **filter_context,
+        **main_context,
+        "example_queries": params.example_queries,
     }

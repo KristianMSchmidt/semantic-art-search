@@ -1,5 +1,5 @@
 import requests
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import urlencode
 from abc import ABC, abstractmethod
 from pydantic import BaseModel, ValidationError
@@ -25,13 +25,13 @@ class ArtworkPayload(BaseModel):
 
 class MuseumQueryResponse(BaseModel):
     total: int
-    next_page_token: Optional[str]
+    next_page_token: str | None
     items: list[ArtworkPayload]
 
 
 class ParsedAPIResponse(BaseModel):
     total_count: int
-    next_page_token: Optional[str]
+    next_page_token: str | None
     items_list: list[dict[str, Any]]
 
 
@@ -40,7 +40,7 @@ class MuseumAPIClient(ABC):
 
     BASE_SEARCH_URL: str
 
-    def __init__(self, http_session: Optional[requests.Session] = None):
+    def __init__(self, http_session: requests.Session | None = None):
         self.http_session = http_session or get_configured_session()
 
     @abstractmethod
