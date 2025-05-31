@@ -1,8 +1,8 @@
 import time
+from typing import Sequence
 from functools import lru_cache
 from collections import defaultdict
 from artsearch.src.services.qdrant_service import get_qdrant_service
-from artsearch.src.utils.get_museums import get_museum_slugs
 from artsearch.src.config import config
 from dataclasses import dataclass
 
@@ -73,47 +73,57 @@ def aggregate_work_type_counts(
     return work_counts, total_counts
 
 
-def get_work_type_counts_for_museum(
-    museum: str,
+def aggregate_work_type_count_for_selected_museums(
+    selected_museums: Sequence[str],
     work_type_key: str = "searchable_work_types",
 ) -> MuseumWorkTypeSummary:
+    """
+    Aggregates work type counts and total work count for the given museums.
+    """
+    # Fetch per‐museum breakdowns
     work_counts, total_counts = aggregate_work_type_counts(work_type_key=work_type_key)
 
-    if museum == "all":
-        # Combine work types across all museums
-        combined_work_types: dict[str, int] = defaultdict(int)
-        for museum_work_types in work_counts.values():
-            for work_type, count in museum_work_types.items():
-                combined_work_types[work_type] += count
+    combined_work_types: dict[str, int] = defaultdict(int)
+    combined_total = 0
 
-        # Correct total count: sum artworks per museum, not per type
-        combined_total = sum(total_counts.values())
+    for museum in selected_museums:
+        for work_type, count in work_counts[museum].items():
+            combined_work_types[work_type] += count
+        combined_total += total_counts[museum]
 
-        # Sort combined work types
-        sorted_items = sorted(
-            combined_work_types.items(), key=lambda x: x[1], reverse=True
-        )
+    # Ensure all work types are included, even if count is zero
+    for work_type in get_work_type_names():
+        if work_type not in combined_work_types:
+            combined_work_types[work_type] = 0
 
-        sorted_work_types = dict(sorted_items)
-        return MuseumWorkTypeSummary(work_types=sorted_work_types, total=combined_total)
+    # Sort descending by count
+    sorted_items = sorted(combined_work_types.items(), key=lambda x: x[1], reverse=True)
+    sorted_work_types = dict(sorted_items)
 
-    # Regular single-museum case
-    museum_work_types = work_counts[museum]
-    sorted_items = sorted(museum_work_types.items(), key=lambda x: x[1], reverse=True)
+    return MuseumWorkTypeSummary(work_types=sorted_work_types, total=combined_total)
 
-    limited_work_types = dict(sorted_items)
-    total = total_counts[museum]
-    return MuseumWorkTypeSummary(work_types=limited_work_types, total=total)
+
+@lru_cache(maxsize=1)
+def get_work_type_names() -> list[str]:
+    """
+    Returns all work types across all museums.
+    """
+    work_counts, _ = aggregate_work_type_counts()
+    all_work_types = set()
+    for museum_work_types in work_counts.values():
+        all_work_types.update(museum_work_types.keys())
+    return sorted(all_work_types)
 
 
 if __name__ == "__main__":
     # Set work_type_key = "work_types" to get all the work types in original language
     # Set work_type_key = "searchable_work_types" to get the shortened work types in English
     work_type_key = "searchable_work_types"
-
-    musems = get_museum_slugs() + ["all"]
+    musems = ["rma"]
     for museum in musems:
-        work_type_summary = get_work_type_counts_for_museum(museum, work_type_key)
+        work_type_summary = aggregate_work_type_count_for_selected_museums(
+            selected_museums=[museum], work_type_key=work_type_key
+        )
         print(f"Combined work types for {museum}:")
         for work_type, count in work_type_summary.work_types.items():
             print(f"  {work_type}: {count}")

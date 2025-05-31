@@ -9,4 +9,5 @@ urlpatterns = [
     ),
     path("", views.search, name="search"),
     path("more-results/", views.more_results, name="more-results"),
+    path("htmx/update-work-types/", views.update_work_types, name="update-work-types"),
 ]

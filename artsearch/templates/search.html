@@ -38,11 +38,23 @@ title="View on GitHub"
                 class="w-full sm:w-auto flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required
             />
-
-            <!-- Museum & Worktype dropdowns -->
-            {% include 'partials/museum_dropdown.html' %}            
-            {% include 'partials/work_type_dropdown.html' %}
+            <!-- Museum Dropdown -->
+            <div
+                id="museum-dropdown"
+                hx-get="{% url 'update-work-types' %}"
+                hx-trigger="change delay:150ms"
+                hx-include="#museum-dropdown, #work-type-container"
+                hx-target="#work-type-container"
+                hx-swap="innerHTML"
+            >
+                {% include "partials/museum_dropdown.html" %}
+            </div>
             
+            <!-- Work Type Dropdown -->
+            <div id="work-type-container">
+                {% include "partials/work_type_dropdown.html" %}
+            </div>
+
             <!-- Search Button -->
             <button
                 type="submit"

@@ -11,7 +11,8 @@ from artsearch.src.services.qdrant_service import (
 )
 
 from artsearch.src.services.museum_stats_service import (
-    get_work_type_counts_for_museum,
+    get_work_type_names,
+    aggregate_work_type_count_for_selected_museums,
 )
 from artsearch.views.view_utils import (
     retrieve_query,
@@ -46,16 +47,16 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
     offset = params.offset
     query = retrieve_query(params.request)
 
-    museum_work_type_summary = get_work_type_counts_for_museum("all")
-    work_types_at_museum = list(museum_work_type_summary.work_types.keys())
-    selected_work_types = retrieve_selected(
-        work_types_at_museum, params.request, "work_types"
-    )
-    work_types_prefilter = make_prefilter(work_types_at_museum, selected_work_types)
-
     museum_names = get_museum_slugs()
     selected_museums = retrieve_selected(museum_names, params.request, "museums")
     museum_prefilter = make_prefilter(museum_names, selected_museums)
+
+    work_type_names = get_work_type_names()
+    selected_work_types = retrieve_selected(
+        work_type_names, params.request, "work_types"
+    )
+    work_types_prefilter = make_prefilter(work_type_names, selected_work_types)
+    work_type_summary = aggregate_work_type_count_for_selected_museums(selected_museums)
 
     # Set default context parameters
     text_above_results = ""
@@ -99,22 +100,19 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
 
     offset += limit
     urls = make_urls(offset, query, selected_work_types, selected_museums)
-    prepared_work_types = prepare_work_types_for_dropdown(
-        museum_work_type_summary.work_types
-    )
+    prepared_work_types = prepare_work_types_for_dropdown(work_type_summary.work_types)
     initial_work_types_label = prepare_initial_label(
-        selected_work_types, work_types_at_museum, "work_types"
+        selected_work_types, work_type_names, "work_types"
     )
     initial_museums_label = prepare_initial_label(
         selected_museums, museum_names, "museums"
     )
-
     context = {
         "initial_museums_label": initial_museums_label,
         "initial_work_types_label": initial_work_types_label,
-        "total_work_count": museum_work_type_summary.total,
+        "total_work_count": work_type_summary.total,
         "work_types": prepared_work_types,
-        "all_work_types_json": json.dumps(work_types_at_museum),
+        "all_work_types_json": json.dumps(work_type_names),
         "selected_work_types_json": json.dumps(selected_work_types),
         "query": query,
         "results": results,
@@ -157,3 +155,29 @@ def more_results(request: HttpRequest) -> HttpResponse:
     )
 
     return handle_search(params)
+
+
+def update_work_types(request):
+    """
+    HTMX view that updates the work type dropdown based on selected museums.
+    """
+    museum_names = get_museum_slugs()
+    selected_museums = retrieve_selected(museum_names, request, "museums")
+
+    work_type_names = get_work_type_names()
+    selected_work_types = retrieve_selected(work_type_names, request, "work_types")
+    work_type_summary = aggregate_work_type_count_for_selected_museums(selected_museums)
+
+    prepared_work_types = prepare_work_types_for_dropdown(work_type_summary.work_types)
+    initial_work_types_label = prepare_initial_label(
+        selected_work_types, work_type_names, "work_types"
+    )
+    context = {
+        "initial_work_types_label": initial_work_types_label,
+        "total_work_count": work_type_summary.total,
+        "work_types": prepared_work_types,
+        "all_work_types_json": json.dumps(work_type_names),
+        "selected_work_types_json": json.dumps(selected_work_types),
+    }
+
+    return render(request, "partials/work_type_dropdown.html", context)
