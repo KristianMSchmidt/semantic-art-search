@@ -1,91 +1,25 @@
-from dataclasses import dataclass
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
-from artsearch.src.constants import SUPPORTED_MUSEUMS, EXAMPLE_QUERIES
-from artsearch.src.services.qdrant_service import (
-    get_qdrant_service,
-)
 
+from artsearch.src.constants import EXAMPLE_QUERIES
 from artsearch.views.view_utils import (
-    get_work_type_names,
-    get_museum_names,
-    retrieve_query,
     retrieve_offset,
-    retrieve_selected,
-    make_prefilter,
-    make_urls,
-    build_filter_context,
-    build_search_context,
 )
-
-# Create a global instance (initialized once and reused)
-qdrant_service = get_qdrant_service()
-
-# Number of search results to fetch at a time
-RESULTS_PER_PAGE = 20
-
-
-@dataclass
-class SearchParams:
-    """Parameters for the handle_search view"""
-
-    request: HttpRequest
-    offset: int
-    template_name: str
-    example_queries: list[str] | None = None
-
-
-def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpResponse:
-    """Handles both text and similarity search"""
-    request = params.request
-    offset = params.offset
-    query = retrieve_query(request)
-
-    museum_names = get_museum_names()
-    selected_museums = retrieve_selected(museum_names, request, "museums")
-
-    work_type_names = get_work_type_names()
-    selected_work_types = retrieve_selected(work_type_names, request, "work_types")
-
-    search_ctx = build_search_context(
-        query=query,
-        offset=offset,
-        limit=limit,
-        museum_prefilter=make_prefilter(museum_names, selected_museums),
-        work_type_prefilter=make_prefilter(work_type_names, selected_work_types),
-    )
-
-    offset += limit
-
-    urls = make_urls(
-        offset=offset,
-        query=query,
-        selected_museums=selected_museums,
-        selected_work_types=selected_work_types,
-    )
-
-    filter_ctx = build_filter_context(params.request)
-
-    context = {
-        **filter_ctx,
-        **search_ctx,
-        "query": query,
-        "offset": offset,
-        "example_queries": params.example_queries,
-        "museums": SUPPORTED_MUSEUMS,
-        "urls": urls,
-    }
-    return render(params.request, params.template_name, context)
+from artsearch.views.context_builders import (
+    build_full_search_context,
+    build_filter_context,
+)
+from artsearch.views.models import SearchParams
 
 
 def search(request: HttpRequest) -> HttpResponse:
     params = SearchParams(
         request=request,
         example_queries=EXAMPLE_QUERIES["chosen"],
-        offset=0,
-        template_name="search.html",
     )
-    return handle_search(params)
+
+    context = build_full_search_context(params)
+    return render(request, "search.html", context)
 
 
 def more_results(request: HttpRequest) -> HttpResponse:
@@ -95,9 +29,9 @@ def more_results(request: HttpRequest) -> HttpResponse:
     params = SearchParams(
         request=request,
         offset=retrieve_offset(request),
-        template_name="partials/artwork_cards_and_trigger.html",
     )
-    return handle_search(params)
+    context = build_full_search_context(params)
+    return render(request, "partials/artwork_cards_and_trigger.html", context)
 
 
 def update_work_types(request):
