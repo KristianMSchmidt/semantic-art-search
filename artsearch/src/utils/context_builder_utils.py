@@ -14,9 +14,9 @@ def retrieve_query(request: HttpRequest) -> str | None:
 
 def retrieve_offset(request: HttpRequest) -> int:
     offset = request.GET.get("offset", None)
-    assert offset is not None
-    offset = int(offset)
-    return offset
+    if offset is None:
+        return 0
+    return int(offset)
 
 
 def retrieve_selected(

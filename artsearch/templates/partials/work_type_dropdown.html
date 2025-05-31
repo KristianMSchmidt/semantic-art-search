@@ -51,7 +51,6 @@ function dropdownComponent() {
         open: false,
         selectedWorkTypes: JSON.parse('{{ selected_work_types_json|escapejs }}'),
         allWorkTypes: JSON.parse('{{ all_work_types_json|escapejs }}'),
-
         toggleSelectAll() {
             if (this.selectedWorkTypes.length === this.allWorkTypes.length) {
                 this.selectedWorkTypes = [];

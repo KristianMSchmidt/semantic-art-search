@@ -1,11 +1,7 @@
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
-from artsearch.src.constants import EXAMPLE_QUERIES
-from artsearch.views.view_utils import (
-    retrieve_offset,
-)
-from artsearch.views.context_builders import (
+from artsearch.src.context_builders import (
     build_main_context,
     build_search_context,
     build_filter_context,
@@ -14,10 +10,7 @@ from artsearch.views.context_builders import (
 
 
 def search(request: HttpRequest) -> HttpResponse:
-    params = SearchParams(
-        request=request,
-        example_queries=EXAMPLE_QUERIES["chosen"],
-    )
+    params = SearchParams(request=request)
     context = build_search_context(params)
     return render(request, "search.html", context)
 
@@ -26,10 +19,7 @@ def more_results(request: HttpRequest) -> HttpResponse:
     """
     HTMX view that fetches more search results for infinite scrolling.
     """
-    params = SearchParams(
-        request=request,
-        offset=retrieve_offset(request),
-    )
+    params = SearchParams(request=request)
     context = build_main_context(params)
     return render(request, "partials/artwork_cards_and_trigger.html", context)
 
