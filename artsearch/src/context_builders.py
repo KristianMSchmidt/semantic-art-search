@@ -47,7 +47,7 @@ class SearchParams:
         return retrieve_offset(self.request)
 
 
-def build_main_context(params: SearchParams) -> dict[Any, Any]:
+def build_main_context(params: SearchParams) -> dict[str, Any]:
     """
     Build the main context for the search view.
     """
@@ -84,16 +84,16 @@ def build_main_context(params: SearchParams) -> dict[Any, Any]:
     }
 
 
-def build_filter_context(request):
+def build_filter_context(params: SearchParams) -> dict[str, Any]:
     """
     Build the template context for search and dropdown templates
     The 'initial labels' are only used for the search template, the rest is used for both.
     """
     museum_names = get_museum_names()
-    selected_museums = retrieve_selected(museum_names, request, "museums")
-
     work_type_names = get_work_type_names()
-    selected_work_types = retrieve_selected(work_type_names, request, "work_types")
+
+    selected_museums = params.selected_museums
+    selected_work_types = params.selected_work_types
 
     work_type_summary = aggregate_work_type_count_for_selected_museums(selected_museums)
     total_work_count = work_type_summary.total
@@ -121,11 +121,11 @@ def build_filter_context(request):
 
 def build_search_context(
     params: SearchParams, example_queries: list[str] = EXAMPLE_QUERIES["chosen"]
-) -> dict[Any, Any]:
+) -> dict[str, Any]:
     """
     Build the full context for the search view.
     """
-    filter_context = build_filter_context(params.request)
+    filter_context = build_filter_context(params)
     main_context = build_main_context(params)
     return {
         **filter_context,
