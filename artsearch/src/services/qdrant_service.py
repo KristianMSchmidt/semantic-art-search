@@ -24,7 +24,7 @@ class SearchFunctionArguments:
     query: TextQuery | TargetObjectNumber
     limit: int
     offset: int
-    work_types_prefilter: list[str] | None
+    work_type_prefilter: list[str] | None
     museum_prefilter: list[str] | None = None
 
 
@@ -141,7 +141,7 @@ class QdrantService:
         query: TextQuery = search_function_args.query
         limit = search_function_args.limit
         offset = search_function_args.offset
-        work_types = search_function_args.work_types_prefilter
+        work_types = search_function_args.work_type_prefilter
         museums = search_function_args.museum_prefilter
         query_vector = get_clip_embedder().generate_text_embedding(query)
         return self._search(
@@ -159,7 +159,7 @@ class QdrantService:
         object_number: TargetObjectNumber = search_function_args.query
         limit = search_function_args.limit
         offset = search_function_args.offset
-        work_types = search_function_args.work_types_prefilter
+        work_types = search_function_args.work_type_prefilter
         museums = search_function_args.museum_prefilter
 
         # Fetch vector and paylod of target object from Qdrant collection (if object exists in collection)
