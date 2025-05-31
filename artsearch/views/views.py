@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
-from artsearch.src.constants import EXAMPLE_QUERIES, SUPPORTED_MUSEUMS
+from artsearch.src.constants import SUPPORTED_MUSEUMS, EXAMPLE_QUERIES
 from artsearch.src.services.qdrant_service import (
     get_qdrant_service,
 )
@@ -55,6 +55,8 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
         work_type_prefilter=make_prefilter(work_type_names, selected_work_types),
     )
 
+    offset += limit
+
     urls = make_urls(
         offset=offset,
         query=query,
@@ -68,7 +70,7 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
         **filter_ctx,
         **search_ctx,
         "query": query,
-        "offset": offset + limit,
+        "offset": offset,
         "example_queries": params.example_queries,
         "museums": SUPPORTED_MUSEUMS,
         "urls": urls,
@@ -79,7 +81,7 @@ def handle_search(params: SearchParams, limit: int = RESULTS_PER_PAGE) -> HttpRe
 def search(request: HttpRequest) -> HttpResponse:
     params = SearchParams(
         request=request,
-        example_queries=EXAMPLE_QUERIES["all"],
+        example_queries=EXAMPLE_QUERIES["chosen"],
         offset=0,
         template_name="search.html",
     )
@@ -90,14 +92,11 @@ def more_results(request: HttpRequest) -> HttpResponse:
     """
     HTMX view that fetches more search results for infinite scrolling.
     """
-    offset = retrieve_offset(request)
-
     params = SearchParams(
         request=request,
-        offset=offset,
+        offset=retrieve_offset(request),
         template_name="partials/artwork_cards_and_trigger.html",
     )
-
     return handle_search(params)
 
 
