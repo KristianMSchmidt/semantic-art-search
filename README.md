@@ -12,9 +12,9 @@ Using machine learning, it lets you:
 Unlike traditional search tools, results are ranked by **how closely artworks match your intent**, not how well they match metadata.
 
 Currently, the system includes selected artworks from:
-- **The Danish National Gallery (SMK)**
-- **The Cleveland Museum of Art (CMA)**
-- **The Rijksmuseum Amsterdam (RMA)**
+- **Statens Museum for Kunst (The Danish National Gallery)**
+- **The Cleveland Museum of Art**
+- **The Rijksmuseum Amsterdam**
 
 ---
 
@@ -88,9 +88,9 @@ Not every object is indexed — focus is on visual artworks like paintings, prin
 
 Made possible by the excellent **open data initiatives** of:
 
-- [The Danish National Gallery (SMK)](https://open.smk.dk)
-- [The Cleveland Museum of Art (CMA)](https://www.clevelandart.org)
-- [The Rijksmuseum Amsterdam (RMA)](https://www.rijksmuseum.nl/en/collection)
+- [Statens Museum for Kunst (The Danish National Gallery)](https://open.smk.dk)
+- [The Cleveland Museum of Art](https://www.clevelandart.org)
+- [Rijksmuseum Amsterdam](https://www.rijksmuseum.nl/en/collection)
 
 ---
 
