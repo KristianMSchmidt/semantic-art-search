@@ -38,14 +38,13 @@ When you search:
 
 ## 🤔 Why Not Just Use Metadata?
 
-Metadata can be incomplete — what you're looking for might not appear in the title or description.
-Semantic Art Search helps you discover works that match the intend of your query  — even if the artist or museum never used those exact words.
+Metadata can be incomplete — what you're looking for might not appear in the title or description, or these could be in a different language.
+Semantic Art Search helps you discover works that match the intend of your query by finding meaning directly **in the image**. By disregarding metadata, it doesn't matter if the artist or museum never used the xact words of your query.
 
 For example:
 - Searching *"Rembrandt"* brings up artworks painted by Rembrandt, in his style, or even portraits of people who resemble him — across multiple collections.
 - Searching *"Shipwreck in a storm"* can find turbulent seascapes, even if that exact phrase doesn’t appear in the metadata.
 
-This search engine finds meaning **in the image**, not in stored keywords.
 ---
 
 ## 🌍 What You Can Do
