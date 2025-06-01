@@ -16,7 +16,7 @@ services:
   nginx:
     restart: always
     image: nginx:latest
-    hostname: semantic-art-search.kristianms.com
+    hostname: semantic-art-search.com
     volumes:
       - static_volume:/code/staticfiles
       - type: bind
@@ -27,11 +27,10 @@ services:
     depends_on:
       - web
     environment:
-      - VIRTUAL_HOST=semantic-art-search.kristianms.com
+      - VIRTUAL_HOST=semantic-art-search.com
       - VIRTUAL_PORT=1369
-      - LETSENCRYPT_HOST=semantic-art-search.kristianms.com
+      - LETSENCRYPT_HOST=semantic-art-search.com
       - LETSENCRYPT_EMAIL=kmollerschmidt@gmail.com
-      - url=https://semantic-art-search.kristianms.com
     networks:
       - reverse-proxy_proxynet
 
