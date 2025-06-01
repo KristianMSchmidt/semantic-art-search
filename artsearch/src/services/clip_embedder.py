@@ -1,5 +1,5 @@
 import time
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from io import BytesIO
 import requests
 import os
@@ -8,26 +8,33 @@ from functools import lru_cache
 import clip
 import torch
 from artsearch.src.utils.session_config import get_configured_session
-from artsearch.src.config import clip_selection
+from artsearch.src.config import ClipSelection
 from artsearch.src.config import config
 
 
-class _CLIPEmbedder:
+class ImageDownloadError(Exception):
+    """Custom exception for image download failures."""
+
+    pass
+
+
+class CLIPEmbedder:
     """A class for generating image embeddings using OpenAI's CLIP model."""
 
-    _instance = None  # Store singleton instance
+    _instantiated = False
 
     def __new__(cls, *args, **kwargs):
-        if cls._instance is not None:
+        """Ensure that only one instance of CLIPEmbedder is created."""
+        if cls._instantiated:
             raise RuntimeError(
                 "Use get_clip_embedder() instead of creating CLIPEmbedder directly."
             )
-        cls._instance = super(_CLIPEmbedder, cls).__new__(cls)
-        return cls._instance
+        cls._instantiated = True
+        return super().__new__(cls)
 
     def __init__(
         self,
-        model_name: clip_selection,
+        model_name: ClipSelection,
         cache_dir: str = "data/images",
         http_session: requests.Session | None = None,
         device: str | None = None,
@@ -43,7 +50,7 @@ class _CLIPEmbedder:
             cache_dir (str): Directory to store cached images.
             http_session (requests.Session): Shared HTTP session for all requests.
         """
-        self.model_name: clip_selection = model_name
+        self.model_name: ClipSelection = model_name
         self.device = device or config.device
         self.model, self.preprocess = self._load_model(model_name, self.device)
         self.embedding_dim = self.model.visual.proj.shape[1]
@@ -58,31 +65,46 @@ class _CLIPEmbedder:
         print(f"Model loaded on in {time.time() - start_time:.2f}s")
         return model, preprocess
 
-    def _get_local_image_path(self, object_number: str) -> str:
+    def _get_local_image_path(self, museum_name: str, object_number: str) -> str:
         """Return the local file path for a cached image."""
-        return os.path.join(self.cache_dir, f"{object_number}.jpg")
+        return os.path.join(self.cache_dir, museum_name, f"{object_number}.jpg")
 
     def _download_image(self, url: str, save_path: str, cache: bool) -> Image.Image:
-        """Download an image from a URL and optionally save it locally."""
-        response = self.http_session.get(url)
-        response.raise_for_status()
+        """Download an image from a URL and optionally save it locally.
+        Raises an exception if the request fails or the image cannot be processed.
+        """
+        try:
+            response = self.http_session.get(str(url), timeout=10)
+            response.raise_for_status()
 
-        image_bytes = response.content
+            if not response.content:  # Handle empty responses
+                raise ImageDownloadError(f"Empty response from URL: {url}")
 
-        if cache:
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            with open(save_path, "wb") as f:
-                f.write(image_bytes)
-            return Image.open(save_path).convert("RGB")
+            image_bytes = response.content
 
-        return Image.open(BytesIO(image_bytes)).convert("RGB")
+            if cache:
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                with open(save_path, "wb") as f:
+                    f.write(image_bytes)
+                return Image.open(save_path).convert("RGB")
+
+            return Image.open(BytesIO(image_bytes)).convert("RGB")
+
+        except requests.RequestException as e:
+            raise ImageDownloadError(f"Error downloading image from {url}: {e}")
+
+        except (UnidentifiedImageError, OSError, ValueError) as e:
+            raise ImageDownloadError(f"Invalid or corrupted image from {url}: {e}")
 
     def _load_image(
-        self, thumbnail_url: str, object_number: str, cache: bool
+        self,
+        thumbnail_url: str,
+        museum_name: str,
+        object_number: str,
+        cache: bool,
     ) -> Image.Image:
         """Load an image from the cache or download it."""
-        local_path = self._get_local_image_path(object_number)
-
+        local_path = self._get_local_image_path(museum_name, object_number)
         if cache and os.path.exists(local_path):
             print(f"Using cached image: {local_path}")
             return Image.open(local_path).convert("RGB")
@@ -91,7 +113,11 @@ class _CLIPEmbedder:
             return self._download_image(thumbnail_url, local_path, cache)
 
     def generate_thumbnail_embedding(
-        self, thumbnail_url: str, object_number: str, cache: bool
+        self,
+        thumbnail_url: str,
+        museum_name: str,
+        object_number: str,
+        cache: bool,
     ) -> list[float] | None:
         """
         Generate an image embedding from a URL or cached image.
@@ -99,12 +125,12 @@ class _CLIPEmbedder:
         Args:
             thumbnail_url (str): URL of the thumbnail image.
             object_number (str): Object number associated with the image.
-
+            cashe (bool): Whether to cache the image locally.
         Returns:
             list[float]: The embedding vector as a list, or None if an error occurs.
         """
         try:
-            img = self._load_image(thumbnail_url, object_number, cache)
+            img = self._load_image(thumbnail_url, museum_name, object_number, cache)
             image_tensor = self.preprocess(img).unsqueeze(0).to(self.device)
             with torch.no_grad():
                 embedding = (
@@ -115,6 +141,9 @@ class _CLIPEmbedder:
             print(f"Error generating embedding for object {object_number}: {e}")
             return None
 
+    # Maxsize is set to 50 to cache the most common queries
+    # Should be atleast 1 to cache the item in question on infinite scroll
+    @lru_cache(maxsize=50)
     def generate_text_embedding(self, query: str) -> list[float]:
         """
         Generate a text embedding from a given query string.
@@ -132,9 +161,9 @@ class _CLIPEmbedder:
 
 @lru_cache(maxsize=1)
 def get_clip_embedder(
-    model_name: clip_selection = config.clip_model_name,
-) -> _CLIPEmbedder:
+    model_name: ClipSelection = config.clip_model_name,
+) -> CLIPEmbedder:
     """
     Always return the same instance of CLIPEmbedder (one per worker).
     """
-    return _CLIPEmbedder(model_name=model_name)  # Loads only once
+    return CLIPEmbedder(model_name=model_name)  # Loads only once

@@ -3,13 +3,13 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-	    <title>Semantic Art Search</title>
+		<title>Semantic Art Search</title>
 		<link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<meta http-equiv="X-UA-Compatible" content="ie=edge">
 		<meta property="og:title" content="Semantic Art Search"/>
-  		<meta property="og:description" content="Explore the SMK collection through meaning-driven search!"/>
+  		<meta property="og:description" content="A semantic art search engine for museum collections"/>
 		<meta property="og:image" content="https://iip-thumb.smk.dk/iiif/jp2/kd17cx80w_KMSr171-crop.tif.jp2/full/!1024,/0/default.jpg"/>
 
 		{% tailwind_css %}
@@ -28,18 +28,11 @@
 		<nav class="bg-blue-500 p-4">
 			<div class="container mx-auto flex justify-between items-center">
 				<!-- Website Name -->
-				<a href="{{ urls.home }}" class="text-blue-50 text-lg font-bold">Semantic Art Search</a>
-
-				<!-- Links -->
-				<div class="flex space-x-4">
-				<a href="{{ urls.text_search }}"
-   						class="text-blue-100 hover:text-blue-50 {% if request.resolver_match.url_name == 'text-search' %}text-white font-bold{% endif %}">
-						Search By Text
-					</a>
-					<a href="{{urls.find_similar}}"
-						class="text-blue-100 hover:text-blue-50 {% if request.resolver_match.url_name == 'find-similar' %}text-white font-bold{% endif %}">
-						Find Similar
-					</a>
+				<a href="{{ urls.search }}" class="text-blue-50 text-lg font-bold">Semantic Art Search</a>
+				<!-- Navbar links -->
+				<div class="flex space-x-4 items-center">
+					{% block nav_links %}
+					{% endblock %}
 				</div>
 			</div>
 		</nav>

@@ -3,7 +3,8 @@ pillow
 git+https://github.com/openai/CLIP.git
 python-dotenv
 requests
-qdrant-client
+qdrant-client==1.14.2
 gunicorn
 Django==5.1.5
 django-tailwind
+xmltodict

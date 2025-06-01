@@ -1,19 +1,29 @@
-<div class="bg-white shadow-md rounded-lg overflow-hidden">
-    <img src="{{ result.thumbnail_url }}"
-         alt="{{ result.title }}"
-         class="w-full h-auto cursor-pointer hover:opacity-80 transition"
-         onclick="openModal('{{ result.thumbnail_url }}')">
-    <div class="p-4">
-        <h3 class="text-lg font-semibold text-gray-800">{{ result.title }}</h3>
-        <p class="text-sm text-gray-600">{{ result.artist }}</p>
-        <p class="text-sm text-gray-500">{{ result.object_names }}</p>
-        <p class="text-sm text-gray-500">{{ result.period }}</p>
-        {% if result.score is not None %}
+<!-- Card container with conditional highlight for the top (exact match) result -->
+<div class="relative bg-white shadow-md rounded-lg overflow-hidden">
+  <!-- Image: preserves natural aspect ratio, max height, and interactive hover -->
+  <img src="{{ result.thumbnail_url }}"
+        alt="{{ result.title }}"
+        class="w-full h-auto max-h-96 object-contain cursor-pointer hover:opacity-80 transition"
+        onclick="openModal('{{ result.thumbnail_url }}')">
+
+  <div class="p-4 flex flex-col h-full mb-2">
+    <div class="space-y-0">
+      <h3 class="text-lg font-semibold text-gray-800">{{ result.title }}</h3>
+      <p class="text-sm text-gray-600">{{ result.artist }}</p>
+      <p class="text-sm text-gray-500">{{ result.work_types }}</p>
+      <p class="text-sm text-gray-500">{{ result.museum }}</p>
+      <p class="text-sm text-gray-500">{{ result.period }}</p>
+      {% if result.score is not None %}
         <p class="text-sm text-gray-400">Score: {{ result.score }}</p>
-        {% endif %}
-        <a href="{{urls.find_similar}}&query={{ result.object_number }}"
-           class="text text-blue-500 hover:underline ">
-            Find similar
-        </a>
-    </div>
+      {% endif %}
+    </div> 
+    <button
+      type="button"
+      class="mt-1 text-sm text-gray-600 hover:text-blue-600 underline self-start"
+      onclick="submitQuery('{{ result.object_number }}')"
+    >
+     Find similar
+    </button>
+  </div>  
 </div>
+
