@@ -62,14 +62,13 @@ For example:
 
 ## 🧠 Behind the Scenes
 
-The system uses **CLIP**, a multimodal neural network, to embed both images and text into a shared vector space. It then performs **vector-based nearest neighbor search** to return the most semantically relevant artworks.
+The system uses **CLIP**, a multimodal neural network, to embed both images and search queries into a shared vector space. It then performs **vector-based nearest neighbor search** to return the most semantically relevant artworks.
 
 This means:
 - The search engine "understands" visual style and meaning, not just keywords.
 - Results are based on similarity in visual or conceptual content, not labels.
 
 All queries return results sorted by **semantic distance**, not keyword match.
-
 
 Currently, **search queries must be in English**, but multilingual support is possible in the future.
 
