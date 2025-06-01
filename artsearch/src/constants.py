@@ -50,7 +50,7 @@ EXAMPLE_QUERIES: dict[str, list[str]] = {
         "Cubism",
         "Blue dress",
         "Death",
-        "Naked couple",
+        "Amorous couple",
         "Elephant",
         "Hindu deity",
         "Painter",
@@ -59,6 +59,7 @@ EXAMPLE_QUERIES: dict[str, list[str]] = {
         "Winter landscape",
         "Red flowers",
         "Crucifixion",
+        "Breastfeeding",
         "Sorrow",
     ],
     "candidates": [
