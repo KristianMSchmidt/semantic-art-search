@@ -948,6 +948,10 @@ select {
   width: 100%;
 }
 
+.w-56 {
+  width: 14rem;
+}
+
 .min-w-56 {
   min-width: 14rem;
 }
@@ -1189,6 +1193,11 @@ select {
   padding-bottom: 1rem;
 }
 
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
 .pr-2 {
   padding-right: 0.5rem;
 }
@@ -1301,6 +1310,11 @@ select {
   color: rgb(161 98 7 / var(--tw-text-opacity, 1));
 }
 
+.text-blue-500 {
+  --tw-text-opacity: 1;
+  color: rgb(59 130 246 / var(--tw-text-opacity, 1));
+}
+
 .underline {
   text-decoration-line: underline;
 }
@@ -1371,6 +1385,10 @@ select {
 .hover\:text-blue-600:hover {
   --tw-text-opacity: 1;
   color: rgb(37 99 235 / var(--tw-text-opacity, 1));
+}
+
+.hover\:underline:hover {
+  text-decoration-line: underline;
 }
 
 .hover\:opacity-80:hover {

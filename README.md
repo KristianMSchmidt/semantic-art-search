@@ -1,50 +1,67 @@
 # Semantic Art Search 🎨🔍
 
-**Discover art through meaning — not just keywords.**
+**Explore art through meaning — not just keywords.**
 
-[Semantic Art Search](https://semantic-art-search.com) is an open-source, vector-based search engine for exploring artworks across multiple museum collections. Instead of relying on traditional artwork metadata such as title or description, this tool enables intuitive and flexible discovery of art using machine learning. It allows you to find artworks based on their visual and conceptual content, making it easier to explore themes, styles, and connections across different museums.
+[Semantic Art Search](https://semantic-art-search.com) is an open-source search engine that helps you discover artworks based on **visual and semantic similarity**, not just titles or tags.
 
-Currently, it includes artworks from:
+Using machine learning, it lets you:
+- Search by natural language (e.g., *"ancient ruins"*, *"mourning"*, *"moonlight"*)
+- Jump from any artwork to similar pieces — even across museums
+- Explore themes, styles, and visual connections in a more intuitive way
 
-- The **Danish National Gallery (SMK)**
-- The **Cleveland Museum of Art (CMA)**
-- The **Rijksmuseum Amsterdam (RMA)**
+Unlike traditional search tools, results are ranked by **how closely artworks match your intent**, not how well they match metadata.
+
+Currently, the system includes selected artworks from:
+- **The Danish National Gallery (SMK)**
+- **The Cleveland Museum of Art (CMA)**
+- **The Rijksmuseum Amsterdam (RMA)**
+
+---
 
 ## 🔎 How It Works
 
-There’s just **one unified search bar** — you can write what you're looking for in natural language (e.g., *"Ancient Rome"*, *"blue dress"*, *"mourning"*) and instantly see artworks that match the meaning.
+Just use the **search bar** — it's designed for natural language input. Try a theme, mood, style, or description:
+- *"Sorrow"*
+- *"Portrait with flowers"*
+- *"Battle at sea"*
 
-You can also paste an artwork’s **inventory number** into the same field to find visually or thematically similar artworks. 
+You can also paste an **inventory number** (e.g., *KMS1*) to find **visually or thematically related works**. This is especially useful after clicking **“Find similar”** on a specific artwork.
 
-When you search, the **entire collection is ranked** by how closely each artwork matches your query — the most relevant results appear first, but you can scroll though them all. 
+When you search:
+- The **entire collection** is ranked by relevance
+- You can **filter by work type** (e.g., painting, print, drawing)
+- You can **search across all museums** or limit to one
 
-You can:
-- **Search across multiple museums** or limit to just one
-- **Filter by work type** (e.g., paintings, drawings, prints)
-- **Jump from any artwork to visually similar ones** in one click 
+> 📝 *Filters use metadata, but the actual search ranking is based on visual and semantic similarity.*
 
-Note: filters are based on metadata, but the ranking of search results is not.
+---
 
 ## 🤔 Why Not Just Use Metadata?
 
-Metadata can be limiting — not everything you're looking for will be in an artwork’s title or description. Semantic Art Search helps you discover works that *feel* like what you meant — even if the artist or museum never used those exact words.
+Metadata can be incomplete — what you're looking for might not appear in the title or description.
+Semantic Art Search helps you discover works that match the intend of your query  — even if the artist or museum never used those exact words.
 
 For example:
 - Searching *"Rembrandt"* brings up artworks painted by Rembrandt, in his style, or even portraits of people who resemble him — across multiple collections.
 - Searching *"Shipwreck in a storm"* can find turbulent seascapes, even if that exact phrase doesn’t appear in the metadata.
 
-## 🌍 Examples of What You Can Do
+This search engine finds meaning **in the image**, not in stored keywords.
+---
 
-- **Find stylistic connections across collections**  
-  → What’s the most similar artwork in Rijksmuseum to your favorite piece at SMK?
+## 🌍 What You Can Do
 
-- **Explore themes or moods**  
-  → Try searches like *"sorrow"*, *"revolution"*, or *"moonlight"*.
+- **Cross-collection comparisons**  
+  → What’s the most similar piece in the Rijksmuseum to your favorite SMK painting?
 
-- **Jump into a cluster of visually similar works**  
-  → Just click **“Find similar”** on any artwork.
+- **Explore moods and motifs**  
+  → Search *"battle scenes"*, *"sadness"*, or *"moonlight by the sea"* to browse theme-based clusters.
 
-## 🧠 Behind the Scenes
+- **Follow visual trails**  
+  → Use **“Find similar”** to dive deeper from any individual artwork.
+
+---
+
+## 🧠 How It Works Behind the Scenes
 
 The system uses **CLIP**, a multimodal neural network, to embed both images and text into a shared vector space. It then performs **vector-based nearest neighbor search** to return the most semantically relevant artworks.
 
@@ -52,27 +69,37 @@ This means:
 - The search engine "understands" visual style and meaning, not just keywords.
 - Results are based on similarity in visual or conceptual content, not labels.
 
+All queries return results sorted by **semantic distance**, not keyword match.
+
+
 Currently, **search queries must be in English**, but multilingual support is possible in the future.
+
+---
 
 ## 🎨 Artwork Coverage
 
-The search includes artworks that:
+The system includes artworks that:
 - Are in the **public domain**
-- Have a **digital image** available in the museum’s dataset
+- Have a **photograph available** in the museum dataset
 
-The selection will grow over time as more data is integrated.
+Not every object is indexed — focus is on visual artworks like paintings, prints, and drawings. Coverage will grow over time.
+
+---
 
 ## 🙌 Acknowledgments
 
-This project is made possible by the **open data initiatives** of the participating museums:
+Made possible by the excellent **open data initiatives** of:
 
 - [The Danish National Gallery (SMK)](https://open.smk.dk)
 - [The Cleveland Museum of Art (CMA)](https://www.clevelandart.org)
 - [The Rijksmuseum Amsterdam (RMA)](https://www.rijksmuseum.nl/en/collection)
 
+---
+
 ## 📬 Get in Touch
 
-If you have questions, feedback, or ideas — or want to contribute — feel free to reach out:
+Have questions, feedback, or ideas? Want to contribute?
 
+Reach out via:
 - **Email**: [kmollerschmidt@gmail.com](mailto:kmollerschmidt@gmail.com)  
 - **LinkedIn**: [Kristian Møller Schmidt](https://www.linkedin.com/in/kristian-m%C3%B8ller-schmidt-516b9170/)
