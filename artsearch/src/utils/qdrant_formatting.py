@@ -1,5 +1,15 @@
-from artsearch.src.constants import WORK_TYPES_DICT
+from artsearch.src.constants import WORK_TYPES_DICT, SUPPORTED_MUSEUMS
 from qdrant_client import models
+
+
+def get_full_museum_name(museum_slug: str) -> str:
+    """
+    Get full museum name from slug.
+    """
+    for museum in SUPPORTED_MUSEUMS:
+        if museum["slug"] == museum_slug.lower():
+            return museum["full_name"]
+    return museum_slug
 
 
 def get_work_type_translation(work_type: str) -> str:
@@ -35,7 +45,7 @@ def format_payload(payload: models.Payload | None) -> dict:
         "thumbnail_url": payload["thumbnail_url"],
         "period": period,
         "object_number": payload["object_number"],
-        "museum": payload["museum"].upper(),
+        "museum": get_full_museum_name(payload["museum"]),
     }
 
 

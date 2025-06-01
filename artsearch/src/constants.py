@@ -1,18 +1,14 @@
 SUPPORTED_MUSEUMS = [
     {
         "slug": "smk",
-        "short_name": "SMK",
-        "vernacular_name": "Statens Museum for Kunst",
-        "full_name": "National Gallery of Denmark",
+        "full_name": "Statens Museum for Kunst",
     },
     {
         "slug": "cma",
-        "short_name": "CMA",
         "full_name": "Cleveland Museum of Art",
     },
     {
         "slug": "rma",
-        "short_name": "RMA",
         "full_name": "Rijksmuseum",
     },
 ]
