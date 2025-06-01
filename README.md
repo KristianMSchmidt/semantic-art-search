@@ -39,7 +39,7 @@ When you search:
 ## 🤔 Why Not Just Use Metadata?
 
 Metadata can be incomplete — what you're looking for might not appear in the title or description, or these could be in a different language.
-Semantic Art Search helps you discover works that match the intend of your query by finding meaning directly **in the image**. By disregarding metadata, it doesn't matter if the artist or museum never used the xact words of your query.
+Semantic Art Search helps you discover works that match the intend of your query by finding meaning directly **in the image**. 
 
 For example:
 - Searching *"Rembrandt"* brings up artworks painted by Rembrandt, in his style, or even portraits of people who resemble him — across multiple collections.
@@ -60,7 +60,7 @@ For example:
 
 ---
 
-## 🧠 How It Works Behind the Scenes
+## 🧠 Behind the Scenes
 
 The system uses **CLIP**, a multimodal neural network, to embed both images and text into a shared vector space. It then performs **vector-based nearest neighbor search** to return the most semantically relevant artworks.
 
