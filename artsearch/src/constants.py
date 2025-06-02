@@ -56,7 +56,7 @@ EXAMPLE_QUERIES: dict[str, list[str]] = {
         "Red flowers",
         "Crucifixion",
         "Breastfeeding",
-        "Sorrow",
+        "Mourning",
     ],
     "candidates": [
         "Dead birds",
