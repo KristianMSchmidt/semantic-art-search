@@ -1,9 +1,9 @@
-<div class="relative" x-data="dropdownComponent()">
+<div class="relative w-full sm:w-auto" x-data="dropdownComponent()">
     <!-- Button -->
     <button
         type="button"
         @click="open = !open"
-        class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none flex items-center justify-between space-x-2 hover:bg-gray-100 hover:border-gray-400"
+        class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none flex items-center justify-center space-x-2 hover:bg-gray-100 hover:border-gray-400"
     >
     <span x-text="buttonLabel">
         {{ initial_work_types_label }}

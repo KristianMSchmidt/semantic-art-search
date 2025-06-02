@@ -33,7 +33,7 @@ title="View on GitHub"
                 id="search-input"
                 type="text"
                 name="query"
-                placeholder="Search by theme, motif, style, emotion, or more..."
+                placeholder="Search by theme, style, emotion, or more..."
                 value="{{ query|default:'' }}"
                 class="w-full sm:w-auto flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required
@@ -41,6 +41,7 @@ title="View on GitHub"
             <!-- Museum Dropdown -->
             <div
                 id="museum-dropdown"
+                class="w-full sm:w-auto"
                 hx-get="{% url 'update-work-types' %}"
                 hx-trigger="change delay:150ms"
                 hx-include="#museum-dropdown, #work-type-container"
@@ -49,20 +50,19 @@ title="View on GitHub"
             >
                 {% include "partials/museum_dropdown.html" %}
             </div>
-            
+
             <!-- Work Type Dropdown -->
-            <div id="work-type-container">
+            <div id="work-type-container" class="w-full sm:w-auto">
                 {% include "partials/work_type_dropdown.html" %}
             </div>
 
             <!-- Search Button -->
             <button
                 type="submit"
-                class="bg-blue-500 text-white px-8 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full sm:w-auto bg-blue-500 text-white px-8 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
                 Search
-            </button>
-
+            </button>        
         </form>
     </div> <!-- End Search Form -->
 

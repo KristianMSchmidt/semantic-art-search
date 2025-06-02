@@ -831,6 +831,10 @@ select {
   right: 0px;
 }
 
+.left-0 {
+  left: 0px;
+}
+
 .z-20 {
   z-index: 20;
 }
