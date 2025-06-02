@@ -134,3 +134,19 @@ TAILWIND_APP_NAME = "theme"
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
+
+
+if DEBUG:
+    # Local development settings
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+
+else:
+    # Production settings
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    CSRF_TRUSTED_ORIGINS = [
+        "https://semantic-art-search.com",
+    ]
