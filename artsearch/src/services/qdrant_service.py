@@ -25,7 +25,7 @@ class SearchFunctionArguments:
     limit: int
     offset: int
     work_type_prefilter: list[str] | None
-    museum_prefilter: list[str] | None = None
+    museum_prefilter: list[str] | None
 
 
 class QdrantService:
@@ -172,14 +172,33 @@ class QdrantService:
             query_vector, limit, offset, work_types, museums, object_number
         )
 
-    def get_random_sample(self, limit: int) -> list[dict]:
+    def get_random_sample(
+        self, limit: int, work_types: list[str] | None, museums: list[str] | None
+    ) -> list[dict]:
         """Get a random sample of items from the collection."""
+        conditions = []
+        if museums is not None:
+            conditions.append(
+                models.FieldCondition(
+                    key="museum",
+                    match=models.MatchAny(any=museums),
+                )
+            )
+        if work_types is not None:
+            conditions.append(
+                models.FieldCondition(
+                    key="searchable_work_types",
+                    match=models.MatchAny(any=work_types),
+                )
+            )
+
         sampled = self.qdrant_client.query_points(
             collection_name=self.collection_name,
             query=models.SampleQuery(sample=models.Sample.RANDOM),
             with_vectors=False,
             with_payload=True,
             limit=limit,
+            query_filter=models.Filter(must=conditions),
         )
         payloads = [point.payload for point in sampled.points]
         return format_payloads(payloads)

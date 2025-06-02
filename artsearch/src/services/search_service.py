@@ -16,8 +16,8 @@ def handle_search(
     query: str | None,
     offset: int,
     limit: int,
-    museum_prefilter,
-    work_type_prefilter,
+    museum_prefilter: list[str] | None,
+    work_type_prefilter: list[str] | None,
 ) -> dict[Any, Any]:
     """
     Handle the search logic based on the provided query and filters.
@@ -27,16 +27,15 @@ def handle_search(
     error_message = None
     error_type = None
 
-    if query is None:
-        # This is the initial page load.
+    if query is None or query == "":
+        # Query is None on initial page load
         query = ""
-        results = qdrant_service.get_random_sample(limit=limit)
+        results = qdrant_service.get_random_sample(
+            limit=limit,
+            work_types=work_type_prefilter,
+            museums=museum_prefilter,
+        )
         text_above_results = "A glimpse into the archive"
-
-    elif query == "":
-        # The user submitted an empty query.
-        error_message = "Please enter a search query."
-        error_type = "warning"
 
     else:
         # The user submitted a query.
