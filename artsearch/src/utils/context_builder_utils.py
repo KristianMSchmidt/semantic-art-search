@@ -1,5 +1,5 @@
 from urllib.parse import urlencode
-from typing import Iterable, Literal
+from typing import Iterable, Literal, Any
 from django.http import HttpRequest
 from django.urls import reverse
 from artsearch.src.constants import WORK_TYPES_DICT, SUPPORTED_MUSEUMS
@@ -47,7 +47,7 @@ def make_prefilter(
 
 def prepare_work_types_for_dropdown(
     work_types_count: dict[str, int],
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """
     Prepare work types for the dropdown menu.
     """

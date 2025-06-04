@@ -47,6 +47,17 @@ class SearchParams:
     def offset(self) -> int:
         return retrieve_offset(self.request)
 
+@dataclass
+class FilterContext:
+    dropdown_name: str
+    initial_button_label: str
+    dropdown_items: list[dict[str, Any]]
+    selected_items: list[str]
+    label_name: str
+    all_items_json: str 
+    selected_items_json: str
+    total_work_count: int | None = None
+
 
 def build_main_context(params: SearchParams) -> dict[str, Any]:
     """
@@ -85,7 +96,7 @@ def build_main_context(params: SearchParams) -> dict[str, Any]:
     }
 
 
-def build_filter_contexts(params: SearchParams) -> dict[str, Any]:
+def build_filter_contexts(params: SearchParams) -> dict[str, FilterContext]:
     """
     Build the template context for search and dropdown templates
     The 'initial labels' are only used for the search template, the rest is used for both.
@@ -110,25 +121,25 @@ def build_filter_contexts(params: SearchParams) -> dict[str, Any]:
     )
     
     return {
-        "work_type_filter_context": {
-            "dropdown_name": "work_types",
-            "initial_button_label": initial_work_types_label,
-            "dropdown_items": prepared_work_types,
-            "selected_items": selected_work_types,
-            "total_work_count": total_work_count,
-            "all_items_json": json.dumps(work_type_names), 
-            "selected_items_json": json.dumps(selected_work_types),
-            "label_name": "Work Type"
-        },
-        "museum_filter_context": {
-            "dropdown_name": "museums",
-            "initial_button_label": initial_museums_label,
-            "dropdown_items": prepared_museums,
-            "selected_items": selected_museums,
-            "all_items_json": json.dumps(museum_names), 
-            "selected_items_json": json.dumps(selected_museums),  
-            "label_name": "Museum",
-        }
+        "work_type_filter_context": FilterContext(
+            dropdown_name="work_types",
+            initial_button_label=initial_work_types_label,
+            dropdown_items=prepared_work_types,
+            selected_items=selected_work_types,
+            total_work_count=total_work_count,
+            all_items_json=json.dumps(work_type_names), 
+            selected_items_json=json.dumps(selected_work_types),
+            label_name="Work Type"
+        ),
+        "museum_filter_context": FilterContext(
+            dropdown_name="museums",
+            initial_button_label=initial_museums_label,
+            dropdown_items=prepared_museums,
+            selected_items=selected_museums,
+            all_items_json=json.dumps(museum_names), 
+            selected_items_json=json.dumps(selected_museums),  
+            label_name="Museum",
+        )
     }
 
 
