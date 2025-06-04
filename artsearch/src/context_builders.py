@@ -13,11 +13,12 @@ from artsearch.src.utils.context_builder_utils import (
     retrieve_query,
     retrieve_offset,
     prepare_work_types_for_dropdown,
+    prepare_museums_for_dropdown,
     prepare_initial_label,
     make_prefilter,
     make_urls,
 )
-from artsearch.src.constants import SUPPORTED_MUSEUMS, EXAMPLE_QUERIES
+from artsearch.src.constants import EXAMPLE_QUERIES
 
 
 RESULTS_PER_PAGE = 20
@@ -84,7 +85,7 @@ def build_main_context(params: SearchParams) -> dict[str, Any]:
     }
 
 
-def build_filter_context(params: SearchParams) -> dict[str, Any]:
+def build_filter_contexts(params: SearchParams) -> dict[str, Any]:
     """
     Build the template context for search and dropdown templates
     The 'initial labels' are only used for the search template, the rest is used for both.
@@ -97,7 +98,9 @@ def build_filter_context(params: SearchParams) -> dict[str, Any]:
 
     work_type_summary = aggregate_work_type_count_for_selected_museums(selected_museums)
     total_work_count = work_type_summary.total
+
     prepared_work_types = prepare_work_types_for_dropdown(work_type_summary.work_types)
+    prepared_museums = prepare_museums_for_dropdown()
 
     initial_work_types_label = prepare_initial_label(
         selected_work_types, work_type_names, "work_types"
@@ -105,17 +108,27 @@ def build_filter_context(params: SearchParams) -> dict[str, Any]:
     initial_museums_label = prepare_initial_label(
         selected_museums, museum_names, "museums"
     )
-
+    
     return {
-        "total_work_count": total_work_count,
-        "work_types": prepared_work_types,
-        "initial_museums_label": initial_museums_label,
-        "initial_work_types_label": initial_work_types_label,
-        "all_work_types_json": json.dumps(work_type_names),
-        "selected_work_types_json": json.dumps(selected_work_types),
-        "all_museums_json": json.dumps(museum_names),
-        "selected_museums_json": json.dumps(selected_museums),
-        "museums": SUPPORTED_MUSEUMS,
+        "work_type_filter_context": {
+            "dropdown_name": "work_types",
+            "initial_button_label": initial_work_types_label,
+            "dropdown_items": prepared_work_types,
+            "selected_items": selected_work_types,
+            "total_work_count": total_work_count,
+            "all_items_json": json.dumps(work_type_names), 
+            "selected_items_json": json.dumps(selected_work_types),
+            "label_name": "Work Type"
+        },
+        "museum_filter_context": {
+            "dropdown_name": "museums",
+            "initial_button_label": initial_museums_label,
+            "dropdown_items": prepared_museums,
+            "selected_items": selected_museums,
+            "all_items_json": json.dumps(museum_names), 
+            "selected_items_json": json.dumps(selected_museums),  
+            "label_name": "Museum",
+        }
     }
 
 
@@ -125,10 +138,10 @@ def build_search_context(
     """
     Build the full context for the search view.
     """
-    filter_context = build_filter_context(params)
+    filter_contexts = build_filter_contexts(params)
     main_context = build_main_context(params)
     return {
-        **filter_context,
+        **filter_contexts,
         **main_context,
         "example_queries": example_queries,
     }

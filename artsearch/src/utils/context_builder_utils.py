@@ -2,7 +2,7 @@ from urllib.parse import urlencode
 from typing import Iterable, Literal
 from django.http import HttpRequest
 from django.urls import reverse
-from artsearch.src.constants import WORK_TYPES_DICT
+from artsearch.src.constants import WORK_TYPES_DICT, SUPPORTED_MUSEUMS
 
 
 def retrieve_query(request: HttpRequest) -> str | None:
@@ -61,13 +61,20 @@ def prepare_work_types_for_dropdown(
 
         work_types_for_dropdown.append(
             {
-                "work_type": work_type,
+                "value": work_type,
+                "label": eng_plural,
                 "count": count,
-                "eng_plural": eng_plural,
             }
         )
     return work_types_for_dropdown
 
+
+def prepare_museums_for_dropdown(
+        supported_museums: list[dict[str, str]] = SUPPORTED_MUSEUMS
+) -> list[dict[str, str]]:
+    return [
+        {"value": museum["slug"], "label": museum["full_name"]} for museum in supported_museums
+    ]
 
 def prepare_initial_label(
     selected_items: list[str],

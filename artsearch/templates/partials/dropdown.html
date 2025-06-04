@@ -1,0 +1,88 @@
+<div class="relative w-full sm:w-auto" x-data="dropdownComponent({ 
+        selected: JSON.parse('{{ filter_ctx.selected_items_json|escapejs }}'), 
+        all: JSON.parse('{{ filter_ctx.all_items_json|escapejs }}'), 
+        labelName: '{{ filter_ctx.label_name }}'
+    })">
+    <!-- Button -->
+    <button
+        type="button"
+        @click="open = !open"
+        class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none flex items-center justify-center space-x-2 hover:bg-gray-100 hover:border-gray-400"
+    >
+        <span x-text="buttonLabel">
+            {{ filter_ctx.initial_button_label }}
+        </span>
+    </button>
+
+    <!-- Dropdown -->
+    <div
+        x-show="open"
+        @click.away="open = false"
+        class="absolute right-0 mt-1 w-full sm:w-auto bg-white border border-gray-300 rounded-md shadow-lg z-20"
+        x-cloak
+    >
+        <div class="p-2 space-y-1">
+            <!-- Select/Deselect All Option -->
+            <label class="flex items-center space-x-2 py-1 font-semibold text-gray-700 hover:bg-gray-100">
+                <input type="checkbox"
+                    @click="toggleSelectAll()"
+                    :checked="selectedItems.length === allItems.length"
+                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                <span class="text-nowrap">
+                    Select All 
+                    {% if filter_ctx.dropdown_name == 'work_types' %}
+                        <span class="text-gray-600 font-normal">({{ filter_ctx.total_work_count }} works)</span>
+                    {% endif %}
+                </span>
+            </label>
+
+            <!-- Scrollable area -->
+            <div class="max-h-64 overflow-y-auto space-y-1 pr-2">
+                {% for dropdown_item in filter_ctx.dropdown_items %}
+                <label class="flex items-center space-x-2 py-1 hover:bg-gray-100 rounded-md px-2">
+                    <input
+                        type="checkbox"
+                        name="{{ filter_ctx.dropdown_name }}"
+                        value="{{ dropdown_item.value }}"
+                        x-model="selectedItems"
+                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <span class="text-nowrap">
+                            {{ dropdown_item.label | capfirst }}
+                            {% if filter_ctx.dropdown_name == 'work_types' %}
+                            <span class="text-gray-600 font-normal">({{ dropdown_item.count }} works)</span>
+                            {% endif %} 
+                    </span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function dropdownComponent({ selected, all, labelName }) {
+    return {
+        open: false,
+        selectedItems: [...selected],
+        allItems: [...all],
+
+        toggleSelectAll() {
+            if (this.selectedItems.length === this.allItems.length) {
+                this.selectedItems = [];
+            } else {
+                this.selectedItems = [...this.allItems];
+            }
+        },
+
+        get buttonLabel() {
+            if (this.selectedItems.length === 0 || this.selectedItems.length === this.allItems.length) {
+                return `All ${labelName}s`;
+            } else if (this.selectedItems.length === 1) {
+                return `1 ${labelName}`;
+            } else {
+                return `${this.selectedItems.length} ${labelName}s`;
+            }
+        }
+    };
+}
+</script>

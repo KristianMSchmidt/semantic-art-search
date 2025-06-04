@@ -4,7 +4,7 @@ from artsearch.models import SearchLog
 from artsearch.src.context_builders import (
     build_main_context,
     build_search_context,
-    build_filter_context,
+    build_filter_contexts,
     SearchParams,
 )
 
@@ -36,5 +36,6 @@ def more_results(request: HttpRequest) -> HttpResponse:
 
 def update_work_types(request):
     """HTMX view that updates the work type dropdown based on selected museums."""
-    context = build_filter_context(SearchParams(request=request))
-    return render(request, "partials/work_type_dropdown.html", context)
+    filter_contexts = build_filter_contexts(SearchParams(request=request))
+    context = {'filter_ctx': filter_contexts['work_type_filter_context']} 
+    return render(request, "partials/dropdown.html", context)

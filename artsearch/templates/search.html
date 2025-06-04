@@ -16,6 +16,7 @@ title="View on GitHub"
 
 
 {% block content %}
+
 <div class="container mx-auto p-4">
 
     <!-- Text above search form -->
@@ -47,14 +48,18 @@ title="View on GitHub"
                 hx-target="#work-type-container"
                 hx-swap="innerHTML"
             >
-                {% include "partials/museum_dropdown.html" %}
+                {% with filter_ctx=museum_filter_context %}
+                    {% include "partials/dropdown.html" %}
+                {% endwith %}
+
             </div>
 
-            <!-- Work Type Dropdown -->
             <div id="work-type-container" class="w-full sm:w-auto">
-                {% include "partials/work_type_dropdown.html" %}
+                {% with filter_ctx=work_type_filter_context %}
+                    {% include "partials/dropdown.html" %}
+                {% endwith %}
             </div>
-
+            
             <!-- Search Button -->
             <button
                 type="submit"
@@ -172,6 +177,33 @@ title="View on GitHub"
         function submitQuery(query) {
             document.getElementById('search-input').value = query;
             document.getElementById('search-form').submit();
+        }
+
+
+        function dropdownComponent({ selected, all, labelName }) {
+            return {
+                open: false,
+                selectedItems: [...selected],
+                allItems: [...all],
+
+                toggleSelectAll() {
+                    if (this.selectedItems.length === this.allItems.length) {
+                        this.selectedItems = [];
+                    } else {
+                        this.selectedItems = [...this.allItems];
+                    }
+                },
+
+                get buttonLabel() {
+                    if (this.selectedItems.length === 0 || this.selectedItems.length === this.allItems.length) {
+                        return `All ${labelName}s`;
+                    } else if (this.selectedItems.length === 1) {
+                        return `1 ${labelName}`;
+                    } else {
+                        return `${this.selectedItems.length} ${labelName}s`;
+                    }
+                }
+            };
         }
     </script>
 
