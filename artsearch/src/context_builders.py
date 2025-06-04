@@ -51,7 +51,7 @@ class SearchParams:
 class FilterContext:
     dropdown_name: str
     initial_button_label: str
-    dropdown_items: list[dict[str, Any]]
+    dropdown_items: list[dict[str, int]]
     selected_items: list[str]
     label_name: str
     all_items_json: str 
