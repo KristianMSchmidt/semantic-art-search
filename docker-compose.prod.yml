@@ -20,7 +20,7 @@ services:
     volumes:
       - static_volume:/code/staticfiles
       - type: bind
-        source: ./nginx_config/nginx.conf
+        source: ./nginx_config/semantic.conf
         target: /etc/nginx/conf.d/default.conf
     expose:
       - 1369
@@ -43,7 +43,7 @@ services:
       - LETSENCRYPT_EMAIL=kmollerschmidt@gmail.com
     volumes:
       - type: bind
-        source: ./redirects/kristianms.conf
+        source: ./nginx_config/kristianms_redirect.conf
         target: /etc/nginx/conf.d/default.conf
     networks:
       - reverse-proxy_proxynet
