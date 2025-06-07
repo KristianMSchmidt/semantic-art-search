@@ -25,7 +25,7 @@ Just use the **search bar** — it's designed for natural language input. Try a 
 - *"Portrait with flowers"*
 - *"Battle at sea"*
 
-You can also paste an **inventory number** (e.g., *KMS1*) to find **visually or thematically related works**. This is especially useful after clicking **“Find similar”** on a specific artwork.
+You can also paste an artwork **inventory number** (e.g., *KMS1*) to find **visually or thematically related works**. This is especially useful when clicking **“Find similar”** on a specific artwork.
 
 When you search:
 - The **entire collection** is ranked by relevance
@@ -38,13 +38,11 @@ When you search:
 
 ## 🤔 Why Not Just Use Metadata?
 
-Metadata can be incomplete — what you're looking for might not appear in the title or description, or these could be in a different language.
-Semantic Art Search helps you discover works that match the intent of your query by finding meaning directly **in the image**. 
+Metadata can be incomplete — what you're looking for might not appear in the title or description, or these could be stored in a different language (e.g. Danish or Dutch). Semantic Art Search helps you discover works that match the intent of your query by finding meaning directly **in the image**. 
 
 For example:
 - Searching *"Rembrandt"* brings up artworks painted by Rembrandt, in his style, or even portraits of people who resemble him — across multiple collections.
 - Searching *"Shipwreck in a storm"* can find turbulent seascapes, even if that exact phrase doesn’t appear in the metadata.
-
 ---
 
 ## 🌍 What You Can Do
