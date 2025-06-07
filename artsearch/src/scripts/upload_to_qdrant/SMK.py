@@ -21,7 +21,6 @@ WORK_TYPES = [
     "tegning",
     "akvatinte",
     "akvarel",
-    "Altertavle (maleri)",
     "Buste",
     "maleri",
     "pastel",

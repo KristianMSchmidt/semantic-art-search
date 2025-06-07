@@ -24,7 +24,6 @@ SEARCHABLE_WORK_TYPES = set(
         "design",
         "bust",
         "pastel",
-        "altarpiece",
         "aquatint",
         "guache",
         "miniature",
