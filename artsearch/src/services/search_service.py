@@ -22,6 +22,7 @@ def handle_search(
     """
     Handle the search logic based on the provided query and filters.
     """
+    # TODO: split this function up? Some is only used by the
     text_above_results = ""
     results = []
     error_message = None
@@ -33,16 +34,13 @@ def handle_search(
             # Initial page load
             text_above_results = "A glimpse into the archive"
         else:
-            # Search with no query (currently disabled by FE) 
+            # Search with no query (currently disabled by FE)
             text_above_results = "Works matching your filters"
-        query = ""
         results = qdrant_service.get_random_sample(
             limit=limit,
             work_types=work_type_prefilter,
             museums=museum_prefilter,
         )
-
-
     else:
         # The user submitted a query.
         search_arguments = SearchFunctionArguments(
@@ -54,6 +52,8 @@ def handle_search(
         )
         try:
             if qdrant_service.item_exists(query):
+                print("ITEM EXISTS!!!!!")
+                print(query)
                 results = qdrant_service.search_similar_images(search_arguments)
             else:
                 results = qdrant_service.search_text(search_arguments)

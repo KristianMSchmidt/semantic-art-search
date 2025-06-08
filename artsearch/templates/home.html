@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block nav_links %}
+<a
+href="https://github.com/KristianMSchmidt/semantic-art-search/blob/master/README.md"
+target="_blank" rel="noopener noreferrer"
+class="text-blue-100 hover:text-blue-50"
+title="View on GitHub"
+>
+    <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.207 11.387.6.11.793-.26.793-.577v-2.234c-3.338.724-4.033-1.61-4.033-1.61-.547-1.387-1.335-1.756-1.335-1.756-1.092-.746.083-.731.083-.731 1.206.084 1.84 1.238 1.84 1.238 1.073 1.837 2.812 1.306 3.497.998.11-.777.42-1.305.763-1.605-2.665-.305-5.466-1.332-5.466-5.931 0-1.31.467-2.381 1.235-3.221-.124-.303-.535-1.527.117-3.176 0 0 1.008-.322 3.3 1.23.957-.266 1.984-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.29-1.552 3.296-1.23 3.296-1.23.653 1.649.242 2.873.118 3.176.77.84 1.233 1.911 1.233 3.221 0 4.61-2.804 5.624-5.475 5.921.43.372.814 1.102.814 2.222v3.293c0 .32.192.694.8.576C20.565 21.796 24 17.297 24 12c0-6.63-5.37-12-12-12z"/>
+    </svg>
+</a>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="container mx-auto p-4">
+
+    <!-- Text above search form -->
+    <p class="text-sm text-gray-700 mb-2 mt-4">
+        Explore art through meaning-driven search!
+    </p>
+
+     <!-- Search Form using HTMX -->
+    <form id="search-form" class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4 sm:mb-5">
+        <!-- Search Input -->
+        <input
+            id="search-input"
+            type="text"
+            name="query"
+            placeholder="Search by theme, style, emotion, or more..."
+            value="{{ query|default:'' }}"
+            class="w-full sm:w-auto flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            required
+        />
+
+        <!-- Museum Dropdown -->
+        <div
+            id="museum-dropdown"
+            class="w-full sm:w-auto"
+            hx-get="{% url 'update-work-types' %}"
+            hx-trigger="change delay:150ms"
+            hx-include="#museum-dropdown, #work-type-container"
+            hx-target="#work-type-container"
+            hx-swap="innerHTML"
+        >
+            {% with filter_ctx=museum_filter_context %}
+                {% include "partials/dropdown.html" %}
+            {% endwith %}
+        </div>
+
+        <!-- Work Type Dropdown -->
+        <div id="work-type-container" class="w-full sm:w-auto">
+            {% with filter_ctx=work_type_filter_context %}
+                {% include "partials/dropdown.html" %}
+            {% endwith %}
+        </div>
+
+        <!-- HTMX Submit Button -->
+        <button
+            type="button"
+            class="w-full sm:w-auto bg-blue-500 text-white px-8 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            hx-get="{% url 'search' %}"
+            hx-target="#search-results"
+            hx-swap="innerHTML"
+            hx-include="#search-form"
+        >
+            Search
+        </button>
+    </form>
+
+    {% if example_queries %}
+    <!-- Example Queries Section -->
+    <div class="mb-5">
+        <p class="text-sm text-gray-600 mb-2">Try these examples</p>
+
+        <!-- Desktop View: show all examples -->
+        <div class="hidden sm:flex flex-wrap gap-2">
+            {% for example in example_queries %}
+            <button
+                type="button"
+                class="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onclick="insertQuery('{{ example }}')"
+                hx-get="{% url 'search' %}"
+                hx-target="#search-results"
+                hx-swap="innerHTML"
+                hx-include="#search-form"
+            >
+                {{ example }}
+            </button>
+            {% endfor %}
+        </div>
+
+        <!-- Mobile View: show a few examples and a "More" button -->
+        <div class="sm:hidden" x-data="{ showAll: false }">
+            <div class="flex flex-wrap gap-2" x-show="!showAll">
+                {% for example in example_queries|slice:":5" %}
+                <button
+                    type="button"
+                    class="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onclick="insertQuery('{{ example }}')"
+                    hx-get="{% url 'search' %}"
+                    hx-target="#search-results"
+                    hx-swap="innerHTML"
+                    hx-include="#search-form"
+                >
+                    {{ example }}
+                </button>
+                {% endfor %}
+                <button
+                    type="button"
+                    class="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg text-sm hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    x-on:click="showAll = true; setTimeout(() => $event.target.blur(), 100)"
+                    x-on:touchend="setTimeout(() => $event.target.blur(), 100)"
+                >
+                    More
+                </button>
+            </div>
+            <div class="flex flex-wrap gap-2" x-show="showAll">
+                {% for example in example_queries %}
+                <button
+                    type="button"
+                    class="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onclick="insertQuery('{{ example }}')"
+                    hx-get="{% url 'search' %}"
+                    hx-target="#search-results"
+                    hx-swap="innerHTML"
+                    hx-include="#search-form"
+                >
+                    {{ example }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div id="search-results">
+        <div
+            hx-get="{% url 'search' %}"
+            hx-trigger="revealed"
+            hx-swap="outerHTML"
+            class="py-4 text-center text-gray-500">
+        </div>
+    </div>
+</div> <!-- End Container -->
+
+<!-- JavaScript Functions -->
+<script>
+
+    function insertQuery(query) {
+        document.getElementById('search-input').value = query;
+    }
+
+    function dropdownComponent({ selected, all, labelName }) {
+        return {
+            open: false,
+            selectedItems: [...selected],
+            allItems: [...all],
+
+            toggleSelectAll() {
+                if (this.selectedItems.length === this.allItems.length) {
+                    this.selectedItems = [];
+                } else {
+                    this.selectedItems = [...this.allItems];
+                }
+            },
+
+            get buttonLabel() {
+                if (this.selectedItems.length === 0 || this.selectedItems.length === this.allItems.length) {
+                    return `All ${labelName}s`;
+                } else if (this.selectedItems.length === 1) {
+                    return `1 ${labelName}`;
+                } else {
+                    return `${this.selectedItems.length} ${labelName}s`;
+                }
+            }
+        };
+    }
+    document.getElementById('search-form').addEventListener('keydown', function(e) {
+    //This does not work
+        if (e.key === 'Enter') {
+        e.preventDefault();
+        const searchBtn = document.querySelector('#search-form button[type="button"]');
+        if (searchBtn) {
+            searchBtn.click();
+        }
+    }
+});
+
+</script>
+
+{% endblock content %}

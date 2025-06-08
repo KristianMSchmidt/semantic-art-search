@@ -16,14 +16,20 @@
       {% if result.score is not None %}
         <p class="text-sm text-gray-400">Score: {{ result.score }}</p>
       {% endif %}
-    </div> 
-    <button
-      type="button"
-      class="mt-1 text-sm text-gray-600 hover:text-blue-600 underline self-start"
-      onclick="submitQuery('{{ result.object_number }}')"
-    >
-     Find similar
-    </button>
+    </div>
+    {% if result.score != 1%} 
+      <button
+        type="button"
+        class="mt-1 text-sm text-gray-600 hover:text-blue-600 underline self-start"
+        onclick="insertQuery('{{ result.object_number }}')"
+        hx-get="{% url 'search' %}"
+        hx-target="#search-results"
+        hx-swap="innerHTML"
+        hx-include="#search-form"
+      >
+      Find similar
+      </button>
+    {% endif %}
   </div>  
 </div>
 

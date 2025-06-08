@@ -164,7 +164,11 @@ class QdrantService:
 
         # Fetch vector and paylod of target object from Qdrant collection (if object exists in collection)
         query_vector = self._get_vector_by_object_number(object_number)
-
+        print("HELLO FROM SEARCH SIMILAR IMAGES")
+        print(object_number)
+        print("offset", offset)
+        print(museums)
+        print(work_types)
         # If the embedding could not be generated, raise an error
         if query_vector is None:
             raise ValueError("No vector found for the given object number. ")

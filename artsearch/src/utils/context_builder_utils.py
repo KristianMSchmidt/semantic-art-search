@@ -70,11 +70,13 @@ def prepare_work_types_for_dropdown(
 
 
 def prepare_museums_for_dropdown(
-        supported_museums: list[dict[str, str]] = SUPPORTED_MUSEUMS
+    supported_museums: list[dict[str, str]] = SUPPORTED_MUSEUMS,
 ) -> list[dict[str, str]]:
     return [
-        {"value": museum["slug"], "label": museum["full_name"]} for museum in supported_museums
+        {"value": museum["slug"], "label": museum["full_name"]}
+        for museum in supported_museums
     ]
+
 
 def prepare_initial_label(
     selected_items: list[str],
@@ -124,7 +126,6 @@ def make_urls(
     selected_museums: list[str],
 ) -> dict[str, str]:
     return {
-        "search": make_url("search"),
         "more_results": make_url(
             "more-results",
             offset,
