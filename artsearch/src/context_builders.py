@@ -51,7 +51,7 @@ class SearchParams:
 class FilterContext:
     dropdown_name: str
     initial_button_label: str
-    dropdown_items: list[dict[str, int]]
+    dropdown_items: list[dict[str, Any]]
     selected_items: list[str]
     label_name: str
     all_items_json: str 
@@ -119,7 +119,7 @@ def build_filter_contexts(params: SearchParams) -> dict[str, FilterContext]:
     initial_museums_label = prepare_initial_label(
         selected_museums, museum_names, "museums"
     )
-    
+
     return {
         "work_type_filter_context": FilterContext(
             dropdown_name="work_types",
