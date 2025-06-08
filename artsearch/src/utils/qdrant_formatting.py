@@ -22,6 +22,20 @@ def get_work_type_translation(work_type: str) -> str:
         return work_type
 
 
+def adjust_thumbnail_size(payload: models.Payload, width=600) -> str:
+    """
+    Adjusts IIIF image thumbnail URLs to use a smaller width instead of 'max' for faster loading.
+    """
+    thumbnail_url = payload["thumbnail_url"]
+    if (
+        thumbnail_url.startswith("https://iiif.micr.io/")
+        and "/full/max/" in thumbnail_url
+    ):
+        return thumbnail_url.replace("/full/max/", f"/full/{width},/")
+
+    return thumbnail_url
+
+
 def format_payload(payload: models.Payload | None) -> dict:
     """
     Make payload ready for display in the frontend.
@@ -42,7 +56,7 @@ def format_payload(payload: models.Payload | None) -> dict:
         "title": payload["titles"][0]["title"],
         "artist": ", ".join(payload["artist"]),
         "work_types": work_types,
-        "thumbnail_url": payload["thumbnail_url"],
+        "thumbnail_url": adjust_thumbnail_size(payload),
         "period": period,
         "object_number": payload["object_number"],
         "museum": get_full_museum_name(payload["museum"]),
