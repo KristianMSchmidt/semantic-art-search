@@ -147,7 +147,14 @@ title="View on GitHub"
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {% include 'partials/artwork_cards_and_trigger.html' %}
         </div>
+    {% else %}
+        <!-- No Results Message -->
+        <div class="text-center mt-8">
+            <p class="text-lg text-gray-600">
+                No artworks match your filters.
+        </div>
     {% endif %}
+
     <!-- Thumbnail Image Modal -->
     <div x-data="{ isOpen: false, imageUrl: '' }"
          x-show="isOpen"
