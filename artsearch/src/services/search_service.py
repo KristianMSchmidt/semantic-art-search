@@ -29,13 +29,19 @@ def handle_search(
 
     if query is None or query == "":
         # Query is None on initial page load
+        if query is None:
+            # Initial page load
+            text_above_results = "A glimpse into the archive"
+        else:
+            # Search with no query (currently disabled by FE) 
+            text_above_results = "Works matching your filters"
         query = ""
         results = qdrant_service.get_random_sample(
             limit=limit,
             work_types=work_type_prefilter,
             museums=museum_prefilter,
         )
-        text_above_results = "A glimpse into the archive"
+
 
     else:
         # The user submitted a query.

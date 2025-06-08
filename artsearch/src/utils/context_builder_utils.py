@@ -112,6 +112,8 @@ def make_url(
         query_params["work_types"] = selected_work_types
     if selected_museums:
         query_params["museums"] = selected_museums
+    if not query_params:
+        return reverse(url_name)
     return f"{reverse(url_name)}?{urlencode(query_params, doseq=True)}"
 
 
