@@ -59,30 +59,3 @@
     </div>
 </div>
 
-<script>
-function dropdownComponent({ selected, all, labelName }) {
-    return {
-        open: false,
-        selectedItems: [...selected],
-        allItems: [...all],
-
-        toggleSelectAll() {
-            if (this.selectedItems.length === this.allItems.length) {
-                this.selectedItems = [];
-            } else {
-                this.selectedItems = [...this.allItems];
-            }
-        },
-
-        get buttonLabel() {
-            if (this.selectedItems.length === 0 || this.selectedItems.length === this.allItems.length) {
-                return `All ${labelName}s`;
-            } else if (this.selectedItems.length === 1) {
-                return `1 ${labelName}`;
-            } else {
-                return `${this.selectedItems.length} ${labelName}s`;
-            }
-        }
-    };
-}
-</script>

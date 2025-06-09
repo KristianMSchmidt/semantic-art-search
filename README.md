@@ -43,7 +43,6 @@ Metadata can be incomplete — what you're looking for might not appear in the t
 For example:
 - Searching *"Shipwreck in a storm"* can find turbulent seascapes, even if that exact phrase doesn’t appear in the metadata.
 - Searching *"Rembrandt"* brings up artworks painted by Rembrandt, in his style, or even portraits of people who resemble him — across multiple collections.
-
 ---
 
 ## 🌍 What You Can Do
