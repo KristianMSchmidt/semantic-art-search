@@ -52,8 +52,6 @@ def handle_search(
         )
         try:
             if qdrant_service.item_exists(query):
-                print("ITEM EXISTS!!!!!")
-                print(query)
                 results = qdrant_service.search_similar_images(search_arguments)
             else:
                 results = qdrant_service.search_text(search_arguments)
