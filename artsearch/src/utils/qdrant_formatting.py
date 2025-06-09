@@ -22,6 +22,21 @@ def get_work_type_translation(work_type: str) -> str:
         return work_type
 
 
+def get_source_url(museum_slug: str, object_number: str) -> str | None:
+    """
+    Returns the URL to the artwork's page at the source museum, based on slug and object number.
+    """
+    match museum_slug:
+        case "smk":
+            return f"https://open.smk.dk/artwork/image/{object_number}"
+        case "cma":
+            return f"https://www.clevelandart.org/art/{object_number}"
+        case "rma":
+            return f"https://www.rijksmuseum.nl/en/collection/{object_number}"
+        case _:
+            return None  # Unknown museum
+
+
 def adjust_thumbnail_size(payload: models.Payload, width=600) -> str:
     """
     Adjusts IIIF image thumbnail URLs to use a smaller width instead of 'max' for faster loading.
@@ -60,6 +75,7 @@ def format_payload(payload: models.Payload | None) -> dict:
         "period": period,
         "object_number": payload["object_number"],
         "museum": get_full_museum_name(payload["museum"]),
+        "source_url": get_source_url(payload["museum"], payload["object_number"]),
     }
 
 
