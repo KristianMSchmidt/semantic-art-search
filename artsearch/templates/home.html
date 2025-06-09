@@ -142,7 +142,6 @@ title="View on GitHub"
     <!-- Error Message Placeholder -->
     <div id="error-message"></div>
 
-
     <!-- Get artworks -->
     <div id="search-results">
         <div
@@ -224,7 +223,7 @@ title="View on GitHub"
 <script>
     document.body.addEventListener('htmx:afterSwap', (evt) => {
       if (evt.detail.target.id === 'search-results') {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'auto' });
       }
     });
 </script>

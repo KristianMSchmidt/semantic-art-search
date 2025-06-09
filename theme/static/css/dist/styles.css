@@ -1389,10 +1389,6 @@ select {
 }
 
 @media (min-width: 640px) {
-  .sm\:mb-0 {
-    margin-bottom: 0px;
-  }
-
   .sm\:mb-5 {
     margin-bottom: 1.25rem;
   }
