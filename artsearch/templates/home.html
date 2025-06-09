@@ -139,9 +139,10 @@ title="View on GitHub"
         </div>
     </div>
 
-    <!-- Error Message -->
-    <div id = "error-message"></div>
-    
+    <!-- Error Message Placeholder -->
+    <div id="error-message"></div>
+
+
     <!-- Get artworks -->
     <div id="search-results">
         <div
@@ -151,7 +152,7 @@ title="View on GitHub"
             class="py-4 text-center text-gray-500">
         </div>
     </div>
-</div> <!-- End Container -->
+</div> 
 
 <!-- Thumbnail Image Modal -->
 <div x-data="{ isOpen: false, imageUrl: '' }"
@@ -220,4 +221,11 @@ title="View on GitHub"
   }
 </script>
 
+<script>
+    document.body.addEventListener('htmx:afterSwap', (evt) => {
+      if (evt.detail.target.id === 'search-results') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+</script>
 {% endblock content %}
