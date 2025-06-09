@@ -8,7 +8,6 @@ urlpatterns = [
         "favicon.ico/", RedirectView.as_view(url="/static/favicon.ico", permanent=True)
     ),
     path("", views.home_view, name="home"),
-    path("search/", views.search_view, name="search"),
-    path("more-results/", views.more_results_view, name="more-results"),
+    path("artworks/", views.get_artworks_view, name="get-artworks"),
     path("htmx/update-work-types/", views.update_work_types, name="update-work-types"),
 ]

@@ -22,7 +22,6 @@ def handle_search(
     """
     Handle the search logic based on the provided query and filters.
     """
-    # TODO: split this function up? Some is only used by the
     text_above_results = ""
     results = []
     error_message = None
@@ -36,11 +35,18 @@ def handle_search(
         else:
             # Search with no query (currently disabled by FE)
             text_above_results = "Works matching your filters"
-        results = qdrant_service.get_random_sample(
-            limit=limit,
-            work_types=work_type_prefilter,
-            museums=museum_prefilter,
-        )
+        try:
+            results = qdrant_service.get_random_sample(
+                limit=limit,
+                work_types=work_type_prefilter,
+                museums=museum_prefilter,
+            )
+        except MuseumAPIClientError as e:
+            error_message = str(e)
+            error_type = "warning"
+        except Exception:
+            error_message = "An unexpected error occurred. Please try again."
+            error_type = "error"
     else:
         # The user submitted a query.
         search_arguments = SearchFunctionArguments(

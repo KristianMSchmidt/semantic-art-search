@@ -80,10 +80,8 @@ def build_search_context(params: SearchParams) -> dict[str, Any]:
         work_type_prefilter=work_type_prefilter,
     )
 
-    offset += limit
-
     urls = make_urls(
-        offset=offset,
+        offset=offset + limit,
         query=params.query,
         selected_museums=params.selected_museums,
         selected_work_types=params.selected_work_types,
@@ -92,7 +90,9 @@ def build_search_context(params: SearchParams) -> dict[str, Any]:
     return {
         **search_results,
         "query": params.query,
-        "offset": offset,
+        "is_first_batch": offset == 0,
+        "has_more_results": len(search_results["results"])
+        == limit,  # works in most cases.
         "urls": urls,
     }
 
@@ -151,14 +151,7 @@ def build_home_context(
     Build the full context for the search view.
     """
     filter_contexts = build_filter_contexts(params)
-    urls = make_urls(
-        offset=params.offset,
-        query=params.query,
-        selected_museums=params.selected_museums,
-        selected_work_types=params.selected_work_types,
-    )
     return {
         **filter_contexts,
-        "urls": urls,
         "example_queries": example_queries,
     }

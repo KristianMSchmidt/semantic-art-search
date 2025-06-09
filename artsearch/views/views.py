@@ -10,30 +10,39 @@ from artsearch.views.utils import log_search_query
 
 
 def home_view(request: HttpRequest) -> HttpResponse:
-    """Home page view that also handles search requests."""
+    """
+    Render the main homepage with the search form and initial context.
+
+    This view handles all non‐HTMX GET requests to “/”. It builds and returns
+    the full `home.html` page including:
+      - the search form
+      - example queries
+      - empty placeholder for search results
+
+    It does _not_ process actual search submissions; those are handled by
+    `get_artworks_view` via HTMX.
+    """
     params = SearchParams(request=request)
     context = build_home_context(params)
     return render(request, "home.html", context)
 
 
-def search_view(request: HttpRequest) -> HttpResponse:
+def get_artworks_view(request: HttpRequest) -> HttpResponse:
     """
-    HTMX view that produces error and search results section on the home page.
+    HTMX endpoint for fetching artwork results (initial search or pagination).
     """
+
     params = SearchParams(request=request)
-    log_search_query(params)
+    if params.offset == 0:
+        log_search_query(params)
     context = build_search_context(params)
-    return render(request, "partials/search_results.html", context)
-
-
-def more_results_view(request: HttpRequest) -> HttpResponse:
-    """HTMX view to support infinite scroll."""
-    context = build_search_context(SearchParams(request=request))
-    return render(request, "partials/artwork_cards_and_trigger.html", context)
+    return render(request, "partials/artwork_response.html", context)
 
 
 def update_work_types(request):
-    """HTMX view that updates the work type dropdown based on selected museums."""
+    """
+    HTMX view that updates the work type dropdown based on selected museums.
+    """
     filter_contexts = build_filter_contexts(SearchParams(request=request))
     context = {"filter_ctx": filter_contexts["work_type_filter_context"]}
     return render(request, "partials/dropdown.html", context)

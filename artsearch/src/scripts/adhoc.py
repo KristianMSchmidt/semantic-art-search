@@ -52,7 +52,6 @@ def create_index():
         field_schema="keyword",
         wait=True,
     )
-    breakpoint()
 
 
 def control():

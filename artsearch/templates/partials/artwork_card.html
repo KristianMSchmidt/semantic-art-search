@@ -37,7 +37,7 @@
         type="button"
         class="text-sm text-gray-600 hover:text-blue-500 underline self-start"
         onclick="insertQuery('{{ result.object_number }}')"
-        hx-get="{% url 'search' %}"
+        hx-get="{% url 'get-artworks' %}"
         hx-target="#search-results"
         hx-swap="innerHTML"
         hx-include="#search-form"

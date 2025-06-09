@@ -105,6 +105,7 @@ def make_url(
     selected_work_types: list[str] = [],
     selected_museums: list[str] = [],
 ) -> str:
+    """Make urls with query parameters."""
     query_params = {}
     if offset is not None:
         query_params["offset"] = offset
@@ -126,8 +127,8 @@ def make_urls(
     selected_museums: list[str],
 ) -> dict[str, str]:
     return {
-        "more_results": make_url(
-            "more-results",
+        "get_artworks_with_params": make_url(
+            "get-artworks",
             offset,
             query,
             selected_work_types,
