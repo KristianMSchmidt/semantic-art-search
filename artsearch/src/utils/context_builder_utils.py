@@ -70,11 +70,13 @@ def prepare_work_types_for_dropdown(
 
 
 def prepare_museums_for_dropdown(
-        supported_museums: list[dict[str, str]] = SUPPORTED_MUSEUMS
+    supported_museums: list[dict[str, str]] = SUPPORTED_MUSEUMS,
 ) -> list[dict[str, str]]:
     return [
-        {"value": museum["slug"], "label": museum["full_name"]} for museum in supported_museums
+        {"value": museum["slug"], "label": museum["full_name"]}
+        for museum in supported_museums
     ]
+
 
 def prepare_initial_label(
     selected_items: list[str],
@@ -103,6 +105,7 @@ def make_url(
     selected_work_types: list[str] = [],
     selected_museums: list[str] = [],
 ) -> str:
+    """Make urls with query parameters."""
     query_params = {}
     if offset is not None:
         query_params["offset"] = offset
@@ -124,9 +127,8 @@ def make_urls(
     selected_museums: list[str],
 ) -> dict[str, str]:
     return {
-        "search": make_url("search"),
-        "more_results": make_url(
-            "more-results",
+        "get_artworks_with_params": make_url(
+            "get-artworks",
             offset,
             query,
             selected_work_types,

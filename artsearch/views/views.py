@@ -1,41 +1,48 @@
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
-from artsearch.models import SearchLog
 from artsearch.src.context_builders import (
-    build_main_context,
     build_search_context,
+    build_home_context,
     build_filter_contexts,
     SearchParams,
 )
+from artsearch.views.utils import log_search_query
 
 
-def log_search_query(params: SearchParams) -> None:
-    query = params.query
-    if query:
-        user = params.request.user
-        username = user.username if user.is_authenticated else None
-        try:
-            SearchLog.objects.create(query=query, username=username)
-        except Exception as e:
-            print(f"Error logging search query: {e}")
+def home_view(request: HttpRequest) -> HttpResponse:
+    """
+    Render the main homepage with the search form and initial context.
 
+    This view handles all non‐HTMX GET requests to “/”. It builds and returns
+    the full `home.html` page including:
+      - the search form
+      - example queries
+      - empty placeholder for search results
 
-def search(request: HttpRequest) -> HttpResponse:
-    """Home page view that also handles search requests."""
+    It does _not_ process actual search submissions; those are handled by
+    `get_artworks_view` via HTMX.
+    """
     params = SearchParams(request=request)
-    log_search_query(params)
+    context = build_home_context(params)
+    return render(request, "home.html", context)
+
+
+def get_artworks_view(request: HttpRequest) -> HttpResponse:
+    """
+    HTMX endpoint for fetching artwork results (initial search or pagination).
+    """
+
+    params = SearchParams(request=request)
+    if params.offset == 0:
+        log_search_query(params)
     context = build_search_context(params)
-    return render(request, "search.html", context)
-
-
-def more_results(request: HttpRequest) -> HttpResponse:
-    """HTMX view that fetches more search results for infinite scrolling."""
-    context = build_main_context(SearchParams(request=request))
-    return render(request, "partials/artwork_cards_and_trigger.html", context)
+    return render(request, "partials/artwork_response.html", context)
 
 
 def update_work_types(request):
-    """HTMX view that updates the work type dropdown based on selected museums."""
+    """
+    HTMX view that updates the work type dropdown based on selected museums.
+    """
     filter_contexts = build_filter_contexts(SearchParams(request=request))
-    context = {'filter_ctx': filter_contexts['work_type_filter_context']} 
+    context = {"filter_ctx": filter_contexts["work_type_filter_context"]}
     return render(request, "partials/dropdown.html", context)

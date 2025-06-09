@@ -47,6 +47,7 @@ class SearchParams:
     def offset(self) -> int:
         return retrieve_offset(self.request)
 
+
 @dataclass
 class FilterContext:
     dropdown_name: str
@@ -54,12 +55,12 @@ class FilterContext:
     dropdown_items: list[dict[str, Any]]
     selected_items: list[str]
     label_name: str
-    all_items_json: str 
+    all_items_json: str
     selected_items_json: str
     total_work_count: int | None = None
 
 
-def build_main_context(params: SearchParams) -> dict[str, Any]:
+def build_search_context(params: SearchParams) -> dict[str, Any]:
     """
     Build the main context for the search view.
     """
@@ -79,10 +80,8 @@ def build_main_context(params: SearchParams) -> dict[str, Any]:
         work_type_prefilter=work_type_prefilter,
     )
 
-    offset += limit
-
     urls = make_urls(
-        offset=offset,
+        offset=offset + limit,
         query=params.query,
         selected_museums=params.selected_museums,
         selected_work_types=params.selected_work_types,
@@ -91,7 +90,9 @@ def build_main_context(params: SearchParams) -> dict[str, Any]:
     return {
         **search_results,
         "query": params.query,
-        "offset": offset,
+        "is_first_batch": offset == 0,
+        "has_more_results": len(search_results["results"])
+        == limit,  # works in most cases.
         "urls": urls,
     }
 
@@ -127,32 +128,30 @@ def build_filter_contexts(params: SearchParams) -> dict[str, FilterContext]:
             dropdown_items=prepared_work_types,
             selected_items=selected_work_types,
             total_work_count=total_work_count,
-            all_items_json=json.dumps(work_type_names), 
+            all_items_json=json.dumps(work_type_names),
             selected_items_json=json.dumps(selected_work_types),
-            label_name="Work Type"
+            label_name="Work Type",
         ),
         "museum_filter_context": FilterContext(
             dropdown_name="museums",
             initial_button_label=initial_museums_label,
             dropdown_items=prepared_museums,
             selected_items=selected_museums,
-            all_items_json=json.dumps(museum_names), 
-            selected_items_json=json.dumps(selected_museums),  
+            all_items_json=json.dumps(museum_names),
+            selected_items_json=json.dumps(selected_museums),
             label_name="Museum",
-        )
+        ),
     }
 
 
-def build_search_context(
+def build_home_context(
     params: SearchParams, example_queries: list[str] = EXAMPLE_QUERIES["chosen"]
 ) -> dict[str, Any]:
     """
     Build the full context for the search view.
     """
     filter_contexts = build_filter_contexts(params)
-    main_context = build_main_context(params)
     return {
         **filter_contexts,
-        **main_context,
         "example_queries": example_queries,
     }

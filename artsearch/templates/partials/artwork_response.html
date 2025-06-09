@@ -1,0 +1,53 @@
+<div
+  id="error-message"
+  hx-swap-oob="true"
+  {% if error_message %}
+    class="
+      {% if error_type == 'error' %}
+        bg-red-100 border-red-500 text-red-700
+      {% else %}
+        bg-yellow-100 border-yellow-500 text-yellow-700
+      {% endif %}
+      border-l-4 p-4 mb-4
+    "
+  {% endif %}
+>
+  {% if error_message %}
+    <p>{{ error_message }}</p>
+  {% endif %}
+</div>
+
+{% if not error_message %}
+  {% if results %}
+    {% if is_first_batch %}
+      <p class="text-sm text-gray-500 mb-2">
+        {{ text_above_results }}
+      </p>
+    {% endif %}
+
+    <div
+      class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4
+            {% if not is_first_batch %}mt-4{% endif %}"
+    >
+      {% for result in results %}
+        {% include "partials/artwork_card.html" %}
+      {% endfor %}
+    </div>
+
+    {# Load more artworks when the user scrolls down #}
+    {% if has_more_results %}
+      <div
+        hx-get="{{ urls.get_artworks_with_params }}"
+        hx-trigger="revealed"
+        hx-swap="outerHTML"
+        class="py-4 text-center text-gray-500"
+      ></div>
+    {% endif %}
+  {% else %}
+    <div class="text-center mt-8">
+      <p class="text-lg text-gray-600">
+        No artworks match your filters.
+      </p>
+    </div>
+  {% endif %}
+{% endif %}
