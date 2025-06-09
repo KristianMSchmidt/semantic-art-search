@@ -51,6 +51,7 @@ def handle_search(
             museum_prefilter=museum_prefilter,
         )
         try:
+            # Check if the query is an object number (e.g., "A12345")
             if qdrant_service.item_exists(query):
                 results = qdrant_service.search_similar_images(search_arguments)
             else:

@@ -76,7 +76,6 @@ title="View on GitHub"
         </button>
     </form>
 
-    {% if example_queries %}
     <!-- Example Queries Section -->
     <div class="mb-5">
         <p class="text-sm text-gray-600 mb-2">Try these examples</p>
@@ -140,8 +139,10 @@ title="View on GitHub"
             </div>
         </div>
     </div>
-    {% endif %}
 
+    <!-- Error Message -->
+    <div id = "error-message"></div>
+    
     <div id="search-results">
         <div
             hx-get="{% url 'search' %}"
