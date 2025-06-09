@@ -11,6 +11,7 @@ from artsearch.src.services.museum_clients.factory import get_museum_client
 
 logging.basicConfig(level=logging.WARNING)
 
+
 def delete_altarpieces():
     qdrant_service = get_qdrant_service()
     client = qdrant_service.qdrant_client
@@ -25,12 +26,12 @@ def delete_altarpieces():
     )
     # Get the payload of the points to be deleted
     points, _ = client.scroll(
-            collection_name=collection_name,
-            scroll_filter=query_filter,
-            limit=10,
-            with_payload=True,
-            with_vectors=False,
-        )
+        collection_name=collection_name,
+        scroll_filter=query_filter,
+        limit=10,
+        with_payload=True,
+        with_vectors=False,
+    )
 
     for point in points:
         # Delete the point with the specified ID
@@ -39,6 +40,7 @@ def delete_altarpieces():
             points_selector=models.PointIdsList(points=[point.id]),
         )
         print(f"Point with ID {point.id} deleted from collection {collection_name}")
+
 
 def create_index():
     qdrant_service = get_qdrant_service()
