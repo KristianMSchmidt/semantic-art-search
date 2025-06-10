@@ -64,9 +64,9 @@ def format_payload(payload: models.Payload | None) -> dict:
         period = (
             f"{payload['production_date_start']} - {payload['production_date_end']}"
         )
-    work_types = ", ".join(
+    work_types = [
         get_work_type_translation(name).capitalize() for name in payload["work_types"]
-    )
+    ]
     return {
         "title": payload["titles"][0]["title"],
         "artist": ", ".join(payload["artist"]),

@@ -1,53 +1,74 @@
-<!-- Card container with conditional highlight for the top (exact match) result -->
+<!-- Card container -->
 <div class="relative bg-white shadow-md rounded-lg overflow-hidden">
-  
-  <!-- Image: preserves natural aspect ratio, max height, and interactive hover -->
+
+  <!-- Artwork image -->
   <img src="{{ result.thumbnail_url }}"
-        alt="{{ result.title }}"
-        class="w-full h-auto max-h-96 object-contain cursor-pointer hover:opacity-80 transition"
-        onclick="openModal('{{ result.thumbnail_url }}')">
-    <div class="pl-6 pr-4 py-4 sm:pl-4 sm:pr-4 flex flex-col h-full mb-2">
+       alt="{{ result.title }}"
+       class="w-full h-auto max-h-96 object-contain cursor-pointer hover:opacity-80 transition"
+       onclick="openModal('{{ result.thumbnail_url }}')">
 
-    <div class="space-y-0">
-      <h3 class="text-lg font-semibold text-gray-800">{{ result.title }}</h3>
-      <p class="text-sm text-gray-600">{{ result.artist }}</p>
-      <p class="text-sm text-gray-500">{{ result.work_types }}</p>
+  <!-- Text content -->
+  <div class="pl-6 pr-4 py-4 sm:pl-4 sm:pr-4 flex flex-col h-full mb-2">
+    
+    <!-- Metadata block -->
+    <div class="space-y-1">
+      <!-- Title -->
+      <h3 class="text-lg font-semibold text-gray-800 leading-snug">
+        {{ result.title }}
+        {% if result.score == 1 %}
+        <span class="ml-2 inline-block px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded">
+          Exact match
+        </span>
+        {% endif %}
+      </h3>
 
-      <p class="text-sm text-gray-500">
-        {{ result.museum }}
-        <a href="{{ result.source_url }}"
+      <!-- Artist -->
+      <p class="text-sm text-gray-500">{{ result.artist }}</p>
+
+      <!-- Period and Work Types -->
+      <div class="flex flex-wrap gap-2 mt-1">
+        {% if result.period %}
+          <span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-medium">{{ result.period }}</span>
+        {% endif %}
+        {% for work_type in result.work_types %}
+          <span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-medium">{{ work_type }}</span>
+        {% endfor %}
+      </div>
+    </div> <!--End of metadata block -->
+
+    <!-- Museum and link -->
+    {% if result.museum %}
+    <p class="text-sm text-gray-600 mt-4">
+      <a href="{{ result.source_url }}"
           target="_blank"
           rel="noopener noreferrer"
-          class="ml-1 inline-flex items-center text-blue-500"
+          class="inline-flex items-center gap-1 text-gray-500 underline hover:text-blue-500"
           title="View this artwork on the {{ result.museum }} website">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6m5-5h5m0 0v5m0-5L10 14" />
-          </svg>
-        </a>
-      </p>
+        {{ result.museum }}
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
+              viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6m5-5h5m0 0v5m0-5L10 14" />
+        </svg>
+      </a>
+    </p>
+    {% endif %}
 
-      <p class="text-sm text-gray-500">{{ result.period }}</p>
 
-      {% if result.score is not None %}
-        <p class="text-sm text-gray-400">Score: {{ result.score }}</p>
-      {% endif %}
-    </div>
-
-    {% if result.score != 1%} 
-    <div class="mt-1 space-y-1">
+    <!-- Find similar button (only if not exact match) -->
+    {% if result.score != 1 %}
+    <div class="mt-3">
       <button
         type="button"
-        class="text-sm text-gray-600 hover:text-blue-500 underline self-start"
+        class="text-sm text-gray-600 hover:text-blue-500 underline"
         onclick="insertQuery('{{ result.object_number }}')"
         hx-get="{% url 'get-artworks' %}"
         hx-target="#search-results"
         hx-swap="innerHTML"
-        hx-include="#search-form"
-      >
-      Find similar
+        hx-include="#search-form">
+        Find similar
       </button>
-    </div>  
-    {% endif %}  
+    </div>
+    {% endif %}
   </div>
 </div>
-
