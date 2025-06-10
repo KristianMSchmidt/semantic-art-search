@@ -27,18 +27,24 @@
       {% endif %}
       
       <!-- Artist -->
-      <p class="text-sm text-gray-500">{{ result.artist }}</p>
+      <p class="text-base text-gray-500">{{ result.artist }}</p>
 
       <!-- Period and Work Types -->
       <div class="flex flex-wrap gap-2 mt-1">
         {% if result.period %}
-          <span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-medium">{{ result.period }}</span>
+          <span
+            class="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-md font-medium">
+            {{ result.period }}
+          </span>
         {% endif %}
         {% for work_type in result.work_types %}
-          <span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-medium">{{ work_type }}</span>
+          <span
+            class="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-md font-medium">
+            {{ work_type }}
+          </span>
         {% endfor %}
       </div>
-    </div> <!--End of metadata block -->
+      </div> <!--End of metadata block -->
 
     <!-- Museum and link -->
     {% if result.museum %}
@@ -57,7 +63,6 @@
       </a>
     </p>
     {% endif %}
-
 
     <!-- Find similar button (only if not exact match) -->
     {% if result.object_number != query %}
