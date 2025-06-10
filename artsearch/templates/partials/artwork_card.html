@@ -14,14 +14,14 @@
     <div class="space-y-1">
    
       <!-- Title -->
-      <h3 class="text-lg font-semibold text-gray-800 leading-snug">
+      <h3 class="text font-semibold text-gray-800 leading-snug">
         {{ result.title }}
       </h3>
 
       {% if result.object_number == query %}
         <div>
           <span class="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded">
-            Matched by ID
+            {{ result.object_number }}
           </span>
         </div>
       {% endif %}
