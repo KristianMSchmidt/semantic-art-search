@@ -1,6 +1,6 @@
 # Semantic Art Search 🎨🔍
 
-**Explore art through meaning — not just keywords.**
+**Explore art through meaning-driven search.**
 
 [Semantic Art Search](https://semantic-art-search.com) is an open-source search engine that helps you discover artworks based on **visual and semantic similarity**, not just titles or tags.
 
