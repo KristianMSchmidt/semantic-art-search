@@ -1,7 +1,8 @@
 from artsearch.models import SearchLog
-from artsearch.src.context_builders import (
+from artsearch.views.context_builders import (
     SearchParams,
 )
+
 
 def log_search_query(params: SearchParams) -> None:
     """

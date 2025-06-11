@@ -1,12 +1,12 @@
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
-from artsearch.src.context_builders import (
+from artsearch.views.context_builders import (
     build_search_context,
     build_home_context,
     build_filter_contexts,
     SearchParams,
 )
-from artsearch.views.utils import log_search_query
+from artsearch.views.log_utils import log_search_query
 
 
 def home_view(request: HttpRequest) -> HttpResponse:
@@ -31,7 +31,6 @@ def get_artworks_view(request: HttpRequest) -> HttpResponse:
     """
     HTMX endpoint for fetching artwork results (initial search or pagination).
     """
-
     params = SearchParams(request=request)
     if params.offset == 0:
         log_search_query(params)

@@ -59,13 +59,13 @@ EXAMPLE_QUERIES: dict[str, list[str]] = {
     ],
     "candidates": [
         "Dead birds",
+        "Bible scene",
         "Calligraphy",
         "Oriental carpet",
         "Camel",
         "Rembrandt",
         "Martin Luther",
         "Windmill",
-        "Red flowers",
         "Map of a fortress",
     ],
 }

@@ -48,11 +48,11 @@
 
     <!-- Museum and link -->
     {% if result.museum %}
-    <p class="text-sm text-gray-600 mt-4">
+    <p class="mt-4">
       <a href="{{ result.source_url }}"
           target="_blank"
           rel="noopener noreferrer"
-          class="inline-flex items-center gap-1 text-gray-500 underline hover:text-blue-500"
+          class="text-sm text-gray-600 inline-flex items-center gap-1 underline hover:text-blue-500"
           title="View this artwork on the {{ result.museum }} website">
         {{ result.museum }}
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
