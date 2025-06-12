@@ -1,0 +1,22 @@
+{
+    // ✅ Python settings (ruff formatter)
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true
+    },
+    // ✅ HTML formatting settings
+    "[html]": {
+        "editor.defaultFormatter": "vscode.html-language-features",
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "editor.trimAutoWhitespace": true
+    },
+    // ✅ General editor preferences
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+
+    // ✅ Ensure Pylance is active
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoImportCompletions": false,
+    "python.analysis.diagnosticMode": "openFilesOnly",
+}

@@ -24,15 +24,15 @@ title="View on GitHub"
     </p>
 
      <!-- Search Form using HTMX -->
-    <form 
-        id="search-form" 
+    <form
+        id="search-form"
         hx-get="{% url 'get-artworks' %}"
         hx-target="#search-results"
         hx-swap="innerHTML"
         hx-include="#search-form"
         hx-on:submit="return validateSearchInput()"
         class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4 sm:mb-5">
-        
+
         <!-- Search Input -->
         <input
             id="search-input"
@@ -73,6 +73,7 @@ title="View on GitHub"
         >
             Search
         </button>
+
     </form>
 
     <!-- Example Queries Section -->
@@ -151,7 +152,7 @@ title="View on GitHub"
             class="py-4 text-center text-gray-500">
         </div>
     </div>
-</div> 
+</div>
 
 <!-- Thumbnail Image Modal -->
 <div x-data="{ isOpen: false, imageUrl: '' }"

@@ -9,10 +9,10 @@
 
   <!-- Text content -->
   <div class="pl-6 pr-4 py-4 sm:pl-4 sm:pr-4 flex flex-col h-full mb-2">
-    
+
     <!-- Metadata block -->
     <div class="space-y-1">
-   
+
       <!-- Title -->
       <h3 class="text font-semibold text-gray-800 leading-snug">
         {{ result.title }}
@@ -25,7 +25,7 @@
           </span>
         </div>
       {% endif %}
-      
+
       <!-- Artist -->
       <p class="text-base text-gray-500">{{ result.artist }}</p>
 
@@ -44,7 +44,7 @@
           </span>
         {% endfor %}
       </div>
-      </div> <!--End of metadata block -->
+    </div> <!--End of metadata block -->
 
     <!-- Museum and link -->
     {% if result.museum %}
