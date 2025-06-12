@@ -25,7 +25,9 @@ You can also paste an inventory number (e.g., *"KMS1"*) into the search bar to f
 When you search:
 - The entire collection is ranked by relevance (best matches are shown first)
 - You can filter by work type (e.g., painting, print, drawing)
-- You can search across all museums or limit to one or more.
+- You can search across all museums or limit to one or more
+
+Each artwork links to its page at the source museum, so you can dive deeper and explore the full context
 
 Currently, **search queries must be in English**, but multilingual support might be added in a future version.
 
