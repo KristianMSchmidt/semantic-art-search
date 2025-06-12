@@ -1,0 +1,17 @@
+# .dockerignore
+.git
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+art_venv/
+venv/
+.venv/
+node_modules/
+*.log
+*.sqlite3
+media/
+tmp/
+*.tar.gz
+*.zip

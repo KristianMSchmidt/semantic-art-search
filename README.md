@@ -2,7 +2,7 @@
 
 **Explore Art Through Meaning-Driven Search.**
 
-[Semantic Art Search](https://semantic-art-search.com) is an open-source search engine that helps you discover artworks from public, digitized collections in an intuitive and flexible way. Using advanced machine learning behind the scenes, it allows you to search for pieces based on themes, motifs, emotions, styles, and more. It also allows you to find visually or thematically similar works across multiple museums.
+[Semantic Art Search](https://semantic-art-search.com) is an open-source search engine that helps you intuitively explore artworks from publicly digitized collections. Powered by advanced machine learning, it lets you search by theme, motif, emotion, style, and more — and even bring to light visually or thematically similar works across multiple museums.
 
 Currently, the system includes selected artworks from:
 
