@@ -6,7 +6,6 @@ import logging
 from typing import cast
 from qdrant_client import models
 from artsearch.src.services.qdrant_service import get_qdrant_service
-from artsearch.src.scripts.update_payload_helpers import searchle_work_types
 
 COLLECTION_NAME = "artworks_dev_2"
 
@@ -14,14 +13,6 @@ COLLECTION_NAME = "artworks_dev_2"
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO
 )
-
-
-def set_searchable_work_types(old_payload: dict) -> dict:
-    new_payload = old_payload.copy()
-    searchable_work_types = searchle_work_types(new_payload["work_types"])
-    new_payload["searchable_work_types"] = searchable_work_types
-
-    return new_payload
 
 
 def adhoc_update_payload(old_payload: dict) -> dict:
@@ -45,7 +36,6 @@ def process_points(points: list[models.Record]) -> list[models.PointStruct]:
             raise ValueError(f"Point {point.id} has a missing payload: {point.payload}")
 
         new_payload = adhoc_update_payload(point.payload)
-        # new_payload = set_searchable_work_types(new_payload)
         new_vector = cast(list[float], point.vector)
         processed_points.append(
             models.PointStruct(id=str(point.id), payload=new_payload, vector=new_vector)

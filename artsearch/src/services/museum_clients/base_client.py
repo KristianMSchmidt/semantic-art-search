@@ -16,6 +16,7 @@ class ArtworkPayload(BaseModel):
     object_number: str
     titles: list[dict]
     work_types: list[str]
+    searchable_work_types: list[str]
     artist: list[str]
     production_date_start: int
     production_date_end: int

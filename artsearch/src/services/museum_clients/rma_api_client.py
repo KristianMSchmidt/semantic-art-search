@@ -9,6 +9,7 @@ from artsearch.src.services.museum_clients.base_client import (
     ArtworkPayload,
     ParsedAPIResponse,
 )
+from artsearch.src.services.museum_clients.utils import get_searchle_work_types
 
 
 class RMAAPIClient(MuseumAPIClient):
@@ -544,6 +545,7 @@ def extract_artwork_payload(
             object_number=object_number,
             titles=[{"title": title}],
             work_types=work_types,
+            searchable_work_types=get_searchle_work_types(work_types),
             artist=artist_names,
             thumbnail_url=image_url,
             production_date_start=production_date_start,

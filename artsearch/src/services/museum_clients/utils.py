@@ -1,7 +1,7 @@
 from artsearch.src.constants import WORK_TYPES_DICT, SEARCHABLE_WORK_TYPES
 
 
-def searchle_work_types(work_types: list[str]) -> list[str]:
+def get_searchle_work_types(work_types: list[str]) -> list[str]:
     """
     Given a list of original work types (not necessarily in English) for a given artwork,
     return a list of standardized searchable work types in English.

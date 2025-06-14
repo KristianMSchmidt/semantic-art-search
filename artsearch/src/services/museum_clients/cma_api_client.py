@@ -35,10 +35,12 @@ class CMAAPIClient(MuseumAPIClient):
             )
 
     def _process_item(self, item: dict[str, Any]) -> ArtworkPayload:
+        work_types = [item["type"].lower()]
         return ArtworkPayload(
             object_number=item["accession_number"],
             titles=[{"title": item["title"], "language": "english"}],
-            work_types=[item["type"].lower()],
+            work_types=work_types,
+            searchable_work_types=work_types,
             artist=[
                 artist["description"].split("(")[0].strip()
                 for artist in item["creators"]

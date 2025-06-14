@@ -6,6 +6,7 @@ from artsearch.src.services.museum_clients.base_client import (
     ArtworkPayload,
     ParsedAPIResponse,
 )
+from artsearch.src.services.museum_clients.utils import get_searchle_work_types
 
 
 class SMKAPIClient(MuseumAPIClient):
@@ -35,12 +36,14 @@ class SMKAPIClient(MuseumAPIClient):
             )
 
     def _process_item(self, item: dict[str, Any]) -> ArtworkPayload:
+        work_types = [
+            object_name.get("name").lower() for object_name in item["object_names"]
+        ]
         return ArtworkPayload(
             object_number=item["object_number"],
             titles=item["titles"],
-            work_types=[
-                object_name.get("name").lower() for object_name in item["object_names"]
-            ],
+            work_types=work_types,
+            searchable_work_types=get_searchle_work_types(work_types),
             artist=item["artist"],
             production_date_start=int(
                 item["production_date"][0]["start"].split("-")[0]
