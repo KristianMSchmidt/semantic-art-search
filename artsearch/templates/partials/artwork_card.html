@@ -80,4 +80,9 @@
     </div>
     {% endif %}
   </div>
+  {% if result.score %}
+  <div class="absolute bottom-1 right-2 text-xs text-gray-400">
+    Score: {{ result.score|floatformat:2 }}
+  </div>
+  {% endif %}
 </div>
