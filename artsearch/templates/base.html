@@ -8,10 +8,10 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<meta http-equiv="X-UA-Compatible" content="ie=edge">
+		<meta name="author" content="Kristian Møller Schmidt" />
 
 		<!-- SEO: Meta Description -->
 		<meta name="description" content="Search art collections using natural language — by theme, mood, or style — and find visually or semantically similar works across museums.">
-
 
 		<!-- Open Graph (for social media previews) -->
 		<meta property="og:title" content="Semantic Art Search | Discover Art Through Meaning-Driven Search" />
@@ -33,8 +33,8 @@
             display: none !important;
         }
     	</style>
-		<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-		<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+		<script src="{% static 'js/alpine.js' %}" defer></script>
+		<script src="{% static 'js/htmx.js' %}"></script>
 	</head>
 
 	<body class="bg-gray-50 font-serif leading-normal tracking-normal">
