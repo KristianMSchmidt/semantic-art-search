@@ -1,0 +1,7 @@
+{
+    "name": "Semantic Art Search",
+    "short_name": "Art Search",
+    "start_url": "/",
+    "display": "standalone",
+    "icons": []
+}
