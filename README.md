@@ -1,10 +1,12 @@
 # Semantic Art Search 🎨🔍
 
-**Discover Art Through Meaning-Driven Search.**
 
-[Semantic Art Search](https://semantic-art-search.com) is an open-source search engine that helps you intuitively explore artworks from publicly digitized collections. Powered by advanced machine learning, it lets you search by theme, motif, emotion, style, and more — and even bring to light visually or thematically similar works across multiple museums.
+[Semantic Art Search](https://semantic-art-search.com) is an open-source search engine that uses advanced machine learning to explore digitized art collections. With simple natural-language queries, you can uncover artworks by their visual content, themes, emotions, or styles — across multiple museums.
 
-Currently, the system includes selected artworks from:
+*Unlike traditional keyword searches, Semantic Art Search understands meaning directly from images—so you discover artworks even if metadata lacks exact keywords.*
+
+
+Currently, the system includes selected artworks from these renowned institutions committed to open data:
 
 - Statens Museum for Kunst (The Danish National Gallery)
 - Cleveland Museum of Art
@@ -14,7 +16,7 @@ Currently, the system includes selected artworks from:
 
 ## 🔎 How It Works
 
-Just use the search bar — it's designed for natural language input. Try a theme, mood, style, or description:
+Just use the search bar — it's designed for natural language input. Try themes, moods, styles, or descriptions, for example:
 - *"Mourning"*
 - *"Battle at sea"*
 - *"Impressionism"*
