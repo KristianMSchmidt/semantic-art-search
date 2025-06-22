@@ -1,4 +1,3 @@
-
 <div
     id="error-message"
     hx-swap-oob="true"
@@ -18,15 +17,12 @@
     {% endif %}
 </div>
 
-
 {% if not error_message %}
-      
-    {% if is_first_batch and works_matching_filters %}            
+    {% if is_first_batch and works_matching_filters %}
         <p class="text-sm text-gray-500 mb-2">
             {{ text_above_results }}
         </p>
     {% endif %}
-
 
     {% if not works_matching_filters %}
         <div class="text-center mt-8">
@@ -34,7 +30,7 @@
             No artworks match your selected filters.
             </p>
         </div>
-    {% else %}        
+    {% else %}
           <div
             class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4
                   {% if not is_first_batch %}mt-4{% endif %}"
@@ -43,7 +39,6 @@
               {% include "partials/artwork_card.html" %}
             {% endfor %}
           </div>
-
           {# Load more artworks when the user scrolls down #}
           <div
             hx-get="{{ urls.get_artworks_with_params }}"

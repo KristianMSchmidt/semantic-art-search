@@ -13,7 +13,6 @@ from artsearch.src.services.museum_stats_service import (
 from artsearch.src.services.search_service import handle_search
 from artsearch.src.utils.get_museums import get_museum_names
 from artsearch.src.constants import EXAMPLE_QUERIES, SUPPORTED_MUSEUMS, WORK_TYPES_DICT
-from artsearch.src.utils.get_museums import get_museum_names
 
 
 RESULTS_PER_PAGE = 20
@@ -148,14 +147,14 @@ def prepare_initial_label(
         return f"{len(selected_items)} {name}s"
 
 
-def make_url(
+def make_url_with_params(
     url_name: str,
-    offset: int | None = None,
     query: str | None = None,
+    offset: int | None = None,
     selected_work_types: list[str] = [],
     selected_museums: list[str] = [],
 ) -> str:
-    """Make urls with query parameters."""
+    """Make a URL with query parameters for pagination and filtering."""
     query_params = {}
     if offset is not None:
         query_params["offset"] = offset
@@ -170,19 +169,20 @@ def make_url(
     return f"{reverse(url_name)}?{urlencode(query_params, doseq=True)}"
 
 
-def make_urls(
-    offset: int,
+def make_urls_with_params(
     query: str | None,
+    offset: int,
     selected_work_types: list[str],
     selected_museums: list[str],
 ) -> dict[str, str]:
+    """Make URLs with query parameters for pagination and filtering"""
     return {
-        "get_artworks_with_params": make_url(
-            "get-artworks",
-            offset,
-            query,
-            selected_work_types,
-            selected_museums,
+        "get_artworks_with_params": make_url_with_params(
+            url_name="get-artworks",
+            query=query,
+            offset=offset,
+            selected_work_types=selected_work_types,
+            selected_museums=selected_museums,
         ),
     }
 
@@ -220,9 +220,9 @@ def build_search_context(params: SearchParams) -> dict[str, Any]:
         work_type_prefilter=work_type_prefilter,
     )
 
-    urls = make_urls(
-        offset=offset + limit,
+    urls = make_urls_with_params(
         query=params.query,
+        offset=offset + limit,
         selected_museums=params.selected_museums,
         selected_work_types=params.selected_work_types,
     )
