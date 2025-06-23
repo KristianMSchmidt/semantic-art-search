@@ -17,24 +17,24 @@ tailwind-start:  ## start tailwind (should be running while developing)
 	python manage.py tailwind start
 
 build:  ## Build or rebuild development docker image
-	docker-compose -f docker-compose.dev.yml build
+	docker compose -f docker-compose.dev.yml build
 
 develop:  ## Run development server
-	docker-compose -f docker-compose.dev.yml up --remove-orphans
+	docker compose -f docker-compose.dev.yml up --remove-orphans
 
 stop: ## Stop development server
-	docker-compose -f docker-compose.dev.yml down --remove-orphans
+	docker compose -f docker-compose.dev.yml down --remove-orphans
 
 shell:  ## Open shell in running docker development container
-	docker-compose -f docker-compose.dev.yml exec web /bin/bash
+	docker compose -f docker-compose.dev.yml exec web /bin/bash
 
 djangoshell:  ## Open django shell in running docker development container
-	docker-compose -f docker-compose.dev.yml exec web python manage.py shell
-
+	docker compose -f docker-compose.dev.yml exec web python manage.py shell
 
 # ---------- Data ---------- #
 adhoc: # Adhoc scripts only used during development
 	python -m artsearch.src.scripts.adhoc
+
 
 upload-to-qdrant-SMK: ## upload SMK data to qdrant
 	python -m artsearch.src.scripts.upload_to_qdrant.SMK
@@ -55,10 +55,10 @@ update-payload: ## Update collection payload
 
 # ---------- Production ---------- #
 production_stop: ## Stop production server
-	docker-compose -f docker-compose.prod.yml down --remove-orphans
+	docker compose -f docker-compose.prod.yml down --remove-orphans
 
 production_start: ## Start production server as daemon
-	docker-compose -f docker-compose.prod.yml up --build --remove-orphans -d
+	docker compose -f docker-compose.prod.yml up --build --remove-orphans -d
 
 production_djangologs: ## Show django logs
 	docker logs semantic-art-searchkristianmscom_web_1
@@ -67,10 +67,10 @@ production_accesslogs: ## Show nginx access logs
 	docker logs semantic-art-searchkristianmscom_nginx_1
 
 production_terminal: # Open shell in running docker production container
-	docker-compose -f docker-compose.prod.yml exec web /bin/bash
+	docker compose -f docker-compose.prod.yml exec web /bin/bash
 
 production_shell:  ## Open shell in running docker development container
-	docker-compose -f docker-compose.prod.yml exec web /bin/bash
+	docker compose -f docker-compose.prod.yml exec web /bin/bash
 
 production_djangoshell:  ## Open django shell in running docker development container
-	docker-compose -f docker-compose.prod.yml exec web python manage.py shell
+	docker compose -f docker-compose.prod.yml exec web python manage.py shell
