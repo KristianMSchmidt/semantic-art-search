@@ -87,6 +87,16 @@ STATS = defaultdict(int)
 WORKTYPES = defaultdict(int)
 
 
+def adjust_thumbnail_size(image_url: str, width=600) -> str:
+    """
+    Adjusts IIIF image thumbnail URLs to use a smaller width instead of 'max' for faster loading.
+    """
+    if image_url.startswith("https://iiif.micr.io/") and "/full/max/" in image_url:
+        return image_url.replace("/full/max/", f"/full/{width},/")
+
+    return image_url
+
+
 def check_rights(rights: str | None) -> bool:
     """
     Check if the rights string indicates public domain status.
@@ -547,7 +557,9 @@ def extract_artwork_payload(
             work_types=work_types,
             searchable_work_types=get_searchle_work_types(work_types),
             artist=artist_names,
-            thumbnail_url=image_url,
+            thumbnail_url=adjust_thumbnail_size(
+                image_url
+            ),  # watch out, not all images work in 600,0
             production_date_start=production_date_start,
             production_date_end=production_date_end,
             museum="rma",
