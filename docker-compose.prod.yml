@@ -1,12 +1,10 @@
-version: "3.3"
-
 services:
   web:
     restart: always
     build: .
     command: /bin/sh -c /code/entrypoint.prod.sh
     volumes:
-      - database_volume:/db/
+      - database_volume:/code/db.sqlite3
       - static_volume:/code/staticfiles
     expose:
       - 8017

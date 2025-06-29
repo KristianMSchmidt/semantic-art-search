@@ -8,3 +8,4 @@ gunicorn
 Django==5.1.5
 django-tailwind
 xmltodict
+boto3

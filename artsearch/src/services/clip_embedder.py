@@ -35,7 +35,6 @@ class CLIPEmbedder:
     def __init__(
         self,
         model_name: ClipSelection,
-        cache_dir: str = "data/images",
         http_session: requests.Session | None = None,
         device: str | None = None,
     ):
@@ -47,14 +46,12 @@ class CLIPEmbedder:
             model_name (str): The name of the CLIP model to load.
             device (str): Device to run the model on ("cuda" or "cpu"). If None, it is
             auto-detected.
-            cache_dir (str): Directory to store cached images.
             http_session (requests.Session): Shared HTTP session for all requests.
         """
         self.model_name: ClipSelection = model_name
         self.device = device or config.device
         self.model, self.preprocess = self._load_model(model_name, self.device)
         self.embedding_dim = self.model.visual.proj.shape[1]
-        self.cache_dir = cache_dir
         self.http_session = http_session or get_configured_session()
 
     def _load_model(self, model_name: str, device: str) -> Tuple[Any, Any]:
@@ -65,12 +62,8 @@ class CLIPEmbedder:
         print(f"Model loaded on in {time.time() - start_time:.2f}s")
         return model, preprocess
 
-    def _get_local_image_path(self, museum_name: str, object_number: str) -> str:
-        """Return the local file path for a cached image."""
-        return os.path.join(self.cache_dir, museum_name, f"{object_number}.jpg")
-
-    def _download_image(self, url: str, save_path: str, cache: bool) -> Image.Image:
-        """Download an image from a URL and optionally save it locally.
+    def _download_image(self, url: str) -> Image.Image:
+        """Download an image from a URL.
         Raises an exception if the request fails or the image cannot be processed.
         """
         try:
@@ -82,12 +75,6 @@ class CLIPEmbedder:
 
             image_bytes = response.content
 
-            if cache:
-                os.makedirs(os.path.dirname(save_path), exist_ok=True)
-                with open(save_path, "wb") as f:
-                    f.write(image_bytes)
-                return Image.open(save_path).convert("RGB")
-
             return Image.open(BytesIO(image_bytes)).convert("RGB")
 
         except requests.RequestException as e:
@@ -96,28 +83,10 @@ class CLIPEmbedder:
         except (UnidentifiedImageError, OSError, ValueError) as e:
             raise ImageDownloadError(f"Invalid or corrupted image from {url}: {e}")
 
-    def _load_image(
-        self,
-        thumbnail_url: str,
-        museum_name: str,
-        object_number: str,
-        cache: bool,
-    ) -> Image.Image:
-        """Load an image from the cache or download it."""
-        local_path = self._get_local_image_path(museum_name, object_number)
-        if cache and os.path.exists(local_path):
-            print(f"Using cached image: {local_path}")
-            return Image.open(local_path).convert("RGB")
-        else:
-            print(f"Downloading image from URL: {thumbnail_url}")
-            return self._download_image(thumbnail_url, local_path, cache)
-
     def generate_thumbnail_embedding(
         self,
         thumbnail_url: str,
-        museum_name: str,
         object_number: str,
-        cache: bool,
     ) -> list[float] | None:
         """
         Generate an image embedding from a URL or cached image.
@@ -125,12 +94,11 @@ class CLIPEmbedder:
         Args:
             thumbnail_url (str): URL of the thumbnail image.
             object_number (str): Object number associated with the image.
-            cashe (bool): Whether to cache the image locally.
         Returns:
             list[float]: The embedding vector as a list, or None if an error occurs.
         """
         try:
-            img = self._load_image(thumbnail_url, museum_name, object_number, cache)
+            img = self._download_image(thumbnail_url)
             image_tensor = self.preprocess(img).unsqueeze(0).to(self.device)
             with torch.no_grad():
                 embedding = (

@@ -168,11 +168,3 @@ def make_favicon():
 
 if "__main__" == "__main__":
     print("Running adhoc script")
-    # create_index()
-    # delete_rma_works()
-    # control()
-    # copy()
-    # test_CMAAPIClient()
-    # test_search()
-    pass
-    # make_favicon()

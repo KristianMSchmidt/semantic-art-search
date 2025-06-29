@@ -28,7 +28,6 @@ def handle_search(
     error_type = None
 
     if query is None or query == "":
-        # Query is None on initial page load
         if query is None:
             # Initial page load
             text_above_results = "A glimpse into the archive"

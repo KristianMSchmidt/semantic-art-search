@@ -75,7 +75,7 @@ def process_payloads(
 
         try:
             vector = embedder.generate_thumbnail_embedding(
-                payload.thumbnail_url, museum_name, object_number, cache=True
+                payload.thumbnail_url, object_number
             )
             if vector is not None:
                 point_id = generate_uuid5(museum_name, object_number)
