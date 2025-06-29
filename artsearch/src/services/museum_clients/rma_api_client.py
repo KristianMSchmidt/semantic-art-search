@@ -557,9 +557,7 @@ def extract_artwork_payload(
             work_types=work_types,
             searchable_work_types=get_searchle_work_types(work_types),
             artist=artist_names,
-            thumbnail_url=adjust_thumbnail_size(
-                image_url
-            ),  # watch out, not all images work in 600,0
+            thumbnail_url=image_url,
             production_date_start=production_date_start,
             production_date_end=production_date_end,
             museum="rma",

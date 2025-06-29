@@ -68,9 +68,5 @@ production_accesslogs: ## Show nginx access logs
 
 production_terminal: # Open shell in running docker production container
 	docker compose -f docker-compose.prod.yml exec web /bin/bash
-
-production_shell:  ## Open shell in running docker development container
-	docker compose -f docker-compose.prod.yml exec web /bin/bash
-
-production_djangoshell:  ## Open django shell in running docker development container
+production_djangoshell:  ## Open django shell in running docker production container
 	docker compose -f docker-compose.prod.yml exec web python manage.py shell
