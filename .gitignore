@@ -2,7 +2,6 @@ art_venv
 .env.dev
 .env.prod
 venv
-data
 noter.txt
 path
 qdrant_storage

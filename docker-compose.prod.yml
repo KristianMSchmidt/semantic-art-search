@@ -5,6 +5,7 @@ services:
     command: /bin/sh -c /code/entrypoint.prod.sh
     volumes:
       - static_volume:/code/staticfiles
+      - database_volume:/code/data
     expose:
       - 8017
     networks:
