@@ -24,13 +24,13 @@ s3 = boto3.client(
 )
 
 
-def get_cdn_thumbnail_url(
+def get_bucket_thumbnail_url(
     museum_image_url: str,
     bucket_name: str = config.bucket_name,
     aws_region: str = config.aws_region,
 ) -> str:
     """
-    Get the CDN URL for a thumbnail url
+    Get the bucket URL for a thumbnail url
     """
     filename = urlparse(museum_image_url).path.lstrip("/").replace("/", "_")
     return f"https://{bucket_name}.{aws_region}.linodeobjects.com/{filename}"
@@ -42,11 +42,11 @@ def upload_thumbnail(
     aws_region: str = config.aws_region,
 ) -> str:
     """
-    Upload a thumbnail to the CDN (streaming), set content-type & cache headers,
+    Upload a thumbnail to the bucket (streaming), set content-type & cache headers,
     and return the public URL. Overwrites any existing object with the same key.
     """
     key = urlparse(museum_image_url).path.lstrip("/").replace("/", "_")
-    cdn_url = f"https://{bucket_name}.{aws_region}.linodeobjects.com/{key}"
+    bucket_url = f"https://{bucket_name}.{aws_region}.linodeobjects.com/{key}"
 
     # Stream the download to avoid big memory spikes
     resp = session.get(museum_image_url, stream=True, timeout=10)
@@ -70,4 +70,4 @@ def upload_thumbnail(
         },
     )
 
-    return cdn_url
+    return bucket_url

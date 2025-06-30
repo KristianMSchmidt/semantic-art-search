@@ -1,7 +1,7 @@
 import logging
 import time
 from artsearch.src.services.qdrant_service import get_qdrant_service
-from artsearch.src.services.cdn_service import upload_thumbnail
+from artsearch.src.services.bucket_service import upload_thumbnail
 
 
 COLLECTION_NAME = "artworks_dev_2"
