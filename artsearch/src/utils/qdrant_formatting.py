@@ -56,7 +56,9 @@ def format_payload(payload: models.Payload | None) -> dict:
         get_work_type_translation(name).capitalize() for name in payload["work_types"]
     ]
 
-    bucket_thumbnail_url = get_bucket_thumbnail_url(payload["thumbnail_url"])
+    bucket_thumbnail_url = get_bucket_thumbnail_url(
+        payload["museum"], payload["object_number"]
+    )
 
     return {
         "title": payload["titles"][0]["title"],
