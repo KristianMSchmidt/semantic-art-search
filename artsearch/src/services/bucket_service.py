@@ -1,13 +1,12 @@
 import boto3
 from botocore.config import Config
 import requests
-from urllib.parse import urlparse
 from artsearch.src.config import config
+from botocore.exceptions import ClientError
 
 session = requests.Session()
 
 boto3_cfg = Config(
-    signature_version="s3",
     connect_timeout=60,
     read_timeout=60,
     s3={"addressing_style": "path"},
@@ -35,17 +34,15 @@ def get_bucket_image_key(
     return filename
 
 
-def get_bucket_thumbnail_url(
+def get_cdn_thumbnail_url(
     museum: str,
     object_number: str,
-    bucket_name: str = config.bucket_name,
-    aws_region: str = config.aws_region,
 ) -> str:
     """
     Get the bucket URL for a thumbnail url
     """
     filename = get_bucket_image_key(museum=museum, object_number=object_number)
-    return f"https://{bucket_name}.{aws_region}.linodeobjects.com/{filename}"
+    return f"https://cdn.kristianms.com/{filename}"
 
 
 def upload_thumbnail(
@@ -57,6 +54,8 @@ def upload_thumbnail(
     """
     Upload a thumbnail to the bucket (streaming), set content-type & cache headers,
     and return the public URL. Overwrites any existing object with the same key.
+
+    TODO: Make a bulk version of this function to upload multiple images at once.
     """
     key = get_bucket_image_key(
         museum=museum,
@@ -87,21 +86,14 @@ def upload_thumbnail(
 
 
 def copy_thumbnail(
-    museum: str,
-    object_number: str,
-    museum_image_url: str,
+    old_key: str,
+    new_key: str,
     bucket_name: str = config.bucket_name,
 ) -> None:
     """
     Copy an image from the old key format to the new key format in the same bucket.
     Keeps the original file and creates a duplicate with the new name.
     """
-    old_key = urlparse(museum_image_url).path.lstrip("/").replace("/", "_")
-
-    new_key = get_bucket_image_key(
-        museum=museum,
-        object_number=object_number,
-    )
     s3.copy_object(
         Bucket=bucket_name,
         CopySource={"Bucket": bucket_name, "Key": old_key},
@@ -111,3 +103,25 @@ def copy_thumbnail(
         CacheControl="max-age=31536000",
         ACL="public-read",
     )
+
+
+def delete_keys(
+    keys: list[str],
+    bucket_name: str = config.bucket_name,
+) -> None:
+    """
+    Batch delete multiple keys from the bucket.
+    """
+    if not keys:
+        return
+
+    objects = [{"Key": key} for key in keys]
+    try:
+        response = s3.delete_objects(Bucket=bucket_name, Delete={"Objects": objects})
+        deleted = response.get("Deleted", [])
+        errors = response.get("Errors", [])
+        if errors:
+            print(f"Errors occurred while deleting keys: {errors}")
+
+    except ClientError as e:
+        print(f"Failed to delete keys: {e}")
