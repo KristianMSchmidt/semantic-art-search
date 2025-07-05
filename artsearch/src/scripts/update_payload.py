@@ -6,6 +6,7 @@ import logging
 from typing import cast
 from qdrant_client import models
 from artsearch.src.services.qdrant_service import get_qdrant_service
+from artsearch.src.services.museum_clients.rma_api_client import adjust_thumbnail_size
 
 COLLECTION_NAME = "artworks_dev_2"
 
@@ -19,7 +20,9 @@ def adhoc_update_payload(old_payload: dict) -> dict:
     new_payload = old_payload.copy()
 
     ##### Change the section below depending on the update needed #####
-    # new_payload["some key"] = "some value"
+    # old_thumbnail_url = new_payload["thumbnail_url"]
+    # new_thumbnail_url = adjust_thumbnail_size(old_thumbnail_url)
+    # new_payload["thumbnail_url"] = new_thumbnail_url
     #################
 
     return new_payload
@@ -56,7 +59,7 @@ def main() -> None:
             COLLECTION_NAME, next_page_token, limit=1000, with_vectors=True
         )
         processed_points = process_points(points)
-        qdrant_service.upload_points(processed_points, COLLECTION_NAME)
+        # qdrant_service.upload_points(processed_points, COLLECTION_NAME)
         num_points += len(points)
         if next_page_token is None:  # No more points left
             break

@@ -2,7 +2,8 @@
 <div class="relative bg-white shadow-md rounded-lg overflow-hidden">
 
   <!-- Artwork image -->
-  <img src="{{ result.thumbnail_url }}"
+  <img loading="lazy"
+    src="{{ result.thumbnail_url }}"
        alt="{{ result.title }}"
        class="w-full h-auto max-h-96 object-contain cursor-pointer hover:opacity-80 transition"
        onclick="openModal('{{ result.thumbnail_url }}')">

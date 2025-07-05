@@ -1,5 +1,5 @@
 ## ----------------------------------------------------------------------
-## Makefile for semantic-art-search.kristianms.com
+## Makefile for semantic-art-search.com
 ##
 ## Used for both development and production. See targets below.
 ## ----------------------------------------------------------------------
@@ -35,7 +35,6 @@ djangoshell:  ## Open django shell in running docker development container
 adhoc: # Adhoc scripts only used during development
 	python -m artsearch.src.scripts.adhoc
 
-
 upload-to-qdrant-SMK: ## upload SMK data to qdrant
 	python -m artsearch.src.scripts.upload_to_qdrant.SMK
 
@@ -44,7 +43,6 @@ upload-to-qdrant-CMA: ## upload CMA data images to qdrant
 
 upload-to-qdrant-RMA: ## upload RMA data images to qdrant
 	python -m artsearch.src.scripts.upload_to_qdrant.RMA
-
 
 stats: ## Get work type stats
 	python -m artsearch.src.services.museum_stats_service
@@ -61,16 +59,13 @@ production_start: ## Start production server as daemon
 	docker compose -f docker-compose.prod.yml up --build --remove-orphans -d
 
 production_djangologs: ## Show django logs
-	docker logs semantic-art-searchkristianmscom_web_1
+	docker logs semantic-art-searchkristianmscom-web-1
 
 production_accesslogs: ## Show nginx access logs
-	docker logs semantic-art-searchkristianmscom_nginx_1
+	docker logs semantic-art-searchkristianmscom-nginx-1
 
-production_terminal: # Open shell in running docker production container
+production_shell: # Open shell in running docker production container
 	docker compose -f docker-compose.prod.yml exec web /bin/bash
 
-production_shell:  ## Open shell in running docker development container
-	docker compose -f docker-compose.prod.yml exec web /bin/bash
-
-production_djangoshell:  ## Open django shell in running docker development container
+production_djangoshell:  ## Open django shell in running docker production container
 	docker compose -f docker-compose.prod.yml exec web python manage.py shell

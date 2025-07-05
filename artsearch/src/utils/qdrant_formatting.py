@@ -1,5 +1,7 @@
-from artsearch.src.constants import WORK_TYPES_DICT, SUPPORTED_MUSEUMS
 from qdrant_client import models
+
+from artsearch.src.constants import WORK_TYPES_DICT, SUPPORTED_MUSEUMS
+from artsearch.src.services.bucket_service import get_cdn_thumbnail_url
 
 
 def get_full_museum_name(museum_slug: str) -> str:
@@ -37,20 +39,6 @@ def get_source_url(museum_slug: str, object_number: str) -> str | None:
             return None  # Unknown museum
 
 
-def adjust_thumbnail_size(payload: models.Payload, width=600) -> str:
-    """
-    Adjusts IIIF image thumbnail URLs to use a smaller width instead of 'max' for faster loading.
-    """
-    thumbnail_url = payload["thumbnail_url"]
-    if (
-        thumbnail_url.startswith("https://iiif.micr.io/")
-        and "/full/max/" in thumbnail_url
-    ):
-        return thumbnail_url.replace("/full/max/", f"/full/{width},/")
-
-    return thumbnail_url
-
-
 def format_payload(payload: models.Payload | None) -> dict:
     """
     Make payload ready for display in the frontend.
@@ -67,11 +55,15 @@ def format_payload(payload: models.Payload | None) -> dict:
     work_types = [
         get_work_type_translation(name).capitalize() for name in payload["work_types"]
     ]
+
+    cdn_thumbnail_url = get_cdn_thumbnail_url(
+        payload["museum"], payload["object_number"]
+    )
     return {
         "title": payload["titles"][0]["title"],
         "artist": ", ".join(payload["artist"]),
         "work_types": work_types,
-        "thumbnail_url": adjust_thumbnail_size(payload),
+        "thumbnail_url": cdn_thumbnail_url,
         "period": period,
         "object_number": payload["object_number"],
         "museum": get_full_museum_name(payload["museum"]),
