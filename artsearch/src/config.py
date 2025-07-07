@@ -35,7 +35,7 @@ def create_config():
 
     qdrant_url = os.getenv("QDRANT_URL")
     qdrant_api_key = os.getenv("QDRANT_API_KEY")
-    qdrant_collection_name = os.getenv("QDRANT_COLLECTION_NAME")
+    qdrant_collection_name = "artworks_ViTL14_v3"
     django_secret_key = os.getenv("DJANGO_SECRET_KEY")
     device = os.getenv("DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
     debug = os.getenv("DEBUG", "False").lower() == "true"

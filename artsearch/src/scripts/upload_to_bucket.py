@@ -4,12 +4,11 @@ from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.src.services.bucket_service import (
     upload_thumbnail,
 )
+from artsearch.src.config import config
 
 
-COLLECTION_NAME = "artworks_dev_2"
 
-
-def upload_all_thumbnails() -> None:
+def upload_all_thumbnails(collection_name: str = config.qdrant_collection_name) -> None:
     qdrant_service = get_qdrant_service()
 
     next_page_token = None
@@ -19,7 +18,7 @@ def upload_all_thumbnails() -> None:
     problematic_points = []
     while True:
         points, next_page_token = qdrant_service.fetch_points(
-            COLLECTION_NAME, next_page_token, limit=100, with_vectors=False
+            collection_name, next_page_token, limit=100, with_vectors=False
         )
         for point in points:
             start_time = time.time()
@@ -49,7 +48,7 @@ def upload_all_thumbnails() -> None:
         if next_page_token is None:  # No more points left
             break
     logging.info(
-        f"Successfully updated {num_points} points in collection {COLLECTION_NAME}."
+        f"Successfully updated {num_points} points in collection {collection_name}."
     )
     print(problematic_points)
 

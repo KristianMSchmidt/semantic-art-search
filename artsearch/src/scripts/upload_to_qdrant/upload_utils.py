@@ -9,7 +9,6 @@ import copy
 from typing import Any
 from qdrant_client.http.models import PointStruct
 from artsearch.src.services.qdrant_service import QdrantService, get_qdrant_service
-
 from artsearch.src.services.clip_embedder import (
     CLIPEmbedder,
     get_clip_embedder,
@@ -19,10 +18,10 @@ from artsearch.src.services.museum_clients.base_client import (
     ArtworkPayload,
 )
 from artsearch.src.services.museum_clients.factory import get_museum_client
+from artsearch.src.config import config
 
 # Constants
 CLIP_MODEL_NAME: ClipSelection = "ViT-L/14"
-UPLOAD_COLLECTION_NAME = "artworks_dev_2"
 
 
 # Configure logging
@@ -139,7 +138,7 @@ def upload_to_qdrant(
     museum_name: str,
     limit: int,
     clip_model_name: ClipSelection = CLIP_MODEL_NAME,
-    upload_collection_name: str = UPLOAD_COLLECTION_NAME,
+    upload_collection_name: str = config.qdrant_collection_name,
 ) -> int:
     """
     Uploads artworks from a museum API to a Qdrant collection with CLIP embeddings.

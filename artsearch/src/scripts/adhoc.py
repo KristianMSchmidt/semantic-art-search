@@ -1,6 +1,5 @@
 from PIL import Image
 import requests
-import uuid
 import logging
 
 from qdrant_client import models
@@ -8,14 +7,15 @@ from qdrant_client.models import PointStruct
 
 from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.src.services.museum_clients.factory import get_museum_client
+from artsearch.src.config import config
+from artsearch.src.scripts.upload_to_qdrant.upload_utils import generate_uuid5
 
 logging.basicConfig(level=logging.WARNING)
 
 
-def delete_altarpieces():
+def delete_altarpieces(collection_name: str = config.qdrant_collection_name):
     qdrant_service = get_qdrant_service()
     client = qdrant_service.qdrant_client
-    collection_name = "artworks_dev_2"
     query_filter = models.Filter(
         must=[
             models.FieldCondition(
@@ -42,29 +42,18 @@ def delete_altarpieces():
         print(f"Point with ID {point.id} deleted from collection {collection_name}")
 
 
-def create_index():
+def create_index(collection_name: str):
     qdrant_service = get_qdrant_service()
     client = qdrant_service.qdrant_client
-    collection_name = "artworks_dev_2"
-    x = client.create_payload_index(
+    client.create_payload_index(
         collection_name=collection_name,
         field_name="object_number",
-        field_schema="keyword",
+        field_schema="keyword",  # pyright: ignore
         wait=True,
     )
 
 
-def control():
-    id = uuid.uuid5(uuid.NAMESPACE_DNS, "SMK-KKS596a verso")
-    print(id)
-
-
-def generate_id(museum_name: str, object_number: str) -> str:
-    id = uuid.uuid5(uuid.NAMESPACE_DNS, f"{museum_name.upper()}-{str(object_number)}")
-    return str(id)
-
-
-def copy():
+def copy(source_collection: str, destination_collection: str):
     # Retrieve all points (handle pagination for large datasets)
     qdrant_service = get_qdrant_service()
     qdrant_client = qdrant_service.qdrant_client
@@ -74,7 +63,7 @@ def copy():
 
     while True:
         points, next_offset = qdrant_client.scroll(
-            collection_name="artworks_dev",
+            collection_name=source_collection,
             limit=batch_size,
             with_vectors=True,
             offset=offset,
@@ -84,14 +73,16 @@ def copy():
         # Define new IDs (example: incrementing by 1000)
         updated_points = [
             PointStruct(
-                id=generate_id("smk", p.payload["object_number"]),  # type: ignore
+                id=generate_uuid5("smk", p.payload["object_number"]),  # type: ignore
                 vector=p.vector,  # type: ignore
                 payload=p.payload,
             )
             for p in points
         ]
 
-        qdrant_client.upsert(collection_name="artworks_dev_2", points=updated_points)
+        qdrant_client.upsert(
+            collection_name=destination_collection, points=updated_points
+        )
 
         print(f"Processed {len(points)} points")
 
@@ -99,46 +90,6 @@ def copy():
         if len(points) < batch_size:
             break
         offset = next_offset
-
-
-def test_CMAAPIClient():
-    cma_client = get_museum_client("cma")
-    thumbnail_url = cma_client.get_thumbnail_url("1998.78.14")
-    print(thumbnail_url)
-    query = {
-        "skip": 7,
-        "limit": 100,
-        "has_image": 1,
-        "type": "Drawing",
-        "cc0": 1,
-    }
-
-
-def test_search():
-    qdrant_service = get_qdrant_service()
-    qdrant_client = qdrant_service.qdrant_client
-    # x = [0.1 for i in range(768)]
-    # result = qdrant_service._search(x, 10)
-
-    query_vector = [0.1 for i in range(768)]
-
-    # Filter for points where 'maleri' is in work_types
-    query_filter = models.Filter(
-        must=[
-            models.FieldCondition(
-                # key="work_types", match=models.MatchValue(value="akvarel")
-                key="work_types",
-                match=models.MatchAny(any=["akvarel", "grafik"]),
-            )
-        ]
-    )
-    hits = qdrant_client.search(
-        collection_name="smk_artworks_dev_l_14",
-        query_vector=query_vector,
-        limit=10,
-        offset=0,
-        query_filter=query_filter,
-    )
 
 
 def make_favicon():
