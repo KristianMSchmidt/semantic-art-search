@@ -11,6 +11,10 @@ SUPPORTED_MUSEUMS = [
         "slug": "rma",
         "full_name": "Rijksmuseum",
     },
+    {
+        "slug": "met",
+        "full_name": "Metropolitan Museum of Art",
+    },
 ]
 
 # A set work types that the user can filter on in the search if there are any works of that type
@@ -45,23 +49,24 @@ EXAMPLE_QUERIES: dict[str, list[str]] = {
         "Cubism",
         "Blue dress",
         "Death",
-        "Amorous couple",
         "Elephant",
         "Hindu deity",
         "Painter",
+        "Male model",
         "Fish still life",
         "Anatomy lesson",
         "Winter landscape",
-        "Red flowers",
+        "Colorful flowers in a vase",
         "Crucifixion",
         "Breastfeeding",
+        "Calligraphy and landscape",
+        "Persian carpet",
         "Mourning",
     ],
     "candidates": [
+        "Buddha",
         "Dead birds",
         "Bible scene",
-        "Calligraphy",
-        "Oriental carpet",
         "Camel",
         "Rembrandt",
         "Martin Luther",
@@ -72,6 +77,26 @@ EXAMPLE_QUERIES: dict[str, list[str]] = {
 
 # Add work types not in English or with non-standard pluralization
 WORK_TYPES_DICT = {
+    "watercolor": {
+        "eng_sing": "watercolor",
+        "eng_plural": "watercolors",
+    },
+    "bust": {
+        "eng_sing": "bust",
+        "eng_plural": "busts",
+    },
+    "aquatint": {
+        "eng_sing": "aquatint",
+        "eng_plural": "aquatints",
+    },
+    "guache": {
+        "eng_sing": "gouache",
+        "eng_plural": "gouaches",
+    },
+    "oil sketch on paper": {
+        "eng_sing": "oil sketch on paper",
+        "eng_plural": "oil sketches on paper",
+    },
     "ornamenttekening": {
         "eng_sing": "ornamental drawing",
         "eng_plural": "ornamental drawings",
@@ -464,3 +489,9 @@ WORK_TYPES_DICT = {
     "replica": {"eng_sing": "replica", "eng_plural": "replicas"},
     "charter": {"eng_sing": "charter", "eng_plural": "charters"},
 }
+
+
+for work_type in SEARCHABLE_WORK_TYPES:
+    assert work_type in WORK_TYPES_DICT, (
+        f"Work type '{work_type}' not found in WORK_TYPES_DICT"
+    )

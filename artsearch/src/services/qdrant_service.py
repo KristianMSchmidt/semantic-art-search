@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import cast
+from typing import cast, Any
 from functools import lru_cache
 from qdrant_client import QdrantClient, models
 from qdrant_client.conversions.common_types import PointId
@@ -26,6 +26,8 @@ class SearchFunctionArguments:
     offset: int
     work_type_prefilter: list[str] | None
     museum_prefilter: list[str] | None
+    object_number: str | None = None
+    object_museum: str | None = None
 
 
 class QdrantService:
@@ -37,33 +39,42 @@ class QdrantService:
         self.qdrant_client = qdrant_client
         self.collection_name = collection_name
 
-    @lru_cache(maxsize=1)
-    def _get_vector_by_object_number(self, object_number: str) -> list[float] | None:
-        """Get the vector for an object number if it exists in the qdrant collection."""
+    @lru_cache(maxsize=10)
+    def get_items_by_object_number(
+        self,
+        object_number: str,
+        object_museum: str | None = None,
+        with_vector: bool = False,
+        with_payload: bool | list[str] = False,
+        limit: int = 1,
+    ) -> list[models.ScoredPoint]:
+        """
+        Get items by object number.
+        If museum is provided, it will filter by museum as well.
+        """
+        conditions = []
+
+        conditions.append(
+            models.FieldCondition(
+                key="object_number", match=models.MatchValue(value=object_number)
+            )
+        )
+
+        if object_museum is not None:
+            conditions.append(
+                models.FieldCondition(
+                    key="museum", match=models.MatchValue(value=object_museum)
+                )
+            )
+
         result = self.qdrant_client.query_points(
             collection_name=self.collection_name,
-            query_filter=models.Filter(
-                must=[
-                    models.FieldCondition(
-                        key="object_number",
-                        match=models.MatchValue(value=object_number),
-                    ),
-                ]
-            ),
-            limit=1,
-            with_payload=False,
-            with_vectors=True,
+            query_filter=models.Filter(must=conditions),
+            with_payload=with_payload,
+            with_vectors=with_vector,
+            limit=limit,
         )
-        if not result.points or not result.points[0].vector:
-            return None
-        vector = cast(list[float], result.points[0].vector)
-        return vector
-
-    @lru_cache(maxsize=1)
-    def item_exists(self, object_number: str) -> bool:
-        """Check if an object number exists in the qdrant collection."""
-        # Make sure this is not called every time on infinite scroll (is lru cache the right choice?)
-        return self._get_vector_by_object_number(object_number) is not None
+        return result.points
 
     def _search(
         self,
@@ -156,18 +167,25 @@ class QdrantService:
         Search for artworks similar to the given target object based on vector embedding similarity.
         """
         # Unpack the search function arguments
-        object_number: TargetObjectNumber = search_function_args.query
         limit = search_function_args.limit
         offset = search_function_args.offset
         work_types = search_function_args.work_type_prefilter
         museums = search_function_args.museum_prefilter
 
-        # Fetch vector and paylod of target object from Qdrant collection (if object exists in collection)
-        query_vector = self._get_vector_by_object_number(object_number)
+        object_number = search_function_args.object_number
+        object_museum = search_function_args.object_museum
 
-        # If the embedding could not be generated, raise an error
-        if query_vector is None:
-            raise ValueError("No vector found for the given object number. ")
+        # Fetch vector target object from Qdrant collection
+        items = self.get_items_by_object_number(
+            object_number=object_number,
+            object_museum=object_museum,
+            with_vector=True,
+            limit=1,
+        )
+        if not items or items[0].vector is None:
+            raise ValueError("No vector found for the given object number and museum.")
+        query_vector = cast(list[float], items[0].vector)
+
         return self._search(
             query_vector, limit, offset, work_types, museums, object_number
         )
@@ -239,20 +257,25 @@ class QdrantService:
 
         return points, next_page_token
 
-    def get_existing_object_numbers(
-        self, collection_name: str, object_numbers: list[str], museum: str
+    def get_existing_values(
+        self,
+        values: list[Any],
+        museum: str,
+        id_key: str = "object_number",
+        collection_name: str = config.qdrant_collection_name,
     ) -> set[str]:
         """
-        Given a list of object numbers, returns the set of object numbers from
-        the list that already exist in the collection.
+        Given a qdrant collection key, a museum name and list of values,
+        returns the subset of these values that already exist in the collection for the given museum.
         """
-        if not object_numbers:
+        if not values:
             return set()
+
         query_filter = models.Filter(
             must=[
                 models.FieldCondition(
-                    key="object_number",
-                    match=models.MatchAny(any=object_numbers),
+                    key=id_key,
+                    match=models.MatchAny(any=values),
                 ),
                 models.FieldCondition(
                     key="museum",
@@ -264,18 +287,17 @@ class QdrantService:
         result = self.qdrant_client.query_points(
             collection_name=collection_name,
             query_filter=query_filter,
-            limit=len(object_numbers),
             with_payload=True,
             with_vectors=False,
+            limit=len(values),  # We want to fetch all points that match the values
         )
-
         existing_object_numbers = set()
         for point in result.points:
-            if not point.payload or "object_number" not in point.payload:
+            if not point.payload or id_key not in point.payload:
                 raise ValueError(
                     f"Point {point.id} has an invalid or missing payload: {point.payload}"
                 )
-            existing_object_numbers.add(point.payload["object_number"])
+            existing_object_numbers.add(point.payload[id_key])
 
         return existing_object_numbers
 

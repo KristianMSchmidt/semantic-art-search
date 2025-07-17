@@ -2,7 +2,6 @@ import time
 from PIL import Image, UnidentifiedImageError
 from io import BytesIO
 import requests
-import os
 from typing import Tuple, Any
 from functools import lru_cache
 import clip
@@ -67,7 +66,7 @@ class CLIPEmbedder:
         Raises an exception if the request fails or the image cannot be processed.
         """
         try:
-            response = self.http_session.get(str(url), timeout=10)
+            response = get_image_response(url)
             response.raise_for_status()
 
             if not response.content:  # Handle empty responses
@@ -125,6 +124,12 @@ class CLIPEmbedder:
         text = clip.tokenize([query]).to(self.device)
         with torch.no_grad():
             return self.model.encode_text(text).cpu().numpy().flatten().tolist()
+
+
+@lru_cache(maxsize=1)
+def get_image_response(url: str) -> requests.Response:
+    response = requests.get(url, timeout=10)
+    return response
 
 
 @lru_cache(maxsize=1)

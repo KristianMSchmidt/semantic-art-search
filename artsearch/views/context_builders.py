@@ -11,7 +11,7 @@ from artsearch.src.services.museum_stats_service import (
     aggregate_work_type_count_for_selected_museums,
 )
 from artsearch.src.services.search_service import handle_search
-from artsearch.src.utils.get_museums import get_museum_names
+from artsearch.src.utils.get_museums import get_museum_slugs
 from artsearch.src.constants import EXAMPLE_QUERIES, SUPPORTED_MUSEUMS, WORK_TYPES_DICT
 
 
@@ -29,7 +29,7 @@ class SearchParams:
 
     @property
     def selected_museums(self) -> list[str]:
-        museum_names = get_museum_names()
+        museum_names = get_museum_slugs()
         return retrieve_selected(museum_names, self.request, "museums")
 
     @property
@@ -207,7 +207,7 @@ def build_search_context(params: SearchParams) -> dict[str, Any]:
     offset = params.offset
     limit = params.limit
 
-    museum_prefilter = make_prefilter(get_museum_names(), params.selected_museums)
+    museum_prefilter = make_prefilter(get_museum_slugs(), params.selected_museums)
     work_type_prefilter = make_prefilter(
         get_work_type_names(), params.selected_work_types
     )
@@ -241,7 +241,7 @@ def build_filter_contexts(params: SearchParams) -> dict[str, FilterContext]:
     Build the template context for search and dropdown templates
     The 'initial labels' are only used for the search template, the rest is used for both.
     """
-    museum_names = get_museum_names()
+    museum_names = get_museum_slugs()
     work_type_names = get_work_type_names()
 
     selected_museums = params.selected_museums

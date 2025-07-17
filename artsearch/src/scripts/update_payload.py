@@ -17,7 +17,6 @@ logging.basicConfig(
 
 def adhoc_update_payload(old_payload: dict) -> dict:
     new_payload = old_payload.copy()
-
     ##### Change the section below depending on the update needed #####
     # old_thumbnail_url = new_payload["thumbnail_url"]
     # new_thumbnail_url = adjust_thumbnail_size(old_thumbnail_url)

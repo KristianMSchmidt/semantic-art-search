@@ -8,7 +8,7 @@ import uuid
 import copy
 from typing import Any
 from qdrant_client.http.models import PointStruct
-from artsearch.src.services.qdrant_service import QdrantService, get_qdrant_service
+from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.src.services.clip_embedder import (
     CLIPEmbedder,
     get_clip_embedder,
@@ -18,6 +18,7 @@ from artsearch.src.services.museum_clients.base_client import (
     ArtworkPayload,
 )
 from artsearch.src.services.museum_clients.factory import get_museum_client
+from artsearch.src.services.bucket_service import BucketService
 from artsearch.src.config import config
 
 # Constants
@@ -52,45 +53,25 @@ def generate_uuid5(museum_name: str, object_number: str) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{museum_name}-{object_number}"))
 
 
-def process_payloads(
-    payloads: list[ArtworkPayload],
+def prepare_point_struct(
+    payload: ArtworkPayload,
     embedder: CLIPEmbedder,
-    qdrant_service: QdrantService,
     museum_name: str,
-    upload_collection_name: str,
-) -> list[PointStruct]:
-    """Process items and return a list of Qdrant PointStruct."""
-    points = []
+) -> PointStruct | None:
+    """
+    Turns ArtworkPayload into a Qdrant PointStruct ready for upload.
+    Includes generating an embedding from the thumbnail URL.
+    """
+    object_number = payload.object_number
 
-    # Batch check for existing object numbers
-    object_numbers = [payload.object_number for payload in payloads]
-    existing_object_numbers = qdrant_service.get_existing_object_numbers(
-        upload_collection_name, object_numbers, museum_name
-    )
-    for payload in payloads:
-        object_number = payload.object_number
-        if object_number in existing_object_numbers:
-            continue  # Skip if already uploaded
-
-        try:
-            vector = embedder.generate_thumbnail_embedding(
-                payload.thumbnail_url, object_number
-            )
-            if vector is not None:
-                point_id = generate_uuid5(museum_name, object_number)
-                points.append(
-                    PointStruct(
-                        id=point_id, payload=payload.model_dump(), vector=vector
-                    )
-                )
-            else:
-                logging.warning(
-                    f"Skipping payload {object_number} due to embedding failure."
-                )
-        except KeyError as e:
-            logging.error(f"Missing key in payload: {e}")
-
-    return points
+    vector = embedder.generate_thumbnail_embedding(payload.thumbnail_url, object_number)
+    if vector is not None:
+        point_id = generate_uuid5(museum_name, object_number)
+        point = PointStruct(id=point_id, payload=payload.model_dump(), vector=vector)
+        return point
+    else:
+        logging.warning(f"Skipping payload {object_number} due to embedding failure.")
+        return None
 
 
 def build_query(
@@ -141,11 +122,12 @@ def upload_to_qdrant(
     upload_collection_name: str = config.qdrant_collection_name,
 ) -> int:
     """
-    Uploads artworks from a museum API to a Qdrant collection with CLIP embeddings.
+    Uploads artworks from a museum API to a the image bucket and the Qdrant collection with CLIP embeddings.
 
     For each specified work type, the function:
     - Fetches data from the museum API in batches.
-    - Generates CLIP embeddings.
+    - Uploads thumbnails to a bucket.
+    - Prepares the data as Qdrant PointStructs (including CLIP embeddings).
     - Uploads the embeddings and metadata to Qdrant.
 
     Args:
@@ -155,8 +137,6 @@ def upload_to_qdrant(
         limit (int): Number of items fetched per request (default 100).
         clip_model_name (ClipSelection): CLIP model used for embedding.
         upload_collection_name (str): Target Qdrant collection name.
-        work_type_translations (dict[str, str] | None): Optional translations for work types.
-
 
     Returns:
         int: Total number of points uploaded.
@@ -168,6 +148,7 @@ def upload_to_qdrant(
     qdrant_service = get_qdrant_service()
     clip_embedder = get_clip_embedder(model_name=clip_model_name)
     museum_api_client = get_museum_client(museum_name)
+    bucket_service = BucketService()
 
     # Create collection if it doesn't exist
     qdrant_service.create_qdrant_collection(
@@ -196,22 +177,46 @@ def upload_to_qdrant(
                 f"Processing {len(items)} items at offset {offset}/{total} for work type: {work_type}."
             )
 
-            points = process_payloads(
-                items,
-                clip_embedder,
-                qdrant_service,
-                museum_name,
-                upload_collection_name,
+            # Batch check for existing object numbers
+            object_numbers = [item.object_number for item in items]
+            existing_object_numbers = qdrant_service.get_existing_values(
+                object_numbers, museum_name
             )
+            filtered_items = [
+                item
+                for item in items
+                if item.object_number not in existing_object_numbers
+            ]
 
-            if points:
-                qdrant_service.qdrant_client.upsert(
-                    collection_name=upload_collection_name, points=points
-                )
-                total_points += len(points)
-                logging.info(
-                    f"Uploaded {len(points)} points for work type: {work_type} at offset {offset}."
-                )
+            # Upload thumbnails to bucket before uoploading to Qdrant
+            # Only proceed with items that succeed
+            items_in_bucket = []
+            for item in filtered_items:
+                try:
+                    bucket_service.upload_thumbnail(
+                        museum=museum_name,
+                        object_number=item.object_number,
+                        museum_image_url=item.thumbnail_url,
+                    )
+                    items_in_bucket.append(item)
+                except Exception as e:
+                    logging.error(
+                        f"Failed to upload thumbnail for {item.object_number}: {e}"
+                    )
+
+            points_unfiltered = [
+                prepare_point_struct(item, clip_embedder, museum_name)
+                for item in items_in_bucket
+            ]
+            points = [point for point in points_unfiltered if point is not None]
+
+            qdrant_service.qdrant_client.upsert(
+                collection_name=upload_collection_name, points=points
+            )
+            total_points += len(points)
+            logging.info(
+                f"Uploaded {len(points)} points for work type: {work_type} at offset {offset}."
+            )
 
             if offset + limit >= total:
                 logging.info(f"All items processed for work type: {work_type}.")

@@ -14,4 +14,5 @@ def get_searchle_work_types(work_types: list[str]) -> list[str]:
         for category in SEARCHABLE_WORK_TYPES:
             if category in work_type_eng:
                 searchable_work_types.add(category)
+    assert any(searchable_work_types), "No searchable work types found"
     return list(searchable_work_types)

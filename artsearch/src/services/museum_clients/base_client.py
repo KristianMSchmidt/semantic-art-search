@@ -22,6 +22,7 @@ class ArtworkPayload(BaseModel):
     production_date_end: int
     thumbnail_url: str
     museum: str
+    museum_db_id: Any | None = None
 
 
 class MuseumQueryResponse(BaseModel):

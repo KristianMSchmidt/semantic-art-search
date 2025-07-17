@@ -24,10 +24,16 @@ def get_work_type_translation(work_type: str) -> str:
         return work_type
 
 
-def get_source_url(museum_slug: str, object_number: str) -> str | None:
+def get_source_url(
+    museum_slug: str, object_number: str, museum_db_id: str | None = None
+) -> str | None:
     """
-    Returns the URL to the artwork's page at the source museum, based on slug and object number.
+    Returns the URL to the artwork's page at the source museum, based on slug and object number / museum_db_id.
     """
+    if museum_slug == "met" and museum_db_id is None:
+        raise ValueError(
+            "museum_db_id must be provided for the Metropolitan Museum of Art"
+        )
     match museum_slug:
         case "smk":
             return f"https://open.smk.dk/artwork/image/{object_number}"
@@ -35,6 +41,8 @@ def get_source_url(museum_slug: str, object_number: str) -> str | None:
             return f"https://www.clevelandart.org/art/{object_number}"
         case "rma":
             return f"https://www.rijksmuseum.nl/en/collection/{object_number}"
+        case "met":
+            return f"https://www.metmuseum.org/art/collection/search/{museum_db_id}"
         case _:
             return None  # Unknown museum
 
@@ -59,6 +67,10 @@ def format_payload(payload: models.Payload | None) -> dict:
     cdn_thumbnail_url = get_cdn_thumbnail_url(
         payload["museum"], payload["object_number"]
     )
+
+    source_url = get_source_url(
+        payload["museum"], payload["object_number"], payload.get("museum_db_id", None)
+    )
     return {
         "title": payload["titles"][0]["title"],
         "artist": ", ".join(payload["artist"]),
@@ -67,7 +79,8 @@ def format_payload(payload: models.Payload | None) -> dict:
         "period": period,
         "object_number": payload["object_number"],
         "museum": get_full_museum_name(payload["museum"]),
-        "source_url": get_source_url(payload["museum"], payload["object_number"]),
+        "source_url": source_url,
+        "find_similar_query": f"{payload['museum']}:{payload['object_number']}",
     }
 
 
