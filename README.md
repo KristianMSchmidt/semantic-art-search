@@ -9,9 +9,9 @@
 Currently, the system includes selected artworks from these renowned institutions committed to open data:
 
 - Statens Museum for Kunst (The Danish National Gallery)
-- Cleveland Museum of Art
+- The Cleveland Museum of Art
 - Rijksmuseum Amsterdam
-
+- The Metropolitan Museum of Art
 ---
 
 ## 🔎 How It Works
@@ -66,6 +66,7 @@ This project is made possible by the excellent **open data initiatives** of:
 - [Statens Museum for Kunst](https://open.smk.dk)
 - [Cleveland Museum of Art](https://www.clevelandart.org)
 - [Rijksmuseum](https://www.rijksmuseum.nl/en/collection)
+- [The Metropolitan Museum of Art](https://www.metmuseum.org/art/collection)
 
 ---
 

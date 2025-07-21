@@ -19,7 +19,7 @@
         {{ result.title }}
       </h3>
 
-      {% if result.object_number == query %}
+      {% if result.score == 1.0 %}
         <div>
           <span class="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded">
             {{ result.object_number }}
@@ -66,12 +66,12 @@
     {% endif %}
 
     <!-- Find similar button (only if not exact match) -->
-    {% if result.object_number != query %}
+    {% if not result.score or result.score < 1 %}
     <div class="mt-3">
       <button
         type="button"
         class="text-sm text-gray-600 hover:text-blue-500 underline"
-        onclick="insertQuery('{{ result.object_number }}')"
+        onclick="insertQuery('{{ result.find_similar_query }}')"
         hx-get="{% url 'get-artworks' %}"
         hx-target="#search-results"
         hx-swap="innerHTML"

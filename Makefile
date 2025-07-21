@@ -44,6 +44,9 @@ upload-to-qdrant-CMA: ## upload CMA data images to qdrant
 upload-to-qdrant-RMA: ## upload RMA data images to qdrant
 	python -m artsearch.src.scripts.upload_to_qdrant.RMA
 
+upload-to-qdrant-MET: ## upload Met data images to qdrant
+	python -m artsearch.src.scripts.upload_to_qdrant.MET
+
 stats: ## Get work type stats
 	python -m artsearch.src.services.museum_stats_service
 

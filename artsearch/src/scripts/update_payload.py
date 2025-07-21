@@ -6,9 +6,8 @@ import logging
 from typing import cast
 from qdrant_client import models
 from artsearch.src.services.qdrant_service import get_qdrant_service
-from artsearch.src.services.museum_clients.rma_api_client import adjust_thumbnail_size
+from artsearch.src.config import config
 
-COLLECTION_NAME = "artworks_dev_2"
 
 # Configure logging
 logging.basicConfig(
@@ -18,7 +17,6 @@ logging.basicConfig(
 
 def adhoc_update_payload(old_payload: dict) -> dict:
     new_payload = old_payload.copy()
-
     ##### Change the section below depending on the update needed #####
     # old_thumbnail_url = new_payload["thumbnail_url"]
     # new_thumbnail_url = adjust_thumbnail_size(old_thumbnail_url)
@@ -46,7 +44,7 @@ def process_points(points: list[models.Record]) -> list[models.PointStruct]:
     return processed_points
 
 
-def main() -> None:
+def main(collection_name: str = config.qdrant_collection_name) -> None:
     """Main entry point of the script."""
     qdrant_service = get_qdrant_service()
 
@@ -56,15 +54,15 @@ def main() -> None:
 
     while True:
         points, next_page_token = qdrant_service.fetch_points(
-            COLLECTION_NAME, next_page_token, limit=1000, with_vectors=True
+            collection_name, next_page_token, limit=1000, with_vectors=True
         )
         processed_points = process_points(points)
-        # qdrant_service.upload_points(processed_points, COLLECTION_NAME)
+        # qdrant_service.upload_points(processed_points, collection_name)
         num_points += len(points)
         if next_page_token is None:  # No more points left
             break
     logging.info(
-        f"Successfully updated {num_points} points in collection {COLLECTION_NAME}."
+        f"Successfully updated {num_points} points in collection {collection_name}."
     )
 
 

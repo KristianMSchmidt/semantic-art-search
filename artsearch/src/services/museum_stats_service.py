@@ -119,7 +119,7 @@ if __name__ == "__main__":
     # Set work_type_key = "work_types" to get all the work types in original language
     # Set work_type_key = "searchable_work_types" to get the shortened work types in English
     work_type_key = "searchable_work_types"
-    musems = ["rma"]
+    musems = ["met"]
     for museum in musems:
         work_type_summary = aggregate_work_type_count_for_selected_museums(
             selected_museums=[museum], work_type_key=work_type_key
