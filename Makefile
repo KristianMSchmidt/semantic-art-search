@@ -67,7 +67,7 @@ production_djangologs: ## Show django logs
 production_accesslogs: ## Show nginx access logs
 	docker logs semantic-art-searchkristianmscom-nginx-1
 
-production_shell: # Open shell in running docker production container
+production_shell: ## Open shell in running docker production container
 	docker compose -f docker-compose.prod.yml exec web /bin/bash
 
 production_djangoshell:  ## Open django shell in running docker production container

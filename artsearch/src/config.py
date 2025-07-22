@@ -22,6 +22,8 @@ class Config(BaseModel):
     aws_secret_access_key: str
     aws_region: str
     bucket_name: str
+    postgres_user: str
+    postgres_password: str
 
 
 def create_config():
@@ -44,6 +46,8 @@ def create_config():
     aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
     aws_region = os.getenv("AWS_REGION", "nl-ams-1")
     bucket_name = os.getenv("BUCKET_NAME")
+    postgres_user = os.getenv("POSTGRES_USER")
+    postgres_password = os.getenv("POSTGRES_PASSWORD")
 
     if not qdrant_url:
         raise ValueError("QDRANT_URL is not set")
@@ -63,6 +67,10 @@ def create_config():
         raise ValueError("AWS_REGION is not set")
     if not bucket_name:
         raise ValueError("BUCKET_NAME is not set")
+    if not postgres_user:
+        raise ValueError("POSTGRES_USER is not set")
+    if not postgres_password:
+        raise ValueError("POSTGRES_PASSWORD is not set")
 
     return Config(
         qdrant_url=qdrant_url,
@@ -77,11 +85,12 @@ def create_config():
         aws_secret_access_key=aws_secret_access_key,
         aws_region=aws_region,
         bucket_name=bucket_name,
+        postgres_user=postgres_user,
+        postgres_password=postgres_password,
     )
 
 
 config = create_config()
-
 
 if __name__ == "__main__":
     config = create_config()
