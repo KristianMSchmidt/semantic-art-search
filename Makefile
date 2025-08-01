@@ -40,8 +40,6 @@ djangoshell:  ## Open django shell in running docker development container
 
 
 # ---------- Data ---------- #
-extract-smk: ## upsert-raw-data from SMK
-	docker compose -f docker-compose.dev.yml exec web python manage.py extract -m smk
 
 adhoc: # Adhoc scripts only used during development
 	python -m artsearch.src.scripts.adhoc
@@ -64,6 +62,9 @@ stats: ## Get work type stats
 update-payload: ## Update collection payload
 	python -m artsearch.src.scripts.update_payload
 
+# ---------- Production ETL ---------- #
+extract-smk: ## upsert-raw-data from SMK
+	docker compose -f docker-compose.prod.yml exec web python manage.py extract -m smk
 
 # ---------- Production ---------- #
 production_stop: ## Stop production server
