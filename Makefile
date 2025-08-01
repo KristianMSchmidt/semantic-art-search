@@ -4,12 +4,12 @@
 ## Used for both development and production. See targets below.
 ## ----------------------------------------------------------------------
 
+
 help:   # Show this help.
 	@sed -ne '/@sed/!s/## //p' $(MAKEFILE_LIST)
 
 
 # ---------- Development ---------- #
-
 tailwind-install:  ## install tailwind
 	python manage.py tailwind install
 
@@ -25,13 +25,24 @@ develop:  ## Run development server
 stop: ## Stop development server
 	docker compose -f docker-compose.dev.yml down --remove-orphans
 
+migrations:  ## Run migrations
+	docker compose -f docker-compose.dev.yml exec web python manage.py makemigrations
+
+migrate:  ## Apply migrations
+	docker compose -f docker-compose.dev.yml exec web python manage.py migrate
+
 shell:  ## Open shell in running docker development container
 	docker compose -f docker-compose.dev.yml exec web /bin/bash
 
 djangoshell:  ## Open django shell in running docker development container
 	docker compose -f docker-compose.dev.yml exec web python manage.py shell
 
+
+
 # ---------- Data ---------- #
+extract-smk: ## upsert-raw-data from SMK
+	docker compose -f docker-compose.dev.yml exec web python manage.py extract -m smk
+
 adhoc: # Adhoc scripts only used during development
 	python -m artsearch.src.scripts.adhoc
 

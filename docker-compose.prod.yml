@@ -7,20 +7,6 @@ services:
       - static_volume:/code/staticfiles
     expose:
       - 8017
-    depends_on:
-      - postgres
-    networks:
-      - reverse-proxy_proxynet
-
-  postgres:
-    image: postgres:15
-    restart: always
-    env_file:
-      - .env.prod
-    environment:
-      POSTGRES_DB: artsearch_db
-    volumes:
-      - pg_data:/var/lib/postgresql/data
     networks:
       - reverse-proxy_proxynet
 
@@ -60,7 +46,6 @@ services:
       - reverse-proxy_proxynet
 
 volumes:
-  pg_data:
   static_volume: {}
 
 networks:

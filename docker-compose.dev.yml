@@ -1,4 +1,5 @@
 services:
+  # Django web app
   web:
     build: .
     command: /bin/sh -c /code/entrypoint.dev.sh
@@ -6,20 +7,3 @@ services:
       - .:/code
     ports:
       - "8000:8000"
-    depends_on:
-      - postgres
-
-  postgres:
-    image: postgres:15
-    restart: always
-    env_file:
-      - .env.dev
-    environment:
-      POSTGRES_DB: artsearch_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-
-volumes:
-  pg_data:

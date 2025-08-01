@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "artsearch",
+    "etl",
     "tailwind",
     "theme",
 ]
@@ -79,11 +80,11 @@ WSGI_APPLICATION = "djangoconfig.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "artsearch_db",  # Database name
+        "NAME": config.postgres_db,
         "USER": config.postgres_user,
         "PASSWORD": config.postgres_password,
-        "HOST": "postgres",  # Docker service name
-        "PORT": "5432",
+        "HOST": config.postgres_host,
+        "PORT": config.postgres_port,
     }
 }
 
