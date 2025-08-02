@@ -66,6 +66,10 @@ update-payload: ## Update collection payload
 extract-smk: ## upsert-raw-data from SMK
 	docker compose -f docker-compose.prod.yml exec web python manage.py extract -m smk
 
+extract-cma: ## upsert-raw-data from CMA
+	docker compose -f docker-compose.prod.yml exec web python manage.py extract -m cma
+
+
 # ---------- Production ---------- #
 production_stop: ## Stop production server
 	docker compose -f docker-compose.prod.yml down --remove-orphans
