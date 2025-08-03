@@ -15,7 +15,6 @@ class MetaDataRaw(models.Model):
     museum_slug = models.CharField(max_length=10)
     museum_object_id = models.CharField(max_length=100)
     raw_json = models.JSONField(null=True, blank=True)
-    raw_xml = models.TextField(null=True, blank=True)
     raw_hash = models.CharField(max_length=64)  # SHA256
     fetched_at = models.DateTimeField(auto_now_add=True)
     processed_at = models.DateTimeField(

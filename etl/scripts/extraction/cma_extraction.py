@@ -2,8 +2,9 @@ import logging
 import requests
 import time
 from typing import Any
-from etl.scripts.extraction.upsert_raw_data import store_raw_data
+from etl.scripts.extraction.helpers.upsert_raw_data import store_raw_data
 
+MUSEUM_SLUG = "cma"
 WORK_TYPES = [
     "Print",
     "Painting",
@@ -23,7 +24,6 @@ BASE_SEARCH_URL = "https://openaccess-api.clevelandart.org/api/artworks/"
 def fetch_raw_data_from_cma_api(
     query: dict, http_session: requests.Session, base_search_url: str = BASE_SEARCH_URL
 ) -> dict[str, Any]:
-    # query with 5 retries and a timeout
     max_retries = 3
     for attempt in range(max_retries):
         try:
@@ -35,12 +35,10 @@ def fetch_raw_data_from_cma_api(
                 raise
             logging.warning(f"Attempt {attempt + 1} failed: {e}. Retrying...")
 
-    total_count = response.json()["info"].get("total", 0)
-    items = response.json().get("data", [])
-
+    data = response.json()
     return {
-        "total_count": total_count,
-        "items": items,
+        "total_count": data["info"].get("total", 0),
+        "items": data.get("data", []),
     }
 
 
@@ -79,7 +77,7 @@ def store_raw_data_cma():
 
             for item in items:
                 changed = store_raw_data(
-                    museum_slug="cma",
+                    museum_slug=MUSEUM_SLUG,
                     object_id=item["accession_number"],
                     raw_json=item,
                 )
