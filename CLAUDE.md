@@ -1,0 +1,135 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+Semantic Art Search is a Django-based web application that uses CLIP (Contrastive Language-Image Pre-training) to enable semantic search of artwork collections from multiple museums. The system allows users to search artworks using natural language queries and find visually or thematically similar pieces.
+
+## Key Architecture Components
+
+### Core Applications
+- **artsearch**: Main Django app containing search functionality, models, services, and views
+- **etl**: Extract, Transform, Load app for processing museum data
+- **theme**: Tailwind CSS theme configuration
+- **djangoconfig**: Django project configuration
+
+### Data Flow Architecture
+1. **ETL Pipeline**: Museum APIs → Raw metadata (PostgreSQL) → Processed embeddings (Qdrant)
+2. **Search Pipeline**: User query → CLIP text embedding → Qdrant vector search → Results
+3. **Similar Image Search**: Object number → Retrieve image embedding → Vector similarity search
+
+### Key Services (`artsearch/src/services/`)
+- **search_service.py**: Main search orchestration and query analysis
+- **qdrant_service.py**: Vector database operations and search functionality
+- **clip_embedder.py**: CLIP model management and embedding generation
+- **museum_clients/**: API clients for different museums (SMK, CMA, RMA, MET)
+- **bucket_service.py**: AWS S3 integration for image storage
+
+### Configuration
+- **artsearch/src/config.py**: Environment-based configuration using Pydantic
+- Requires `.env.dev` or `.env.prod` files for environment variables
+- Key dependencies: Qdrant, PostgreSQL, AWS S3, CLIP model
+
+## Development Commands
+
+### Docker Development Environment
+```bash
+# Build development environment
+make build
+
+# Start development server (with hot reload)
+make develop
+
+# Stop development server
+make stop
+
+# Open shell in running container
+make shell
+
+# Open Django shell
+make djangoshell
+```
+
+### Database Operations
+```bash
+# Generate migrations
+make migrations
+
+# Apply migrations
+make migrate
+```
+
+### Tailwind CSS
+```bash
+# Install Tailwind dependencies
+make tailwind-install
+
+# Start Tailwind watcher (run during development)
+make tailwind-start
+```
+
+### Data ETL Operations
+```bash
+# Extract data from individual museums (production)
+make extract-smk
+make extract-cma
+make extract-rma  
+make extract-met
+
+# Upload processed data to Qdrant vector database
+make upload-to-qdrant-SMK
+make upload-to-qdrant-CMA
+make upload-to-qdrant-RMA
+make upload-to-qdrant-MET
+```
+
+### Code Quality
+```bash
+# Format and lint Python code
+ruff format .
+ruff check .
+```
+
+### Testing
+- Django tests can be run with: `python manage.py test`
+- Currently minimal test coverage - mainly placeholder test files
+
+## Museum Integration
+
+The system integrates with four major museums through their open APIs:
+- **SMK**: Statens Museum for Kunst (Denmark)
+- **CMA**: Cleveland Museum of Art  
+- **RMA**: Rijksmuseum Amsterdam
+- **MET**: Metropolitan Museum of Art
+
+Each museum has a dedicated client in `artsearch/src/services/museum_clients/` that handles API-specific data extraction and formatting.
+
+## Search Features
+
+### Query Types
+1. **Text Search**: Natural language queries converted to CLIP embeddings
+2. **Object Number Search**: Direct lookup by inventory number (e.g., "KMS1")
+3. **Museum-Specific Search**: Format "museum:object_number" (e.g., "smk:KMS1")
+4. **Similar Image Search**: Find visually similar artworks
+
+### Filtering
+- Filter by museum (SMK, CMA, RMA, MET)
+- Filter by work type (painting, print, drawing, etc.)
+- Results are paginated with 20 items per page
+
+## Environment Setup
+
+Required environment variables (in `.env.dev` or `.env.prod`):
+- Database: `POSTGRES_*` variables
+- Vector DB: `QDRANT_URL`, `QDRANT_API_KEY`
+- Storage: `AWS_*` variables for S3
+- Django: `DJANGO_SECRET_KEY`, `ALLOWED_HOSTS`, `DEBUG`
+
+## Production Deployment
+
+The system uses Docker Compose with separate configurations for development and production:
+- **Development**: `docker-compose.dev.yml` - single container with hot reload
+- **Production**: `docker-compose.prod.yml` - includes nginx reverse proxy
+
+Production commands use `make production_*` prefix (e.g., `make production_start`, `make production_stop`).

@@ -7,7 +7,9 @@ class MetaDataRaw(models.Model):
 
     Fields:
     museum_slug: Slug for the museum (e.g., "smk" for Statens Museum for Kunst)
-    museum_object_id: Unique identifier for the object in the museum's collection (could be an accession number or database ID or similar, depending on the museum)
+    museum_object_id: Unique identifier for the object in the museum's collection
+        (could be an accession number or database ID or similar, depending on the museum.
+        Choose the one that is needed for data extraction)
     fetched_at: When the raw data was last fetched from the source (first time or becase a change was detected)
     processed_at: When the raw data was last processed (uploaded to qdrant and embeddings created)
     """

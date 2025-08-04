@@ -72,6 +72,8 @@ extract-cma: ## upsert-raw-data from CMA
 extract-rma: ## upsert-raw-data from RMA
 	docker compose -f docker-compose.prod.yml exec web python manage.py extract -m rma
 
+extract-met: ## upsert-raw-data from MET
+	docker compose -f docker-compose.prod.yml exec web python manage.py extract -m met
 
 # ---------- Production ---------- #
 production_stop: ## Stop production server
