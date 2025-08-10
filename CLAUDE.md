@@ -74,7 +74,7 @@ make tailwind-start
 # Extract data from individual museums (production)
 make extract-smk
 make extract-cma
-make extract-rma  
+make extract-rma
 make extract-met
 
 # Upload processed data to Qdrant vector database
@@ -99,7 +99,7 @@ ruff check .
 
 The system integrates with four major museums through their open APIs:
 - **SMK**: Statens Museum for Kunst (Denmark)
-- **CMA**: Cleveland Museum of Art  
+- **CMA**: Cleveland Museum of Art
 - **RMA**: Rijksmuseum Amsterdam
 - **MET**: Metropolitan Museum of Art
 

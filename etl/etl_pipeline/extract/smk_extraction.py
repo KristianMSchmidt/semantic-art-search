@@ -2,7 +2,7 @@ import logging
 import requests
 import time
 from typing import Any
-from etl.scripts.extraction.helpers.upsert_raw_data import store_raw_data
+from etl.etl_pipeline.extract.helpers.upsert_raw_data import store_raw_data
 
 MUSEUM_SLUG = "smk"
 FIELDS = [
