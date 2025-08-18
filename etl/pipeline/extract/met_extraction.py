@@ -3,7 +3,7 @@ import requests
 import time
 from datetime import timedelta
 from django.utils import timezone
-from etl.etl_pipeline.extract.helpers.upsert_raw_data import store_raw_data
+from etl.pipeline.extract.helpers.upsert_raw_data import store_raw_data
 from etl.models import MetaDataRaw
 from artsearch.src.services.museum_clients.met_api_client import METAPIClient
 

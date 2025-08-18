@@ -3,7 +3,7 @@ import requests
 import time
 from typing import Any
 import xmltodict
-from etl.etl_pipeline.extract.helpers.upsert_raw_data import store_raw_data
+from etl.pipeline.extract.helpers.upsert_raw_data import store_raw_data
 from artsearch.src.services.museum_clients.rma_api_client import (
     extract_query_param,
 )

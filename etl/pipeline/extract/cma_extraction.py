@@ -2,45 +2,33 @@ import logging
 import requests
 import time
 from typing import Any
-from etl.etl_pipeline.extract.helpers.upsert_raw_data import store_raw_data
+from etl.pipeline.extract.helpers.upsert_raw_data import store_raw_data
 
-MUSEUM_SLUG = "smk"
-FIELDS = [
-    "titles",
-    "artist",
-    "object_names",
-    "production_date",
-    "object_number",
-    "image_thumbnail",
-]
-START_DATE = "1000-01-01T00:00:00.000Z"
-END_DATE = "2026-12-31T23:59:59.999Z"
+
+MUSEUM_SLUG = "cma"
 WORK_TYPES = [
-    "tegning",
-    "akvatinte",
-    "akvarel",
-    "Buste",
-    "maleri",
-    "pastel",
+    "Print",
+    "Painting",
+    "Drawing",
 ]
 LIMIT = 1000
 BASE_QUERY = {
-    "keys": "*",
-    # "fields": ",".join(FIELDS),
-    # "range": f"[production_dates_end:{{{START_DATE};{END_DATE}}}]",
-    "rows": LIMIT,
+    "q": "",
+    "has_image": 1,
+    "cc0": 1,
+    "limit": LIMIT,
 }
-BASE_URL = "https://api.smk.dk/api/v1/art/"
-BASE_SEARCH_URL = f"{BASE_URL}search/"
+
+BASE_SEARCH_URL = "https://openaccess-api.clevelandart.org/api/artworks/"
 
 
-def fetch_raw_data_from_smk_api(
+def fetch_raw_data_from_cma_api(
     query: dict, http_session: requests.Session, base_search_url: str = BASE_SEARCH_URL
 ) -> dict[str, Any]:
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = http_session.get(base_search_url, params=query, timeout=5)
+            response = http_session.get(base_search_url, params=query, timeout=30)
             response.raise_for_status()
             break
         except requests.RequestException as e:
@@ -49,10 +37,13 @@ def fetch_raw_data_from_smk_api(
             logging.warning(f"Attempt {attempt + 1} failed: {e}. Retrying...")
 
     data = response.json()
-    return {"total_count": data.get("total", 0), "items": data.get("items", [])}
+    return {
+        "total_count": data["info"].get("total", 0),
+        "items": data.get("data", []),
+    }
 
 
-def store_raw_data_smk():
+def store_raw_data_cma():
     start_time = time.time()
 
     http_session = requests.Session()
@@ -67,11 +58,11 @@ def store_raw_data_smk():
             num_changed = 0
             base_query = BASE_QUERY.copy()
             query = base_query | {
-                "filters": f"[has_image:true],[object_names:{work_type}],[public_domain:true]",
-                "offset": offset,
+                "type": work_type,
+                "skip": offset,
             }
             try:
-                data = fetch_raw_data_from_smk_api(query, http_session)
+                data = fetch_raw_data_from_cma_api(query, http_session)
             except requests.RequestException as e:
                 logging.error(
                     f"Failed to fetch data for work type {work_type} at offset {offset}: {e}"
@@ -88,7 +79,7 @@ def store_raw_data_smk():
             for item in items:
                 changed = store_raw_data(
                     museum_slug=MUSEUM_SLUG,
-                    object_id=item["object_number"],
+                    object_id=item["accession_number"],
                     raw_json=item,
                 )
                 if changed:

@@ -39,6 +39,7 @@ djangoshell:  ## Open django shell in running docker development container
 
 
 
+
 # ---------- Data ---------- #
 
 adhoc: # Adhoc scripts only used during development
@@ -62,7 +63,8 @@ stats: ## Get work type stats
 update-payload: ## Update collection payload
 	python -m artsearch.src.scripts.update_payload
 
-# ---------- Production ETL ---------- #
+
+# ---------- ETL ---------- #
 extract-smk: ## upsert-raw-data from SMK
 	docker compose -f docker-compose.prod.yml exec web python manage.py extract -m smk
 
@@ -74,6 +76,10 @@ extract-rma: ## upsert-raw-data from RMA
 
 extract-met: ## upsert-raw-data from MET
 	docker compose -f docker-compose.prod.yml exec web python manage.py extract -m met
+
+transform:  ## Run ETL transform pipeline with default settings (batch_size=1000, start_id=0)
+	docker compose -f docker-compose.prod.yml exec web python manage.py transform --batch-size 1000 --start-id 0
+
 
 # ---------- Production ---------- #
 production_stop: ## Stop production server
