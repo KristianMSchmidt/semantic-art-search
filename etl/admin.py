@@ -5,7 +5,6 @@ from .models import MetaDataRaw, TransformedData
 @admin.register(MetaDataRaw)
 class MetaDataRawAdmin(admin.ModelAdmin):
     list_display = (
-        "id",
         "museum_slug",
         "museum_object_id",
         "created_at",
@@ -25,7 +24,6 @@ class MetaDataRawAdmin(admin.ModelAdmin):
 @admin.register(TransformedData)
 class TransformedDataAdmin(admin.ModelAdmin):
     list_display = (
-        "id",
         "object_number",
         "museum_slug",
         "created_at",
