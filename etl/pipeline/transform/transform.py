@@ -38,6 +38,7 @@ def transform_and_upsert(
                 museum_slug,
                 raw_data_obj.museum_object_id,
             )
+
             return "error"
 
         transformed_dict = transformed.to_dict()
