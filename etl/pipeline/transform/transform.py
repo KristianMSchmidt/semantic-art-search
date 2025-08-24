@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
-from typing import Literal
+from typing import Literal, Callable
 
 from django.db import transaction
 from etl.models import MetaDataRaw, TransformedData
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=None)
-def _get_transformer_cached(slug: str):
+def _get_transformer_cached(slug: str) -> Callable:
     return get_transformer(slug)
 
 

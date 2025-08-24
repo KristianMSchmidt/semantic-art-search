@@ -1,9 +1,7 @@
-from typing import Optional
+from typing import Optional, Any
 from etl.pipeline.transform.utils import (
     get_searchable_work_types,
     safe_int_from_date,
-    extract_primary_title,
-    extract_artist_names,
 )
 from etl.pipeline.transform.models import TransformedArtworkData
 
@@ -111,3 +109,52 @@ def transform_smk_data(
     except Exception as e:
         print(f"SMK transform error for {museum_object_id}: {e}")
         return None
+
+
+### Utils and helpers specific to SMK transformation ###
+
+
+def extract_primary_title(titles: list[dict]) -> str | None:
+    """
+    Extract the primary title from various title structures.
+
+    Handles SMK-style title lists with language/type specifications.
+    """
+    if not titles or not isinstance(titles, list):
+        return None
+
+    # Try to find primary title (usually first one or one marked as primary)
+    for title_obj in titles:
+        if isinstance(title_obj, dict):
+            # SMK format: {"title": "Title text", "language": "da", "type": "main"}
+            if title_obj.get("title"):
+                return title_obj["title"]
+        elif isinstance(title_obj, str):
+            # Simple string format
+            return title_obj
+
+    return None
+
+
+def extract_artist_names(artists: list[Any]) -> list[str]:
+    """
+    Extract artist names from various artist data structures.
+
+    Handles both simple strings and complex objects with name fields.
+    """
+    if not artists or not isinstance(artists, list):
+        return []
+
+    names = []
+    for artist in artists:
+        if isinstance(artist, str):
+            names.append(artist)
+        elif isinstance(artist, dict):
+            # Try common name fields
+            name = (
+                artist.get("name") or artist.get("title") or artist.get("artist_name")
+            )
+            if name:
+                names.append(name)
+
+    return names
