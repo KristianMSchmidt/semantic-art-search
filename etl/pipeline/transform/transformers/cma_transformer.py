@@ -83,9 +83,9 @@ def transform_cma_data(
             pass
 
         # Use 'url' as frontend_url
-        museum_frontend_url = raw_json.get("url", "")
-        if not museum_frontend_url:
-            museum_frontend_url = f"https://clevelandart.org/art/{object_number}"
+        museum_frontend_url = raw_json.get(
+            "url", f"https://clevelandart.org/art/{object_number}"
+        )
 
         # Generate API object URL
         object_url = None

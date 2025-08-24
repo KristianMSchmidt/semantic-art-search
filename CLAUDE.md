@@ -10,7 +10,7 @@ Semantic Art Search is a Django-based web application that uses CLIP (Contrastiv
 
 ### Core Applications
 - **artsearch**: Main Django app containing search functionality, models, services, and views
-- **etl**: Extract, Transform, Load app for processing museum data
+- **etl**: Extract, Transform, Load app for processing museum data (complete ETL pipeline in `@etl/`)
 - **theme**: Tailwind CSS theme configuration
 - **djangoconfig**: Django project configuration
 
@@ -70,6 +70,19 @@ make tailwind-start
 ```
 
 ### Data ETL Operations
+
+#### Current ETL Implementation Status
+- **Extract (E)**: ✅ Complete - Museum API clients extract raw data
+- **Transform (T)**: ✅ Complete - Transformer scripts in `etl/pipeline/transform/transformers/`
+  - `cma_transformer.py` - Cleveland Museum of Art data transformation
+  - `met_transformer.py` - Metropolitan Museum of Art data transformation  
+  - `rma_transformer.py` - Rijksmuseum Amsterdam data transformation
+  - `smk_transformer.py` - Statens Museum for Kunst data transformation
+- **Load (L)**: 🚧 Next phase - Multi-step loading process:
+  1. Download and store artwork images in AWS S3 bucket
+  2. Generate CLIP embeddings for images and text metadata
+  3. Load processed data and embeddings into Qdrant vector database
+
 ```bash
 # Extract data from individual museums (production)
 make extract-smk
@@ -77,7 +90,7 @@ make extract-cma
 make extract-rma
 make extract-met
 
-# Upload processed data to Qdrant vector database
+# Load phase commands (in development)
 make upload-to-qdrant-SMK
 make upload-to-qdrant-CMA
 make upload-to-qdrant-RMA
