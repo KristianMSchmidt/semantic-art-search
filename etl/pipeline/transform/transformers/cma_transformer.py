@@ -82,16 +82,6 @@ def transform_cma_data(
         except (KeyError, TypeError):
             pass
 
-        # Use 'url' as frontend_url
-        museum_frontend_url = raw_json.get(
-            "url", f"https://clevelandart.org/art/{object_number}"
-        )
-
-        # Generate API object URL
-        object_url = None
-        if object_number:
-            object_url = f"https://openaccess-api.clevelandart.org/api/artworks/?accession_number={object_number}"
-
         # Return transformed data as Pydantic model
         return TransformedArtworkData(
             object_number=object_number,
@@ -105,9 +95,7 @@ def transform_cma_data(
             thumbnail_url=str(thumbnail_url),
             museum_slug="cma",
             museum_db_id=str(raw_json.get("id")) if raw_json.get("id") else None,
-            museum_frontend_url=museum_frontend_url,
             image_url=image_url,
-            object_url=object_url,
             # Processing flags default to False
             image_loaded=False,
             text_vector_clip=False,

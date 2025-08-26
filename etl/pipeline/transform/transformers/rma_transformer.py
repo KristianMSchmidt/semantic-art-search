@@ -4,7 +4,6 @@ from etl.pipeline.transform.utils import (
     get_searchable_work_types,
 )
 from etl.pipeline.transform.models import TransformedArtworkData
-from etl.pipeline.extract.rma_extraction import GET_RECORD_URL
 
 
 def transform_rma_data(
@@ -43,7 +42,7 @@ def transform_rma_data(
         if not object_number:
             return None
 
-        # Image url:
+        # Required field: Thumbnail url (from Image url):
         image_url = extract_image_url(rdf)
         if not image_url or not is_valid_image_url(image_url):
             print("Missing or invalid image URL")
@@ -80,12 +79,6 @@ def transform_rma_data(
 
         period = None  # Don't think I need this for RMA. Haven't looked closely.
 
-        object_url = GET_RECORD_URL + museum_object_id
-        museum_frontend_url = raw_json.get(
-            "identifier",
-            f"https://id.rijksmuseum.nl/{museum_object_id}",
-        )
-
         # Return transformed data as Pydantic model
         return TransformedArtworkData(
             object_number=object_number,
@@ -99,9 +92,7 @@ def transform_rma_data(
             thumbnail_url=thumbnail_url,
             museum_slug="rma",
             museum_db_id=museum_object_id,
-            museum_frontend_url=museum_frontend_url,
             image_url=image_url,
-            object_url=object_url,
             # Processing flags default to False
             image_loaded=False,
             text_vector_clip=False,

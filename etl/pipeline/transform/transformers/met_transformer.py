@@ -16,10 +16,6 @@ MET_CLASSIFICATION_TO_WORK_TYPE = {
     "prints": "print",
 }
 
-API_OBJECTS_BASE_URL = (
-    "https://collectionapi.metmuseum.org/public/collection/v1/objects"
-)
-
 
 def transform_met_data(
     raw_json: dict, museum_object_id: str
@@ -106,16 +102,6 @@ def transform_met_data(
         # Extract image URL - use primaryImage
         image_url = raw_json.get("primaryImage")
 
-        # Use objectURL, fallback to constructed URL
-        museum_frontend_url = raw_json.get("objectURL", "")
-        if not museum_frontend_url:
-            museum_frontend_url = (
-                f"https://www.metmuseum.org/art/collection/search/{museum_object_id}"
-            )
-
-        # Generate API object URL
-        object_url = f"{API_OBJECTS_BASE_URL}/{museum_object_id}"
-
         # Return transformed data as Pydantic model
         return TransformedArtworkData(
             object_number=object_number,
@@ -128,12 +114,8 @@ def transform_met_data(
             period=period,
             thumbnail_url=str(thumbnail_url),
             museum_slug="met",
-            museum_db_id=str(raw_json.get("objectID"))
-            if raw_json.get("objectID")
-            else None,
-            museum_frontend_url=museum_frontend_url,
+            museum_db_id=museum_object_id,
             image_url=image_url,
-            object_url=object_url,
             # Processing flags default to False
             image_loaded=False,
             text_vector_clip=False,

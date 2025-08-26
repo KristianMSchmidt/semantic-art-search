@@ -71,17 +71,6 @@ def transform_smk_data(
         # Extract image URLs - store IIIF ID for flexible usage
         image_url = raw_json.get("image_iiif_id")
 
-        # Generate URLs
-        object_url = None
-        museum_frontend_url = ""
-        if object_number:
-            object_url = f"https://api.smk.dk/api/v1/art/?object_number={object_number}"
-            # Use frontend_url from raw data if available, otherwise generate fallback
-            museum_frontend_url = raw_json.get(
-                "frontend_url",
-                f"https://open.smk.dk/artwork/image/{object_number.lower()}",
-            )
-
         # Return transformed data as Pydantic model
         return TransformedArtworkData(
             object_number=object_number,
@@ -95,9 +84,7 @@ def transform_smk_data(
             thumbnail_url=str(thumbnail_url),
             museum_slug="smk",
             museum_db_id=None,
-            museum_frontend_url=museum_frontend_url,
             image_url=image_url,
-            object_url=object_url,
             # Processing flags default to False
             image_loaded=False,
             text_vector_clip=False,

@@ -21,8 +21,10 @@ class MetaDataRaw(models.Model):
             ),
         ]
         indexes = [
-            models.Index(fields=['museum_slug']),  # For museum-specific filtering
-            models.Index(fields=['raw_hash']),     # For hash comparisons in staleness checks
+            models.Index(fields=["museum_slug"]),  # For museum-specific filtering
+            models.Index(
+                fields=["raw_hash"]
+            ),  # For hash comparisons in staleness checks
         ]
 
 
@@ -42,24 +44,21 @@ class TransformedData(models.Model):
         max_length=64,
     )  # copy of MetaDataRaw.raw_hash at transform time
 
+    # Required fields
     object_number = models.CharField(max_length=100)  # Required field
+    thumbnail_url = models.URLField(max_length=500)  # Required field
+    museum_slug = models.CharField(max_length=10)  # Required field
+    searchable_work_types = models.JSONField()  # Required field, list[str]
+
+    # Other fields
     title = models.CharField(max_length=500, null=True, blank=True)
     work_types = models.JSONField(default=list)  # list[str]
-    searchable_work_types = models.JSONField()  # Required field, list[str]
     artist = models.JSONField(default=list)  # list[str]
     production_date_start = models.IntegerField(null=True, blank=True)
     production_date_end = models.IntegerField(null=True, blank=True)
     period = models.CharField(max_length=100, null=True, blank=True)
-    thumbnail_url = models.URLField(max_length=500)  # Required field
-    museum_slug = models.CharField(max_length=10)  # Required field
     museum_db_id = models.CharField(max_length=100, null=True, blank=True)
-    museum_frontend_url = models.URLField(
-        max_length=500, default="", blank=True
-    )  # Public Link to artwork on museum homepage (required)
     image_url = models.URLField(max_length=500, null=True, blank=True)
-
-    # External links (API link to full metadata)
-    object_url = models.URLField(max_length=500, null=True, blank=True)
 
     # Processing status fields
     image_loaded = models.BooleanField(default=False)
@@ -101,8 +100,8 @@ class TransformedData(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=['source_raw_hash']),  # For staleness comparisons
-            models.Index(fields=['museum_slug']),      # For museum-specific queries
+            models.Index(fields=["source_raw_hash"]),  # For staleness comparisons
+            models.Index(fields=["museum_slug"]),  # For museum-specific queries
         ]
 
     @property
