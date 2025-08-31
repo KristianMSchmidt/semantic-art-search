@@ -77,6 +77,9 @@ extract-rma: ## upsert-raw-data from RMA
 extract-met: ## upsert-raw-data from MET
 	docker compose -f docker-compose.prod.yml exec web python manage.py extract -m met
 
+extract-all: ## upsert-raw-data from ALL museums
+	docker compose -f docker-compose.prod.yml exec web python manage.py extract --all
+
 transform:  ## Run ETL transform pipeline with default settings (batch_size=1000, start_id=0)
 	docker compose -f docker-compose.prod.yml exec web python manage.py transform --batch-size 1000 --start-id 0
 

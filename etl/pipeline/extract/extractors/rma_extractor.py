@@ -4,9 +4,7 @@ import time
 from typing import Any
 import xmltodict
 from etl.pipeline.extract.helpers.upsert_raw_data import store_raw_data
-from artsearch.src.services.museum_clients.rma_api_client import (
-    extract_query_param,
-)
+from etl.pipeline.extract.utils import extract_query_param
 
 MUSEUM_SLUG = "rma"
 WORK_TYPES = [

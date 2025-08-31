@@ -1,6 +1,5 @@
 import hashlib
 import json
-from django.utils import timezone
 
 from etl.models import MetaDataRaw
 
@@ -30,7 +29,6 @@ def store_raw_data(museum_slug: str, object_id: str, raw_json: dict) -> bool:
         defaults={
             "raw_json": raw_json,
             "raw_hash": raw_hash,
-            "fetched_at": timezone.now(),
         },
     )
     return True  # indicates change → trigger re-embedding
