@@ -105,8 +105,37 @@ ruff check .
 ```
 
 ### Testing
-- Django tests can be run with: `python manage.py test`
-- Currently minimal test coverage - mainly placeholder test files
+
+The project uses pytest with Django integration for comprehensive testing:
+
+```bash
+# Run all tests
+make test
+
+# Run specific test categories
+make test-unit          # Unit tests only
+make test-integration   # Integration tests only
+make test-extract       # ETL extraction tests only
+
+# Generate coverage reports
+make test-coverage      # Creates HTML coverage report in htmlcov/
+```
+
+#### Test Configuration
+- **Framework**: pytest with pytest-django, pytest-mock, pytest-cov
+- **Configuration**: `pyproject.toml` contains pytest settings
+- **Test Markers**: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.slow`
+- **Coverage**: Tracks coverage for both `etl` and `artsearch` apps
+- **Database**: Uses `--reuse-db` and `--nomigrations` for faster test runs
+
+#### Current Test Coverage
+- **Overall Project**: ~24% coverage
+- **ETL Extractors**: 22-47% coverage with integration tests for all museum APIs
+- **Test Structure**:
+  - `etl/tests/test_extract.py` - Comprehensive extraction pipeline tests
+  - Unit tests for core utilities and data storage functions  
+  - Integration tests with mocked HTTP responses for museum APIs (SMK, CMA, RMA, MET)
+  - Orchestration tests for the main extraction workflow
 
 ## Museum Integration
 

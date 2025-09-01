@@ -37,6 +37,20 @@ shell:  ## Open shell in running docker development container
 djangoshell:  ## Open django shell in running docker development container
 	docker compose -f docker-compose.dev.yml exec web python manage.py shell
 
+test:  ## Run all tests with pytest
+	docker compose -f docker-compose.dev.yml exec web pytest
+
+test-extract:  ## Run extraction pipeline tests only
+	docker compose -f docker-compose.dev.yml exec web pytest etl/tests/test_extract.py
+
+test-unit:  ## Run unit tests only
+	docker compose -f docker-compose.dev.yml exec web pytest -m unit
+
+test-integration:  ## Run integration tests only
+	docker compose -f docker-compose.dev.yml exec web pytest -m integration
+
+test-coverage:  ## Run tests with coverage report
+	docker compose -f docker-compose.dev.yml exec web pytest --cov-report=html
 
 
 

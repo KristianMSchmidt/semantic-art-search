@@ -11,3 +11,23 @@ exclude = []
 # Use Ruff as a formatter
 [tool.ruff.format]
 quote-style = "double" # Choose between "single" or "double"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "djangoconfig.settings"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+addopts = [
+    "--reuse-db",
+    "--nomigrations", 
+    "--cov=etl",
+    "--cov=artsearch",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-report=html:htmlcov",
+    "--tb=short",
+    "-v"
+]
+testpaths = ["etl/tests", "artsearch/tests"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests"
+]
