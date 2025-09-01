@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 from etl.pipeline.transform.transformers.smk_transformer import transform_smk_data
 from etl.pipeline.transform.transformers.cma_transformer import transform_cma_data
 from etl.pipeline.transform.transformers.met_transformer import transform_met_data
@@ -14,10 +14,10 @@ TRANSFORMERS = {
 }
 
 
-def get_transformer(museum_slug: str) -> Callable:
+def get_transformer(museum_slug: str) -> Optional[Callable]:
     """
     Get the appropriate transformer function for a museum slug.
 
     Returns the transformer function or None if not found.
     """
-    return TRANSFORMERS[museum_slug]
+    return TRANSFORMERS.get(museum_slug)

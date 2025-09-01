@@ -43,6 +43,9 @@ test:  ## Run all tests with pytest
 test-extract:  ## Run extraction pipeline tests only
 	docker compose -f docker-compose.dev.yml exec web pytest etl/tests/test_extract.py
 
+test-transform:  ## Run transformation pipeline tests only
+	docker compose -f docker-compose.dev.yml exec web pytest etl/tests/test_transform.py
+
 test-unit:  ## Run unit tests only
 	docker compose -f docker-compose.dev.yml exec web pytest -m unit
 

@@ -19,12 +19,10 @@ Semantic Art Search is a Django-based web application that uses CLIP (Contrastiv
 2. **Search Pipeline**: User query → CLIP text embedding → Qdrant vector search → Results
 3. **Similar Image Search**: Object number → Retrieve image embedding → Vector similarity search
 
-### Key Services (`artsearch/src/services/`)
-- **search_service.py**: Main search orchestration and query analysis
-- **qdrant_service.py**: Vector database operations and search functionality
-- **clip_embedder.py**: CLIP model management and embedding generation
-- **museum_clients/**: API clients for different museums (SMK, CMA, RMA, MET)
-- **bucket_service.py**: AWS S3 integration for image storage
+### Key Services
+- **Search**: CLIP-based semantic search and query analysis (`artsearch/src/services/`)
+- **Museums**: API clients for SMK, CMA, RMA, MET (`museum_clients/`)  
+- **Storage**: Vector database (Qdrant) and image storage (S3)
 
 ### Configuration
 - **artsearch/src/config.py**: Environment-based configuration using Pydantic
@@ -33,109 +31,25 @@ Semantic Art Search is a Django-based web application that uses CLIP (Contrastiv
 
 ## Development Commands
 
-### Docker Development Environment
+**All development operations use the project Makefile** - run `make help` to see available commands.
+
+### Essential Commands
 ```bash
-# Build development environment
-make build
-
-# Start development server (with hot reload)
-make develop
-
-# Stop development server
-make stop
-
-# Open shell in running container
-make shell
-
-# Open Django shell
-make djangoshell
+make build      # Build development environment  
+make develop    # Start development server
+make test       # Run all tests
+make shell      # Open container shell
 ```
 
-### Database Operations
-```bash
-# Generate migrations
-make migrations
-
-# Apply migrations
-make migrate
-```
-
-### Tailwind CSS
-```bash
-# Install Tailwind dependencies
-make tailwind-install
-
-# Start Tailwind watcher (run during development)
-make tailwind-start
-```
-
-### Data ETL Operations
-
-#### Current ETL Implementation Status
-- **Extract (E)**: ✅ Complete - Museum API clients extract raw data
-- **Transform (T)**: ✅ Complete - Transformer scripts in `etl/pipeline/transform/transformers/`
-  - `cma_transformer.py` - Cleveland Museum of Art data transformation
-  - `met_transformer.py` - Metropolitan Museum of Art data transformation  
-  - `rma_transformer.py` - Rijksmuseum Amsterdam data transformation
-  - `smk_transformer.py` - Statens Museum for Kunst data transformation
-- **Load (L)**: 🚧 Next phase - Multi-step loading process:
-  1. Download and store artwork images in AWS S3 bucket
-  2. Generate CLIP embeddings for images and text metadata
-  3. Load processed data and embeddings into Qdrant vector database
-
-```bash
-# Extract data from individual museums (production)
-make extract-smk
-make extract-cma
-make extract-rma
-make extract-met
-
-# Load phase commands (in development)
-make upload-to-qdrant-SMK
-make upload-to-qdrant-CMA
-make upload-to-qdrant-RMA
-make upload-to-qdrant-MET
-```
-
-### Code Quality
-```bash
-# Format and lint Python code
-ruff format .
-ruff check .
-```
+### ETL Pipeline Status
+- **Extract**: ✅ Museum API clients for all 4 museums
+- **Transform**: ✅ Data transformation to standardized format  
+- **Load**: 🚧 Image storage (S3) + embedding generation (CLIP) + vector DB (Qdrant)
 
 ### Testing
-
-The project uses pytest with Django integration for comprehensive testing:
-
-```bash
-# Run all tests
-make test
-
-# Run specific test categories
-make test-unit          # Unit tests only
-make test-integration   # Integration tests only
-make test-extract       # ETL extraction tests only
-
-# Generate coverage reports
-make test-coverage      # Creates HTML coverage report in htmlcov/
-```
-
-#### Test Configuration
-- **Framework**: pytest with pytest-django, pytest-mock, pytest-cov
-- **Configuration**: `pyproject.toml` contains pytest settings
-- **Test Markers**: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.slow`
-- **Coverage**: Tracks coverage for both `etl` and `artsearch` apps
-- **Database**: Uses `--reuse-db` and `--nomigrations` for faster test runs
-
-#### Current Test Coverage
-- **Overall Project**: ~24% coverage
-- **ETL Extractors**: 22-47% coverage with integration tests for all museum APIs
-- **Test Structure**:
-  - `etl/tests/test_extract.py` - Comprehensive extraction pipeline tests
-  - Unit tests for core utilities and data storage functions  
-  - Integration tests with mocked HTTP responses for museum APIs (SMK, CMA, RMA, MET)
-  - Orchestration tests for the main extraction workflow
+- **Framework**: pytest with Django integration
+- **Coverage**: ~31% overall project coverage  
+- **Key commands**: `make test`, `make test-unit`, `make test-coverage`
 
 ## Museum Integration
 
