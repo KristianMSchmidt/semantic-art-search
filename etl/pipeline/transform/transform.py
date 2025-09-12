@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 from functools import lru_cache
 from typing import Literal, Callable
@@ -43,6 +44,12 @@ def transform_and_upsert(
 
         transformed_dict = transformed.to_dict()
         transformed_dict["source_raw_hash"] = raw_data_obj.raw_hash
+        
+        # Calculate thumbnail_url_hash if thumbnail_url exists
+        if transformed_dict.get("thumbnail_url"):
+            transformed_dict["thumbnail_url_hash"] = hashlib.sha256(
+                transformed_dict["thumbnail_url"].encode()
+            ).hexdigest()
 
         with transaction.atomic():
             try:

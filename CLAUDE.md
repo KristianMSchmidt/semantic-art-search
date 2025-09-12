@@ -21,7 +21,7 @@ Semantic Art Search is a Django-based web application that uses CLIP (Contrastiv
 
 ### Key Services
 - **Search**: CLIP-based semantic search and query analysis (`artsearch/src/services/`)
-- **Museums**: API clients for SMK, CMA, RMA, MET (`museum_clients/`)  
+- **Museums**: API clients for SMK, CMA, RMA, MET (`museum_clients/`)
 - **Storage**: Vector database (Qdrant) and image storage (S3)
 
 ### Configuration
@@ -35,7 +35,7 @@ Semantic Art Search is a Django-based web application that uses CLIP (Contrastiv
 
 ### Essential Commands
 ```bash
-make build      # Build development environment  
+make build      # Build development environment
 make develop    # Start development server
 make test       # Run all tests
 make shell      # Open container shell
@@ -43,13 +43,21 @@ make shell      # Open container shell
 
 ### ETL Pipeline Status
 - **Extract**: ✅ Museum API clients for all 4 museums
-- **Transform**: ✅ Data transformation to standardized format  
-- **Load**: 🚧 Image storage (S3) + embedding generation (CLIP) + vector DB (Qdrant)
+- **Transform**: ✅ Data transformation to standardized format
+- **Load 1**: ✅ Image storage (S3)
+- **Load 2**:  embedding generation (CLIP) + vector DB (Qdrant)
 
 ### Testing
-- **Framework**: pytest with Django integration
-- **Coverage**: ~31% overall project coverage  
-- **Key commands**: `make test`, `make test-unit`, `make test-coverage`
+- **Framework**: pytest with Django integration (NOT Django's built-in test runner)
+- **Key commands**: `make test`, `make test-unit`, `make test-integration`
+- **Test Strategy**:
+  - Use `@pytest.mark.unit` for fast unit tests (no external dependencies)
+  - Use `@pytest.mark.integration` for broader integration tests
+  - Use `@pytest.django_db` when database access is needed
+  - Use `@pytest.fixture` for clean test data setup
+  - Use `@patch` for mocking external dependencies (API calls, etc.)
+  - Use `@pytest.mark.parametrize` for efficient parameterized testing
+  - All tests must work with pytest, not `python manage.py test`
 
 ## Museum Integration
 

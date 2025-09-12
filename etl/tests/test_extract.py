@@ -1,4 +1,4 @@
-import pytest
+import pytest  # type: ignore
 from unittest.mock import Mock, patch
 
 from etl.models import MetaDataRaw
@@ -207,19 +207,21 @@ class TestExtractorIntegration:
                     "image_thumbnail": "http://example.com/smk1.jpg",
                 },
                 {
-                    "id": "KMS2", 
+                    "id": "KMS2",
                     "titles": [{"title": "Test SMK Artwork 2"}],
                     "artist": "Test Artist 2",
                     "object_number": "KMS2",
                     "image_thumbnail": "http://example.com/smk2.jpg",
-                }
-            ]
+                },
+            ],
         }
         smk_response.raise_for_status = Mock()
         mock_get.return_value = smk_response
 
         # Test SMK API fetch function
-        from etl.pipeline.extract.extractors.smk_extractor import fetch_raw_data_from_smk_api
+        from etl.pipeline.extract.extractors.smk_extractor import (
+            fetch_raw_data_from_smk_api,
+        )
         import requests
 
         session = requests.Session()
@@ -228,7 +230,7 @@ class TestExtractorIntegration:
         # Verify response structure
         assert "items" in result
         assert len(result["items"]) == 2
-        assert result["items"][0]["id"] == "KMS1" 
+        assert result["items"][0]["id"] == "KMS1"
         assert result["items"][0]["titles"][0]["title"] == "Test SMK Artwork 1"
 
     @patch("requests.Session.get")
@@ -248,18 +250,20 @@ class TestExtractorIntegration:
                 },
                 {
                     "id": 2,
-                    "title": "Test CMA Artwork 2", 
+                    "title": "Test CMA Artwork 2",
                     "creators": [{"description": "Test Artist 2"}],
                     "accession_number": "CMA2",
                     "images": {"web": {"url": "http://example.com/cma2.jpg"}},
-                }
-            ]
+                },
+            ],
         }
         cma_response.raise_for_status = Mock()
         mock_get.return_value = cma_response
 
         # Test CMA API fetch function
-        from etl.pipeline.extract.extractors.cma_extractor import fetch_raw_data_from_cma_api
+        from etl.pipeline.extract.extractors.cma_extractor import (
+            fetch_raw_data_from_cma_api,
+        )
         import requests
 
         session = requests.Session()
@@ -281,8 +285,8 @@ class TestExtractorIntegration:
             "partOf": {"totalItems": 2},
             "orderedItems": [
                 {"id": "https://id.rijksmuseum.nl/RMA-1"},
-                {"id": "https://id.rijksmuseum.nl/RMA-2"}
-            ]
+                {"id": "https://id.rijksmuseum.nl/RMA-2"},
+            ],
         }
         search_response.raise_for_status = Mock()
 
@@ -315,12 +319,12 @@ class TestExtractorIntegration:
         # Test RMA API fetch functions
         from etl.pipeline.extract.extractors.rma_extractor import (
             fetch_raw_data_from_rma_api,
-            fetch_record
+            fetch_record,
         )
         import requests
 
         session = requests.Session()
-        
+
         # Test search function
         search_result = fetch_raw_data_from_rma_api({}, session)
         assert search_result["total_count"] == 2

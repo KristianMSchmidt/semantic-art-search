@@ -46,11 +46,14 @@ test-extract:  ## Run extraction pipeline tests only
 test-transform:  ## Run transformation pipeline tests only
 	docker compose -f docker-compose.dev.yml exec web pytest etl/tests/test_transform.py
 
+test-load-images:  ## Run image loading pipeline tests only
+	docker compose -f docker-compose.dev.yml exec web pytest etl/tests/test_load_images_unit.py
+
 test-unit:  ## Run unit tests only
 	docker compose -f docker-compose.dev.yml exec web pytest -m unit
 
-test-integration:  ## Run integration tests only
-	docker compose -f docker-compose.dev.yml exec web pytest -m integration
+test-integration:  ## Run integration tests only (with migrations)
+	docker compose -f docker-compose.dev.yml exec web pytest -m integration --migrations
 
 test-coverage:  ## Run tests with coverage report
 	docker compose -f docker-compose.dev.yml exec web pytest --cov-report=html
@@ -99,6 +102,32 @@ extract-all: ## upsert-raw-data from ALL museums
 
 transform:  ## Run ETL transform pipeline with default settings (batch_size=1000, start_id=0)
 	docker compose -f docker-compose.prod.yml exec web python manage.py transform --batch-size 1000 --start-id 0
+
+# ETL Load Images
+load-images-dry-run:  ## Preview image loading without actual downloads (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --dry-run --batch-size 10
+
+load-images-smk:  ## Load thumbnail images for SMK museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum smk --batch-size 100
+
+load-images-cma:  ## Load thumbnail images for CMA museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum cma --batch-size 100
+
+load-images-rma:  ## Load thumbnail images for RMA museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum rma --batch-size 100
+
+load-images-met:  ## Load thumbnail images for MET museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum met --batch-size 100
+
+load-images-all:  ## Load thumbnail images for all museums (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --batch-size 500
+
+# Production ETL Load Images  
+production_load-images-dry-run:  ## Preview image loading without actual downloads (production)
+	docker compose -f docker-compose.prod.yml exec web python manage.py load_images --dry-run --batch-size 10
+
+production_load-images-all:  ## Load thumbnail images for all museums (production)
+	docker compose -f docker-compose.prod.yml exec web python manage.py load_images --batch-size 1000
 
 
 # ---------- Production ---------- #

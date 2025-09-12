@@ -85,9 +85,27 @@ class BucketService:
         except ClientError as e:
             print(f"Failed to delete keys: {e}")
 
+    def object_exists(self, key: str) -> bool:
+        """
+        Check if an object exists in the S3 bucket.
+        Returns True if object exists, False otherwise.
+        """
+        try:
+            self.s3.head_object(Bucket=self.bucket_name, Key=key)
+            return True
+        except ClientError as e:
+            # If object doesn't exist, boto3 raises a 404 ClientError
+            if e.response["Error"]["Code"] == "404":
+                return False
+            # For other errors, re-raise
+            raise
+
 
 def get_bucket_image_key(museum: str, object_number: str) -> str:
-    return f"{museum}_{object_number}.jpg"
+    # Sanitize object_number to avoid S3 folder creation
+    # Replace slashes and other problematic characters with underscores
+    sanitized_object_number = object_number.replace("/", "_").replace("\\", "_")
+    return f"{museum}_{sanitized_object_number}.jpg"
 
 
 def get_cdn_thumbnail_url(museum: str, object_number: str) -> str:

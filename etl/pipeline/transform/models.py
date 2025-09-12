@@ -51,6 +51,9 @@ class TransformedArtworkData(BaseModel):
     image_loaded: bool = Field(
         default=False, description="Whether image has been downloaded"
     )
+    thumbnail_url_hash: Optional[str] = Field(
+        default=None, description="SHA256 hash of thumbnail_url to detect changes"
+    )
     text_vector_clip: bool = Field(
         default=False, description="Whether CLIP text embedding exists"
     )

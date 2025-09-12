@@ -62,6 +62,12 @@ class TransformedData(models.Model):
 
     # Processing status fields
     image_loaded = models.BooleanField(default=False)
+    thumbnail_url_hash = models.CharField(
+        max_length=64, 
+        null=True, 
+        blank=True,
+        help_text="SHA256 hash of thumbnail_url to detect changes"
+    )
 
     # Vector storage tracking (for multiple embedding models)
     text_vector_clip = models.BooleanField(default=False)
