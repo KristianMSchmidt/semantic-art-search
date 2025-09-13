@@ -102,10 +102,11 @@ class BucketService:
 
 
 def get_bucket_image_key(museum: str, object_number: str) -> str:
+    return f"{museum}_{object_number}.jpg"
     # Sanitize object_number to avoid S3 folder creation
     # Replace slashes and other problematic characters with underscores
-    sanitized_object_number = object_number.replace("/", "_").replace("\\", "_")
-    return f"{museum}_{sanitized_object_number}.jpg"
+    # sanitized_object_number = object_number.replace("/", "_").replace("\\", "_")
+    # return f"{museum}_{sanitized_object_number}.jpg"
 
 
 def get_cdn_thumbnail_url(museum: str, object_number: str) -> str:
