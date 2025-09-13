@@ -11,7 +11,7 @@ WORK_TYPES = [
     "Painting",
     "Drawing",
 ]
-LIMIT = 1000
+LIMIT = 100
 BASE_QUERY = {
     "q": "",
     "has_image": 1,
@@ -28,7 +28,7 @@ def fetch_raw_data_from_cma_api(
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = http_session.get(base_search_url, params=query, timeout=30)
+            response = http_session.get(base_search_url, params=query, timeout=60)
             response.raise_for_status()
             break
         except requests.RequestException as e:
