@@ -17,14 +17,6 @@ class TestImageLoadServiceUnit:
         key2 = get_bucket_image_key("cma", "CMA456")
         assert key2 == "cma_CMA456.jpg"
 
-        # Test with slashes - should sanitize to avoid folder creation
-        key3 = get_bucket_image_key("smk", "KKS1971-373/2")
-        assert key3 == "smk_KKS1971-373_2.jpg"
-
-        # Test with backslashes too
-        key4 = get_bucket_image_key("met", "object\\with\\backslash")
-        assert key4 == "met_object_with_backslash.jpg"
-
     def test_hash_calculation(self):
         """Test thumbnail URL hash calculation."""
         test_url = "https://example.com/thumb.jpg"

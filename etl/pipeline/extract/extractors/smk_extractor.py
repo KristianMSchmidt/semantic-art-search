@@ -49,7 +49,7 @@ def fetch_raw_data_from_smk_api(
             logging.warning(f"Attempt {attempt + 1} failed: {e}. Retrying...")
 
     data = response.json()
-    return {"total_count": data.get("total", 0), "items": data.get("items", [])}
+    return {"total_count": data.get("found", 0), "items": data.get("items", [])}
 
 
 def store_raw_data_smk():
