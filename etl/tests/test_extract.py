@@ -1,4 +1,4 @@
-import pytest  # type: ignore
+import pytest
 from unittest.mock import Mock, patch
 
 from etl.models import MetaDataRaw

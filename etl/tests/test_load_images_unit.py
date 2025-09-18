@@ -1,6 +1,6 @@
 import hashlib
 from unittest.mock import Mock
-import pytest  # type: ignore
+import pytest
 
 from artsearch.src.services.bucket_service import get_bucket_image_key
 

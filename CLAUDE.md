@@ -41,11 +41,34 @@ make test       # Run all tests
 make shell      # Open container shell
 ```
 
+### ETL Pipeline Commands
+```bash
+# Extract (museum APIs → raw data)
+make extract-smk
+make extract-cma
+make extract-met
+make extract-rma
+
+# Transform (raw → standardized format)
+make transform
+make transform-smk
+
+# Load Images (thumbnails → S3)
+make load-images-dev
+make load-images-dev-small
+
+# Load Embeddings (CLIP → Qdrant)
+make load-embeddings-dry-run        # Test run, no changes
+make load-embeddings-dev-small      # 10 records with delays
+make load-embeddings-dev            # 100 records with delays
+make load-embeddings-prod           # Production: 1000 records, slower
+```
+
 ### ETL Pipeline Status
 - **Extract**: ✅ Museum API clients for all 4 museums
 - **Transform**: ✅ Data transformation to standardized format
 - **Load 1**: ✅ Image storage (S3)
-- **Load 2**:  embedding generation (CLIP) + vector DB (Qdrant)
+- **Load 2**: ✅ CLIP embedding generation + Qdrant vector DB
 
 ### Testing
 - **Framework**: pytest with Django integration (NOT Django's built-in test runner)
@@ -97,3 +120,31 @@ The system uses Docker Compose with separate configurations for development and 
 - **Production**: `docker-compose.prod.yml` - includes nginx reverse proxy
 
 Production commands use `make production_*` prefix (e.g., `make production_start`, `make production_stop`).
+
+## ETL Pipeline Architecture
+
+### Load Embeddings Service
+The embedding generation pipeline (`etl/pipeline/load/load_embeddings/service.py`) provides:
+
+**Features:**
+- CLIP image embedding generation (768 dimensions)
+- Qdrant vector storage with 4 named vectors (future-proofed):
+  - `image_clip`: CLIP image embeddings (active)
+  - `text_clip`, `text_jina`, `image_jina`: Zero vectors (placeholders)
+- Smart change detection (thumbnail URL hashing)
+- Rate limiting to protect museum APIs
+- Resume capability with `image_vector_clip` boolean tracking
+
+**Key Methods:**
+- `get_records_needing_processing()`: Query unprocessed/stale records
+- `should_process_embedding()`: Intelligent processing decisions
+- `process_single_record()`: Generate embedding + upload to Qdrant
+- `run_batch_processing()`: Batch processing with progress tracking
+
+**Collection:** Uses `artworks_etl_v1` collection in Qdrant with metadata fields:
+- `museum`, `object_number`, `title`, `artist`, `production_date`
+- `work_types`, `searchable_work_types`
+
+**Rate Limiting:** Default delays protect museum APIs:
+- Development: 0.2s between records, 5s between batches
+- Production: 0.5s between records, 10s between batches

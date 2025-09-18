@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from functools import lru_cache
-from typing import Literal, Callable
+from typing import Literal, Callable, Optional
 
 from django.db import transaction
 from etl.models import MetaDataRaw, TransformedData
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=None)
-def _get_transformer_cached(slug: str) -> Callable:
+def _get_transformer_cached(slug: str) -> Optional[Callable]:
     return get_transformer(slug)
 
 
@@ -44,7 +44,7 @@ def transform_and_upsert(
 
         transformed_dict = transformed.to_dict()
         transformed_dict["source_raw_hash"] = raw_data_obj.raw_hash
-        
+
         # Calculate thumbnail_url_hash if thumbnail_url exists
         if transformed_dict.get("thumbnail_url"):
             transformed_dict["thumbnail_url_hash"] = hashlib.sha256(

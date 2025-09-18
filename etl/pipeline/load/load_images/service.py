@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import time
 from typing import Literal, Optional
 from django.db import models, transaction
 from django.db.models import Q
@@ -67,12 +68,17 @@ class ImageLoadService:
         return False, "image exists and hash unchanged"
     
     def process_single_record(
-        self, 
-        record: TransformedData
+        self,
+        record: TransformedData,
+        delay_seconds: float = 0.0
     ) -> Literal["success", "skipped", "error"]:
         """
         Process a single TransformedData record for image loading.
-        
+
+        Args:
+            record: The TransformedData record to process
+            delay_seconds: Delay in seconds after processing to rate limit API calls
+
         Returns status of the operation.
         """
         try:
@@ -114,10 +120,15 @@ class ImageLoadService:
                 record.save(update_fields=['image_loaded', 'thumbnail_url_hash'])
             
             logger.info(
-                "Successfully processed %s:%s", 
-                record.museum_slug, 
+                "Successfully processed %s:%s",
+                record.museum_slug,
                 record.object_number
             )
+
+            # Rate limiting delay to be respectful to museum APIs
+            if delay_seconds > 0:
+                time.sleep(delay_seconds)
+
             return "success"
             
         except Exception as e:
@@ -130,20 +141,28 @@ class ImageLoadService:
             return "error"
     
     def run_batch_processing(
-        self, 
-        batch_size: int = 1000, 
-        museum_filter: Optional[str] = None
+        self,
+        batch_size: int = 1000,
+        museum_filter: Optional[str] = None,
+        delay_seconds: float = 0.0,
+        batch_delay_seconds: int = 0
     ) -> dict[str, int]:
         """
         Run batch processing of image loading.
-        
+
+        Args:
+            delay_seconds: Delay in seconds between individual image downloads
+            batch_delay_seconds: Delay in seconds after completing the batch
+
         Returns:
             Dictionary with counts: {"success": int, "skipped": int, "error": int, "total": int}
         """
         logger.info(
-            "Starting image loading batch (batch_size=%d, museum_filter=%s)", 
-            batch_size, 
-            museum_filter
+            "Starting image loading batch (batch_size=%d, museum_filter=%s, delay=%s, batch_delay=%s)",
+            batch_size,
+            museum_filter,
+            delay_seconds,
+            batch_delay_seconds
         )
         
         records = self.get_records_needing_processing(batch_size, museum_filter)
@@ -159,7 +178,7 @@ class ImageLoadService:
         stats = {"success": 0, "skipped": 0, "error": 0}
         
         for i, record in enumerate(records, 1):
-            status = self.process_single_record(record)
+            status = self.process_single_record(record, delay_seconds)
             stats[status] += 1
             
             if i % 100 == 0:
@@ -174,11 +193,16 @@ class ImageLoadService:
         
         stats["total"] = record_count
         logger.info(
-            "Batch complete: processed %d records (success=%d, skipped=%d, error=%d)", 
-            record_count, 
-            stats["success"], 
-            stats["skipped"], 
+            "Batch complete: processed %d records (success=%d, skipped=%d, error=%d)",
+            record_count,
+            stats["success"],
+            stats["skipped"],
             stats["error"]
         )
-        
+
+        # Batch delay to be respectful to museum APIs
+        if batch_delay_seconds > 0:
+            logger.info("Batch delay: waiting %d seconds before next batch", batch_delay_seconds)
+            time.sleep(batch_delay_seconds)
+
         return stats

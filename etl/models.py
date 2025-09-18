@@ -9,7 +9,9 @@ class MetaDataRaw(models.Model):
     museum_slug = models.CharField(max_length=10)
     museum_object_id = models.CharField(max_length=100)
     raw_json = models.JSONField()
-    raw_hash = models.CharField(max_length=64)  # SHA256
+    raw_hash = models.CharField(
+        max_length=64, help_text="SHA 256 hash of the stored raw_json"
+    )
     created_at = models.DateTimeField(auto_now_add=True)  # first fetched timestamp
     last_updated = models.DateTimeField(auto_now=True)  # last updated timestamp
 
@@ -63,10 +65,10 @@ class TransformedData(models.Model):
     # Processing status fields
     image_loaded = models.BooleanField(default=False)
     thumbnail_url_hash = models.CharField(
-        max_length=64, 
-        null=True, 
+        max_length=64,
+        null=True,
         blank=True,
-        help_text="SHA256 hash of thumbnail_url to detect changes"
+        help_text="SHA256 hash of thumbnail_url to detect changes",
     )
 
     # Vector storage tracking (for multiple embedding models)
@@ -102,6 +104,8 @@ class TransformedData(models.Model):
             return f"{self.production_date_start} - {self.production_date_end}"
         elif self.production_date_start:
             return str(self.production_date_start)
+        elif self.period:
+            return self.period
         return "Date unknown"
 
     class Meta:

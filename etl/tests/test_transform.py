@@ -1,4 +1,4 @@
-import pytest  # type: ignore
+import pytest
 
 from etl.models import MetaDataRaw, TransformedData
 from etl.pipeline.transform.factory import get_transformer, TRANSFORMERS

@@ -1,6 +1,6 @@
 import hashlib
 from unittest.mock import Mock
-import pytest  # type: ignore
+import pytest
 
 from etl.models import MetaDataRaw, TransformedData
 from etl.pipeline.load.load_images.service import ImageLoadService

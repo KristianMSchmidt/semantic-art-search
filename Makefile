@@ -49,6 +49,12 @@ test-transform:  ## Run transformation pipeline tests only
 test-load-images:  ## Run image loading pipeline tests only
 	docker compose -f docker-compose.dev.yml exec web pytest etl/tests/test_load_images_unit.py
 
+test-load-embeddings-unit:  ## Run embedding loading unit tests only
+	docker compose -f docker-compose.dev.yml exec web pytest etl/tests/test_load_embeddings_unit.py
+
+test-load-embeddings:  ## Run embedding loading integration tests only
+	docker compose -f docker-compose.dev.yml exec web pytest etl/tests/test_load_embeddings.py
+
 test-unit:  ## Run unit tests only
 	docker compose -f docker-compose.dev.yml exec web pytest -m unit
 
@@ -108,26 +114,58 @@ load-images-dry-run:  ## Preview image loading without actual downloads (develop
 	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --dry-run --batch-size 10
 
 load-images-smk:  ## Load thumbnail images for SMK museum (development)
-	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum smk --batch-size 100
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum smk --batch-size 50 --delay 0.3 --batch-delay 10
 
 load-images-cma:  ## Load thumbnail images for CMA museum (development)
-	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum cma --batch-size 100
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum cma --batch-size 50 --delay 0.3 --batch-delay 10
 
 load-images-rma:  ## Load thumbnail images for RMA museum (development)
-	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum rma --batch-size 100
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum rma --batch-size 50 --delay 0.3 --batch-delay 10
 
 load-images-met:  ## Load thumbnail images for MET museum (development)
-	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum met --batch-size 100
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum met --batch-size 50 --delay 0.3 --batch-delay 10
 
 load-images-all:  ## Load thumbnail images for all museums (development)
-	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --batch-size 500
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --batch-size 100 --delay 0.2 --batch-delay 5
 
-# Production ETL Load Images  
+# Production ETL Load Images
 production_load-images-dry-run:  ## Preview image loading without actual downloads (production)
 	docker compose -f docker-compose.prod.yml exec web python manage.py load_images --dry-run --batch-size 10
 
 production_load-images-all:  ## Load thumbnail images for all museums (production)
-	docker compose -f docker-compose.prod.yml exec web python manage.py load_images --batch-size 1000
+	docker compose -f docker-compose.prod.yml exec web python manage.py load_images --batch-size 200 --delay 0.1 --batch-delay 3
+
+# ETL Load Embeddings (Development)
+load-embeddings-dry-run:  ## Preview embedding generation without actual processing (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --dry-run --batch-size 10
+
+load-embeddings-smk:  ## Generate CLIP embeddings for SMK museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --museum smk --batch-size 50 --delay 0.3 --batch-delay 10
+
+load-embeddings-cma:  ## Generate CLIP embeddings for CMA museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --museum cma --batch-size 50 --delay 0.3 --batch-delay 10
+
+load-embeddings-rma:  ## Generate CLIP embeddings for RMA museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --museum rma --batch-size 50 --delay 0.3 --batch-delay 10
+
+load-embeddings-met:  ## Generate CLIP embeddings for MET museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --museum met --batch-size 50 --delay 0.3 --batch-delay 10
+
+load-embeddings-all:  ## Generate CLIP embeddings for all museums (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --batch-size 100 --delay 0.2 --batch-delay 5
+
+load-embeddings-force:  ## Force regenerate embeddings for all records (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --force --batch-size 50 --delay 0.3 --max-batches 3
+
+# Production ETL Load Embeddings
+production_load-embeddings-dry-run:  ## Preview embedding generation without actual processing (production)
+	docker compose -f docker-compose.prod.yml exec web python manage.py load_embeddings --dry-run --batch-size 10
+
+production_load-embeddings-all:  ## Generate CLIP embeddings for all museums (production)
+	docker compose -f docker-compose.prod.yml exec web python manage.py load_embeddings --batch-size 200 --delay 0.1 --batch-delay 3
+
+production_load-embeddings-force:  ## Force regenerate embeddings for all records (production)
+	docker compose -f docker-compose.prod.yml exec web python manage.py load_embeddings --force --batch-size 100 --delay 0.2 --batch-delay 5
 
 
 # ---------- Production ---------- #

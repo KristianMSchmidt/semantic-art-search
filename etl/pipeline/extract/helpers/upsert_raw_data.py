@@ -31,4 +31,4 @@ def store_raw_data(museum_slug: str, object_id: str, raw_json: dict) -> bool:
             "raw_hash": raw_hash,
         },
     )
-    return True  # indicates change → trigger re-embedding
+    return True  # indicates change
