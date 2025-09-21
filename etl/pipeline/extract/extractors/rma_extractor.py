@@ -5,6 +5,7 @@ from typing import Any
 import xmltodict
 from etl.pipeline.extract.helpers.upsert_raw_data import store_raw_data
 from etl.pipeline.extract.utils import extract_query_param
+from etl.pipeline.shared.rma_utils import extract_provided_cho, extract_object_number
 
 MUSEUM_SLUG = "rma"
 WORK_TYPES = [
@@ -53,7 +54,7 @@ def fetch_raw_data_from_rma_api(
     }
 
 
-def store_raw_data_rma():
+def store_raw_data_rma(force_refetch: bool = False):
     start_time = time.time()
 
     http_session = requests.Session()
@@ -61,12 +62,14 @@ def store_raw_data_rma():
     for work_type in WORK_TYPES:
         logging.info(f"Processing work type: {work_type}")
 
-        total_num_changed = 0
+        total_num_created = 0
+        total_num_updated = 0
         items_to_far = 0
         page_token = ""
 
         while True:
-            num_changed = 0
+            num_created = 0
+            num_updated = 0
             base_query = BASE_QUERY.copy()
             query = base_query | {
                 "type": work_type,
@@ -93,21 +96,51 @@ def store_raw_data_rma():
             for item in items:
                 item_id = item["id"].split("/")[-1]
                 record = fetch_record(item_id, http_session)
-                changed = store_raw_data(
-                    museum_slug=MUSEUM_SLUG,
-                    object_id=item_id,
-                    raw_json=record,
-                )
-                if changed:
-                    num_changed += 1
-                    total_num_changed += 1
 
-            logging.info(f"Number of items changed in current batch: {num_changed}")
+                # Extract object_number from complex RMA structure
+                try:
+                    metadata = record.get("metadata", {})
+                    rdf = metadata.get("rdf:RDF", {})
+                    provided_cho = extract_provided_cho(rdf)
+                    object_number = (
+                        extract_object_number(provided_cho) if provided_cho else None
+                    )
+
+                    if not object_number:
+                        logging.warning(
+                            f"Skipping RMA item {item_id} - missing object_number"
+                        )
+                        continue
+
+                except Exception as e:
+                    logging.error(
+                        f"Error extracting object_number for RMA item {item_id}: {e}"
+                    )
+                    continue
+
+                created = store_raw_data(
+                    museum_slug=MUSEUM_SLUG,
+                    object_number=object_number,
+                    raw_json=record,
+                    museum_db_id=item_id,
+                )
+                if created:
+                    num_created += 1
+                    total_num_created += 1
+                else:
+                    num_updated += 1
+                    total_num_updated += 1
+
+            logging.info(f"Number of items created in current batch: {num_created}")
+            logging.info(f"Number of items updated in current batch: {num_updated}")
 
             if next_page_token is None or not next_page_token.strip():
                 logging.info(f"All items processed for work type: {work_type}.")
                 logging.info(
-                    f"Total items changed for {work_type}: {total_num_changed}"
+                    f"Total items created for {work_type}: {total_num_created}"
+                )
+                logging.info(
+                    f"Total items updated for {work_type}: {total_num_updated}"
                 )
                 break
             page_token = next_page_token

@@ -16,14 +16,14 @@ FIELDS = [
 START_DATE = "1000-01-01T00:00:00.000Z"
 END_DATE = "2026-12-31T23:59:59.999Z"
 WORK_TYPES = [
-    "tegning",
+    "pastel",
     "akvatinte",
     "akvarel",
     "Buste",
     "maleri",
-    "pastel",
+    "tegning",
 ]
-LIMIT = 1000
+LIMIT = 100
 BASE_QUERY = {
     "keys": "*",
     # "fields": ",".join(FIELDS),
@@ -52,7 +52,7 @@ def fetch_raw_data_from_smk_api(
     return {"total_count": data.get("found", 0), "items": data.get("items", [])}
 
 
-def store_raw_data_smk():
+def store_raw_data_smk(force_refetch: bool = False):
     start_time = time.time()
 
     http_session = requests.Session()
@@ -61,10 +61,12 @@ def store_raw_data_smk():
         logging.info(f"Processing work type: {work_type}")
 
         offset = 0
-        total_num_changed = 0
+        total_num_created = 0
+        total_num_updated = 0
 
         while True:
-            num_changed = 0
+            num_created = 0
+            num_updated = 0
             base_query = BASE_QUERY.copy()
             query = base_query | {
                 "filters": f"[has_image:true],[object_names:{work_type}],[public_domain:true]",
@@ -86,21 +88,29 @@ def store_raw_data_smk():
             )
 
             for item in items:
-                changed = store_raw_data(
+                created = store_raw_data(
                     museum_slug=MUSEUM_SLUG,
-                    object_id=item["object_number"],
+                    object_number=item["object_number"],
                     raw_json=item,
+                    museum_db_id=item.get("id"),
                 )
-                if changed:
-                    num_changed += 1
-                    total_num_changed += 1
+                if created:
+                    num_created += 1
+                    total_num_created += 1
+                else:
+                    num_updated += 1
+                    total_num_updated += 1
 
-            logging.info(f"Number of items changed in current batch: {num_changed}")
+            logging.info(f"Number of items created in current batch: {num_created}")
+            logging.info(f"Number of items updated in current batch: {num_updated}")
 
             if offset + LIMIT >= total:
                 logging.info(f"All items processed for work type: {work_type}.")
                 logging.info(
-                    f"Total items changed for {work_type}: {total_num_changed}"
+                    f"Total items created for {work_type}: {total_num_created}"
+                )
+                logging.info(
+                    f"Total items updated for {work_type}: {total_num_updated}"
                 )
                 break
 

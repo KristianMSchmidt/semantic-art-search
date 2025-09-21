@@ -6,15 +6,15 @@ from .models import MetaDataRaw, TransformedData
 class MetaDataRawAdmin(admin.ModelAdmin):
     list_display = (
         "museum_slug",
-        "museum_object_id",
+        "object_number",
+        "museum_db_id",
         "created_at",
         "last_updated",
-        "raw_hash",
     )
     list_filter = ("museum_slug", "created_at", "last_updated")
-    search_fields = ("museum_slug", "museum_object_id")
+    search_fields = ("museum_slug", "object_numer", "museum_db_id")
     ordering = ("-last_updated",)
-    readonly_fields = ("raw_hash", "created_at", "last_updated")
+    readonly_fields = ("created_at", "last_updated")
 
     def has_add_permission(self, request):
         """Prevent adding new MetaDataRaw entries via the admin interface."""

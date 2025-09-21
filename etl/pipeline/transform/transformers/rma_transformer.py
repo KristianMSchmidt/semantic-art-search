@@ -4,6 +4,7 @@ from etl.pipeline.transform.utils import (
     get_searchable_work_types,
 )
 from etl.pipeline.transform.models import TransformedArtworkData
+from etl.pipeline.shared.rma_utils import extract_provided_cho, extract_object_number
 
 
 def transform_rma_data(
@@ -109,22 +110,6 @@ def transform_rma_data(
 #### RMA helpers and utility functions #####
 
 
-def extract_provided_cho(rdf_data: dict[str, Any]) -> dict[str, Any] | None:
-    provided_cho = rdf_data.get("ore:Aggregation", {}).get("edm:aggregatedCHO", {}).get(
-        "edm:ProvidedCHO"
-    ) or rdf_data.get("edm:ProvidedCHO")
-
-    if not provided_cho:
-        return None
-
-    return provided_cho
-
-
-def extract_object_number(provided_cho: dict[str, Any]) -> str | None:
-    object_number = provided_cho.get("dc:identifier")
-    if not object_number or not isinstance(object_number, str):
-        return None
-    return object_number
 
 
 def adjust_thumbnail_size(image_url: str, width=600) -> str:

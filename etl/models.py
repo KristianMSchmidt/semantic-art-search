@@ -7,26 +7,32 @@ class MetaDataRaw(models.Model):
     """
 
     museum_slug = models.CharField(max_length=10)
-    museum_object_id = models.CharField(max_length=100)
-    raw_json = models.JSONField()
-    raw_hash = models.CharField(
-        max_length=64, help_text="SHA 256 hash of the stored raw_json"
+    object_number = models.CharField(
+        max_length=100, help_text="Stable puclic artwork identifier"
     )
-    created_at = models.DateTimeField(auto_now_add=True)  # first fetched timestamp
-    last_updated = models.DateTimeField(auto_now=True)  # last updated timestamp
+    museum_db_id = models.CharField(
+        max_length=100, null=True, blank=True, help_text="Optional museum database ID"
+    )
+    raw_json = models.JSONField()
+    is_transformed = models.BooleanField(
+        default=False, help_text="Whether this record has been transformed yet"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True, help_text="First fetched timestamp"
+    )
+    last_updated = models.DateTimeField(
+        auto_now=True, help_text="Last updated timestamp"
+    )
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["museum_slug", "museum_object_id"],
-                name="uniq_raw_museum_object",
+                fields=["museum_slug", "object_number"],
+                name="uniq_raw_museum_object_number",
             ),
         ]
         indexes = [
             models.Index(fields=["museum_slug"]),  # For museum-specific filtering
-            models.Index(
-                fields=["raw_hash"]
-            ),  # For hash comparisons in staleness checks
         ]
 
 
@@ -113,10 +119,3 @@ class TransformedData(models.Model):
             models.Index(fields=["source_raw_hash"]),  # For staleness comparisons
             models.Index(fields=["museum_slug"]),  # For museum-specific queries
         ]
-
-    @property
-    def is_stale(self) -> bool:
-        """
-        Check if the transformed data is stale compared to the raw data.
-        """
-        return self.raw_data.raw_hash != self.source_raw_hash

@@ -20,14 +20,22 @@ class Command(BaseCommand):
             action="store_true",
             help="Run extraction for all supported museums",
         )
+        parser.add_argument(
+            "--force-refetch",
+            action="store_true",
+            help="Force refetch all items regardless of existing data",
+        )
 
     def handle(self, *args, **options):
+        force_refetch = options.get("force_refetch", False)
+
         if options["all"]:
-            self.stdout.write(
-                self.style.SUCCESS("Starting upsert of raw data for ALL museums...")
-            )
+            message = "Starting upsert of raw data for ALL museums..."
+            if force_refetch:
+                message += " (force refetch enabled)"
+            self.stdout.write(self.style.SUCCESS(message))
             try:
-                run_extract()
+                run_extract(force_refetch=force_refetch)
                 self.stdout.write(
                     self.style.SUCCESS("Upsert of raw data for ALL museums complete!")
                 )
@@ -35,17 +43,20 @@ class Command(BaseCommand):
                 raise CommandError(f"Extraction pipeline failed: {str(e)}")
         else:
             museum = options["museum"]
-            extractor = get_extractor(museum)
+            extractor = get_extractor(museum, force_refetch=force_refetch)
             if not extractor:
                 raise CommandError(f"No extractor found for museum: {museum}")
 
-            self.stdout.write(
-                self.style.SUCCESS(f"Starting upsert of raw data ({museum.upper()})...")
-            )
+            message = f"Starting upsert of raw data ({museum.upper()})..."
+            if force_refetch:
+                message += " (force refetch enabled)"
+            self.stdout.write(self.style.SUCCESS(message))
             try:
-                extract_single_museum(museum)
+                extract_single_museum(museum, force_refetch=force_refetch)
                 self.stdout.write(
-                    self.style.SUCCESS(f"Upsert of raw data ({museum.upper()}) complete!")
+                    self.style.SUCCESS(
+                        f"Upsert of raw data ({museum.upper()}) complete!"
+                    )
                 )
             except Exception as e:
                 raise CommandError(f"Extraction failed for {museum}: {str(e)}")
