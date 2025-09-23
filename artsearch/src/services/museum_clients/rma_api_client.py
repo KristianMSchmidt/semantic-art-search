@@ -16,8 +16,11 @@ class RMAAPIClient(MuseumAPIClient):
     BASE_URL = "https://data.rijksmuseum.nl/oai?verb=GetRecord&metadataPrefix=edm&identifier=https://id.rijksmuseum.nl/"
     BASE_SEARCH_URL = "https://data.rijksmuseum.nl/search/collection"
 
+    def get_object_url(self, inventory_number: str) -> str:
+        return f"{self.BASE_SEARCH_URL}?objectNumber={inventory_number}"
+
     def get_thumbnail_url(self, inventory_number: str) -> str:
-        url = f"{RMAAPIClient.BASE_SEARCH_URL}?objectNumber={inventory_number}"
+        url = self.get_object_url(inventory_number)
         response = self.http_session.get(url)
         response.raise_for_status()
         data = response.json()

@@ -1,4 +1,7 @@
 from django.db import models
+from django.utils.html import format_html
+from artsearch.src.utils.qdrant_formatting import get_source_url
+from artsearch.src.services.museum_clients.factory import get_museum_client
 
 
 class MetaDataRaw(models.Model):
@@ -35,6 +38,55 @@ class MetaDataRaw(models.Model):
             models.Index(fields=["museum_slug"]),  # For museum-specific filtering
         ]
 
+    def __str__(self):
+        return f"{self.museum_slug}:{self.object_number}"
+
+    def get_museum_page_url(self) -> str | None:
+        """Construct a URL to the museum's frontend page for this artwork."""
+        return get_source_url(self.museum_slug, self.object_number, self.museum_db_id)
+
+    def get_museum_api_url(self) -> str | None:
+        """Construct a URL to the museum's API endpoint for this artwork."""
+        return get_museum_api_url(
+            self.museum_slug, self.object_number, self.museum_db_id
+        )
+
+    def get_museum_page_link_html(self):
+        """HTML link for admin list display."""
+        url = self.get_museum_page_url()
+        if url:
+            return format_html('<a href="{}" target="_blank">🔗</a>', url)
+        return "–"
+
+    get_museum_page_link_html.short_description = "Page"
+
+    def get_museum_page_url_html(self):
+        """HTML link for admin detail view."""
+        url = self.get_museum_page_url()
+        if url:
+            return format_html('<a href="{}" target="_blank">{}</a>', url, url)
+        return "N/A"
+
+    get_museum_page_url_html.short_description = "Museum Page URL"
+
+    def get_museum_api_url_html(self):
+        """HTML link for admin detail view."""
+        url = self.get_museum_api_url()
+        if url:
+            return format_html('<a href="{}" target="_blank">{}</a>', url, url)
+        return "N/A"
+
+    get_museum_api_url_html.short_description = "Museum API URL"
+
+    def get_museum_api_link_html(self):
+        """HTML API link for admin list display."""
+        url = self.get_museum_api_url()
+        if url:
+            return format_html('<a href="{}" target="_blank">🔗</a>', url)
+        return "–"
+
+    get_museum_api_link_html.short_description = "API"
+
 
 class TransformedData(models.Model):
     """
@@ -44,38 +96,27 @@ class TransformedData(models.Model):
     generation and vector database upload. Fields match ArtworkPayload structure.
     """
 
-    # Reference to raw data
-    raw_data = models.OneToOneField(MetaDataRaw, on_delete=models.CASCADE)
-
-    # Record which raw version this transform corresponds to:
-    source_raw_hash = models.CharField(
-        max_length=64,
-    )  # copy of MetaDataRaw.raw_hash at transform time
-
-    # Required fields
+    # Fields copied from MetaDataRaw on transform
     object_number = models.CharField(max_length=100)  # Required field
-    thumbnail_url = models.URLField(max_length=500)  # Required field
     museum_slug = models.CharField(max_length=10)  # Required field
-    searchable_work_types = models.JSONField()  # Required field, list[str]
+    museum_db_id = models.CharField(
+        max_length=100, null=True, blank=True, help_text="Optional museum database ID"
+    )
 
-    # Other fields
+    # Extracted fields from raw_json
+    searchable_work_types = models.JSONField()  # Required field, list[str]
+    thumbnail_url = models.URLField(max_length=500)  # Required field
     title = models.CharField(max_length=500, null=True, blank=True)
     work_types = models.JSONField(default=list)  # list[str]
     artist = models.JSONField(default=list)  # list[str]
     production_date_start = models.IntegerField(null=True, blank=True)
     production_date_end = models.IntegerField(null=True, blank=True)
     period = models.CharField(max_length=100, null=True, blank=True)
-    museum_db_id = models.CharField(max_length=100, null=True, blank=True)
     image_url = models.URLField(max_length=500, null=True, blank=True)
 
     # Processing status fields
     image_loaded = models.BooleanField(default=False)
-    thumbnail_url_hash = models.CharField(
-        max_length=64,
-        null=True,
-        blank=True,
-        help_text="SHA256 hash of thumbnail_url to detect changes",
-    )
+    vector_loaded = models.BooleanField(default=False)
 
     # Vector storage tracking (for multiple embedding models)
     text_vector_clip = models.BooleanField(default=False)
@@ -84,8 +125,23 @@ class TransformedData(models.Model):
     image_vector_jina = models.BooleanField(default=False)
 
     # Timestamps
-    created_at = models.DateTimeField(auto_now_add=True)  # first transform
-    last_updated = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True, help_text="First transformed timestamp"
+    )
+    last_updated = models.DateTimeField(
+        auto_now=True, help_text="Last updated timestamp"
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["museum_slug", "object_number"],
+                name="uniq_transformed_museum_object_number",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["museum_slug"]),  # For museum-specific queries
+        ]
 
     def __str__(self):
         return f"{self.museum_slug}:{self.object_number} - {self.get_primary_title()}"
@@ -114,8 +170,60 @@ class TransformedData(models.Model):
             return self.period
         return "Date unknown"
 
-    class Meta:
-        indexes = [
-            models.Index(fields=["source_raw_hash"]),  # For staleness comparisons
-            models.Index(fields=["museum_slug"]),  # For museum-specific queries
-        ]
+    def get_museum_page_url(self) -> str | None:
+        """Construct a URL to the museum's frontend page for this artwork."""
+        return get_source_url(self.museum_slug, self.object_number, self.museum_db_id)
+
+    def get_museum_api_url(self) -> str | None:
+        """Construct a URL to the museum's API endpoint for this artwork."""
+        return get_museum_api_url(
+            self.museum_slug, self.object_number, self.museum_db_id
+        )
+
+    def get_museum_page_link_html(self):
+        """HTML link for admin list display."""
+        url = self.get_museum_page_url()
+        if url:
+            return format_html('<a href="{}" target="_blank">🔗</a>', url)
+        return "–"
+
+    get_museum_page_link_html.short_description = "Page"
+
+    def get_museum_page_url_html(self):
+        """HTML link for admin detail view."""
+        url = self.get_museum_page_url()
+        if url:
+            return format_html('<a href="{}" target="_blank">{}</a>', url, url)
+        return "N/A"
+
+    get_museum_page_url_html.short_description = "Museum Page URL"
+
+    def get_museum_api_url_html(self):
+        """HTML link for admin detail view."""
+        url = self.get_museum_api_url()
+        if url:
+            return format_html('<a href="{}" target="_blank">{}</a>', url, url)
+        return "N/A"
+
+    get_museum_api_url_html.short_description = "Museum API URL"
+
+    def get_museum_api_link_html(self):
+        """HTML API link for admin list display."""
+        url = self.get_museum_api_url()
+        if url:
+            return format_html('<a href="{}" target="_blank">API</a>', url)
+        return "–"
+
+    get_museum_api_link_html.short_description = "API"
+
+
+def get_museum_api_url(
+    museum_slug: str, object_number: str, museum_db_id: str | None = None
+) -> str | None:
+    """Returns the URL to the artwork's API endpoint at the source museum."""
+    museum_api_client = get_museum_client(museum_slug)
+    if museum_slug == "met":
+        assert museum_db_id is not None, "museum_db_id is required for MET"
+        return museum_api_client.get_object_url(museum_db_id)
+    else:
+        return museum_api_client.get_object_url(object_number)

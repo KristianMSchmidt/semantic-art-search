@@ -1,3 +1,5 @@
+"""Helper functions to format downloaded Qdrant payloads for frontend display."""
+
 from qdrant_client import models
 
 from artsearch.src.constants import WORK_TYPES_DICT, SUPPORTED_MUSEUMS

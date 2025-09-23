@@ -12,11 +12,14 @@ class CMAAPIClient(MuseumAPIClient):
     BASE_URL = "https://openaccess-api.clevelandart.org/api/artworks/"
     BASE_SEARCH_URL = BASE_URL
 
+    def get_object_url(self, inventory_number: str) -> str:
+        return f"{self.BASE_URL}?accession_number={inventory_number}"
+
     def get_thumbnail_url(self, inventory_number: str) -> str:
         if not inventory_number:
             raise ValueError("Inventory number must be provided.")
 
-        url = f"{self.BASE_URL}?accession_number={inventory_number}"
+        url = self.get_object_url(inventory_number)
         response = self.http_session.get(url)
         response.raise_for_status()
         data = response.json()

@@ -19,6 +19,7 @@ SEARCH_QUERIES = ["paintings"]
 BASE_URL = "https://collectionapi.metmuseum.org/public/collection/v1"
 OBJECTS_URL = f"{BASE_URL}/objects"
 SEARCH_URL = f"{BASE_URL}/search"
+SLEEP_BETWEEN_REQUESTS = 1  # seconds
 
 
 def get_dept_object_ids(
@@ -116,7 +117,7 @@ def handle_met_upload(
     for idx, object_id in enumerate(objects_to_fetch):
         print(f"Processing {idx + 1} of {len(objects_to_fetch)} objects...")
 
-        time.sleep(5)  # to avoid rate limiting
+        time.sleep(SLEEP_BETWEEN_REQUESTS)  # to avoid rate limiting
 
         try:
             item = get_item(object_id, http_session)

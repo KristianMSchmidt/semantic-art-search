@@ -47,13 +47,15 @@ class TransformedArtworkData(BaseModel):
         default=None, description="Museum's internal database ID"
     )
 
-    # Processing status flags
+    # Processing status fields
     image_loaded: bool = Field(
         default=False, description="Whether image has been downloaded"
     )
-    thumbnail_url_hash: Optional[str] = Field(
-        default=None, description="SHA256 hash of thumbnail_url to detect changes"
+    vector_loaded: bool = Field(
+        default=False, description="Whether any vector embeddings exist"
     )
+
+    # Vector storage tracking (for multiple embedding models)
     text_vector_clip: bool = Field(
         default=False, description="Whether CLIP text embedding exists"
     )
@@ -75,17 +77,3 @@ class TransformedArtworkData(BaseModel):
     def from_dict(cls, data: dict) -> "TransformedArtworkData":
         """Create instance from dictionary."""
         return cls(**data)
-
-    def get_title(self) -> str:
-        """Get the primary title."""
-        if self.title:
-            return self.title
-        return "Untitled"
-
-    def get_museum_frontend_url(self) -> str:
-        """Construct a URL to the museum's frontend page for this artwork."""
-        raise NotImplementedError("Not implemented yet")
-
-    def get_musum_api_url(self) -> str:
-        """Construct a URL to the museum's API endpoint for this artwork."""
-        raise NotImplementedError("Not implemented yet")
