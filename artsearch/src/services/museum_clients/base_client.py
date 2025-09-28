@@ -51,11 +51,6 @@ class MuseumAPIClient(ABC):
         pass
 
     @abstractmethod
-    def get_thumbnail_url(self, inventory_number: str) -> str:
-        """Fetch the thumbnail URL for a given inventory number."""
-        pass
-
-    @abstractmethod
     def _process_item(self, item: dict[str, Any]) -> ArtworkPayload | None:
         """Process a single item fetched from a museum API."""
         pass

@@ -15,28 +15,6 @@ class CMAAPIClient(MuseumAPIClient):
     def get_object_url(self, inventory_number: str) -> str:
         return f"{self.BASE_URL}?accession_number={inventory_number}"
 
-    def get_thumbnail_url(self, inventory_number: str) -> str:
-        if not inventory_number:
-            raise ValueError("Inventory number must be provided.")
-
-        url = self.get_object_url(inventory_number)
-        response = self.http_session.get(url)
-        response.raise_for_status()
-        data = response.json()
-
-        items = data.get("data", [])
-        if not items:
-            raise MuseumAPIClientError(
-                f"No artwork found with inventory number: {inventory_number}"
-            )
-
-        try:
-            return items[0]["images"]["web"]["url"]
-        except KeyError:
-            raise MuseumAPIClientError(
-                f"Missing thumbnail data for inventory number: {inventory_number}"
-            )
-
     def _process_item(self, item: dict[str, Any]) -> ArtworkPayload:
         work_types = [item["type"].lower()]
         return ArtworkPayload(

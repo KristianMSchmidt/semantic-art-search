@@ -107,7 +107,9 @@ class TransformedData(models.Model):
     searchable_work_types = models.JSONField()  # Required field, list[str]
     thumbnail_url = models.URLField(max_length=500)  # Required field
     title = models.CharField(max_length=500, null=True, blank=True)
-    work_types = models.JSONField(default=list)  # list[str]
+    work_types = models.JSONField(
+        default=list, help_text="List of work types in original language"
+    )  # list[str]
     artist = models.JSONField(default=list)  # list[str]
     production_date_start = models.IntegerField(null=True, blank=True)
     production_date_end = models.IntegerField(null=True, blank=True)
@@ -222,7 +224,7 @@ def get_museum_api_url(
 ) -> str | None:
     """Returns the URL to the artwork's API endpoint at the source museum."""
     museum_api_client = get_museum_client(museum_slug)
-    if museum_slug == "met":
+    if museum_slug in ("met", "rma"):
         assert museum_db_id is not None, "museum_db_id is required for MET"
         return museum_api_client.get_object_url(museum_db_id)
     else:

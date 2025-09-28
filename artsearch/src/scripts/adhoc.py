@@ -239,7 +239,7 @@ def make_favicon():
 
     # Get the thumbnail URL for the specified artwork
     object_number = "KMSr171"
-    thumbnail_url = smk_client.get_thumbnail_url(object_number)
+    thumbnail_url = "Example URL"
 
     # Fetch the image from the URL
     response = requests.get(thumbnail_url, stream=True)
