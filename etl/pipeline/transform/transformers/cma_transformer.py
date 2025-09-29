@@ -4,20 +4,35 @@ from etl.pipeline.transform.utils import (
     safe_int_from_date,
 )
 from etl.pipeline.transform.models import TransformedArtworkData
+from etl.pipeline.transform.models import TransformerArgs
 
 
 def transform_cma_data(
-    raw_json: dict, museum_object_id: str
+    transformer_args: TransformerArgs,
 ) -> Optional[TransformedArtworkData]:
     """
-    Transform CMA raw JSON data to TransformedArtworkData.
+    Transform raw CMA metadata object to TransformedArtworkData.
 
     Returns TransformedArtworkData instance or None if transformation fails.
     """
     try:
-        # Required field: object_number (accession_number)
-        object_number = raw_json.get("accession_number")
+        # Museum slug check
+        museum_slug = transformer_args.museum_slug
+        assert museum_slug == "cma", "Transformer called for wrong museum"
+
+        # Object number
+        object_number = transformer_args.object_number
         if not object_number:
+            return None
+
+        # Museum DB ID
+        museum_db_id = transformer_args.museum_db_id
+        if not museum_db_id:
+            return None
+
+        # Raw JSON data
+        raw_json = transformer_args.raw_json
+        if not raw_json or not isinstance(raw_json, dict):
             return None
 
         # Required field: thumbnail_url
@@ -85,6 +100,7 @@ def transform_cma_data(
         # Return transformed data as Pydantic model
         return TransformedArtworkData(
             object_number=object_number,
+            museum_db_id=museum_db_id,
             title=title,
             work_types=work_types,
             searchable_work_types=searchable_work_types,
@@ -93,17 +109,10 @@ def transform_cma_data(
             production_date_end=production_date_end,
             period=period,
             thumbnail_url=str(thumbnail_url),
-            museum_slug="cma",
-            museum_db_id=str(raw_json.get("id")) if raw_json.get("id") else None,
+            museum_slug=museum_slug,
             image_url=image_url,
-            # Processing flags default to False
-            image_loaded=False,
-            text_vector_clip=False,
-            image_vector_clip=False,
-            text_vector_jina=False,
-            image_vector_jina=False,
         )
 
     except Exception as e:
-        print(f"CMA transform error for {museum_object_id}: {e}")
+        print(f"CMA transform error for {object_number}:{museum_db_id}: {e}")
         return None

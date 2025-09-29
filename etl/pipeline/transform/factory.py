@@ -1,20 +1,19 @@
-from typing import Callable, Optional
+from typing import Optional
 from etl.pipeline.transform.transformers.smk_transformer import transform_smk_data
 from etl.pipeline.transform.transformers.cma_transformer import transform_cma_data
 from etl.pipeline.transform.transformers.met_transformer import transform_met_data
 from etl.pipeline.transform.transformers.rma_transformer import transform_rma_data
+from etl.pipeline.transform.models import TransformerFn
 
-
-TRANSFORMERS = {
+TRANSFORMERS: dict[str, TransformerFn] = {
     "smk": transform_smk_data,
     "cma": transform_cma_data,
-    "met": transform_met_data,
     "rma": transform_rma_data,
-    # Add other museums here as they are implemented:
+    "met": transform_met_data,
 }
 
 
-def get_transformer(museum_slug: str) -> Optional[Callable]:
+def get_transformer(museum_slug: str) -> Optional[TransformerFn]:
     """
     Get the appropriate transformer function for a museum slug.
 

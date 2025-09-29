@@ -17,9 +17,6 @@ class MetaDataRaw(models.Model):
         max_length=100, null=True, blank=True, help_text="Optional museum database ID"
     )
     raw_json = models.JSONField()
-    is_transformed = models.BooleanField(
-        default=False, help_text="Whether this record has been transformed yet"
-    )
     created_at = models.DateTimeField(
         auto_now_add=True, help_text="First fetched timestamp"
     )

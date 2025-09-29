@@ -86,10 +86,7 @@ class ImageLoadService:
             
             if not should_process:
                 logger.debug(
-                    "Skipping %s:%s - %s", 
-                    record.museum_slug, 
-                    record.object_number, 
-                    reason
+                    f"Skipping {record.museum_slug}:{record.object_number} - {reason}"
                 )
                 # Still mark as loaded if it exists in S3 but wasn't marked
                 if not record.image_loaded:
@@ -98,10 +95,7 @@ class ImageLoadService:
                 return "skipped"
             
             logger.info(
-                "Processing %s:%s - %s", 
-                record.museum_slug, 
-                record.object_number, 
-                reason
+                f"Processing {record.museum_slug}:{record.object_number} - {reason}"
             )
             
             # Download and upload image
@@ -120,9 +114,7 @@ class ImageLoadService:
                 record.save(update_fields=['image_loaded', 'thumbnail_url_hash'])
             
             logger.info(
-                "Successfully processed %s:%s",
-                record.museum_slug,
-                record.object_number
+                f"Successfully processed {record.museum_slug}:{record.object_number}"
             )
 
             # Rate limiting delay to be respectful to museum APIs
@@ -133,10 +125,7 @@ class ImageLoadService:
             
         except Exception as e:
             logger.exception(
-                "Error processing %s:%s: %s", 
-                record.museum_slug, 
-                record.object_number, 
-                e
+                f"Error processing {record.museum_slug}:{record.object_number}: {e}"
             )
             return "error"
     

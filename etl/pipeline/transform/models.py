@@ -1,5 +1,6 @@
+from dataclasses import dataclass
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Callable, Any
 
 
 class TransformedArtworkData(BaseModel):
@@ -11,13 +12,14 @@ class TransformedArtworkData(BaseModel):
 
     # Required fields
     object_number: str = Field(..., description="Required field - object identifier")
+    museum_db_id: str = Field(..., description="Museum's internal database ID")
     museum_slug: str = Field(..., description="Required field - museum identifier")
     searchable_work_types: list[str] = Field(
         ..., description="Required field - standardized work types"
     )
     thumbnail_url: str = Field(..., description="Required field - thumbnail image URL")
 
-    # Other fields
+    # Optional fields
     title: Optional[str] = Field(
         default=None, description="Primary title of the artwork"
     )
@@ -25,8 +27,6 @@ class TransformedArtworkData(BaseModel):
         default_factory=list, description="Raw work type classifications"
     )
     artist: list[str] = Field(default_factory=list, description="Artist names")
-
-    # Dating
     production_date_start: Optional[int] = Field(
         default=None, description="Start year of production"
     )
@@ -37,36 +37,8 @@ class TransformedArtworkData(BaseModel):
         default=None, max_length=100, description="Period designation"
     )
 
-    # Image URL
     image_url: Optional[str] = Field(
         default=None, description="Full resolution image URL"
-    )
-
-    # Museum metadata
-    museum_db_id: Optional[str] = Field(
-        default=None, description="Museum's internal database ID"
-    )
-
-    # Processing status fields
-    image_loaded: bool = Field(
-        default=False, description="Whether image has been downloaded"
-    )
-    vector_loaded: bool = Field(
-        default=False, description="Whether any vector embeddings exist"
-    )
-
-    # Vector storage tracking (for multiple embedding models)
-    text_vector_clip: bool = Field(
-        default=False, description="Whether CLIP text embedding exists"
-    )
-    image_vector_clip: bool = Field(
-        default=False, description="Whether CLIP image embedding exists"
-    )
-    text_vector_jina: bool = Field(
-        default=False, description="Whether Jina text embedding exists"
-    )
-    image_vector_jina: bool = Field(
-        default=False, description="Whether Jina image embedding exists"
     )
 
     def to_dict(self) -> dict:
@@ -77,3 +49,14 @@ class TransformedArtworkData(BaseModel):
     def from_dict(cls, data: dict) -> "TransformedArtworkData":
         """Create instance from dictionary."""
         return cls(**data)
+
+
+@dataclass
+class TransformerArgs:
+    museum_slug: str
+    object_number: str
+    museum_db_id: Optional[str]
+    raw_json: dict[str, Any]
+
+
+TransformerFn = Callable[[TransformerArgs], Optional[TransformedArtworkData]]

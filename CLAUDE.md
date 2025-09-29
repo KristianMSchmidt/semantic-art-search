@@ -50,8 +50,11 @@ make extract-met
 make extract-rma
 
 # Transform (raw → standardized format)
-make transform
-make transform-smk
+make transform              # All museums
+make transform-smk          # SMK only
+make transform-cma          # CMA only
+make transform-rma          # RMA only
+make transform-met          # MET only
 
 # Load Images (thumbnails → S3)
 make load-images-dev
@@ -66,7 +69,7 @@ make load-embeddings-prod           # Production: 1000 records, slower
 
 ### ETL Pipeline Status
 - **Extract**: ✅ Museum API clients for all 4 museums
-- **Transform**: ✅ Data transformation to standardized format
+- **Transform**: ✅ Simplified data transformation (all museums complete)
 - **Load 1**: ✅ Image storage (S3)
 - **Load 2**: ✅ CLIP embedding generation + Qdrant vector DB
 
@@ -123,6 +126,41 @@ Production commands use `make production_*` prefix (e.g., `make production_start
 
 ## ETL Pipeline Architecture
 
+### Transform Service (Simplified Design)
+The transform pipeline (`etl/pipeline/transform/`) has been radically simplified for maintainability:
+
+**Design Philosophy:**
+- **Simple**: Transform everything every time - no complex state tracking
+- **Museum-specific**: Optional filtering by museum slug
+- **Clean separation**: Transform stage only handles data transformation, not processing state
+- **Type-safe**: Uses dataclasses and proper typing throughout
+
+**Key Components:**
+- `TransformerArgs`: Dataclass containing all transformer inputs (museum_slug, object_number, museum_db_id, raw_json)
+- `TransformerFn`: Type alias for transformer functions
+- `transform_and_upsert()`: Single function to transform and upsert records using Django's `update_or_create()`
+- Museum-specific transformers in `etl/pipeline/transform/transformers/`
+
+**Data Flow:**
+1. Query `MetaDataRaw` records (optionally filtered by museum)
+2. For each record: Create `TransformerArgs` → Call transformer → Upsert to `TransformedData`
+3. Uses `update_or_create()` based on unique constraint (museum_slug + object_number)
+
+**Benefits:**
+- No hash-based staleness detection complexity
+- No state tracking (removed `is_transformed` field)
+- Perfect for occasional bulk operations
+- Easy to understand and maintain
+- Type-safe function interfaces
+
+**Current Status:**
+- ✅ All transformers (SMK, CMA, RMA, MET) fully migrated to new interface
+- ✅ Transform pipeline testing complete with successful results:
+  - SMK: 180 records transformed
+  - CMA: 223 records transformed
+  - RMA: 134 records transformed (105 filtered for rights/images)
+  - MET: 318 records transformed (638 filtered for work types)
+
 ### Load Embeddings Service
 The embedding generation pipeline (`etl/pipeline/load/load_embeddings/service.py`) provides:
 
@@ -148,3 +186,11 @@ The embedding generation pipeline (`etl/pipeline/load/load_embeddings/service.py
 **Rate Limiting:** Default delays protect museum APIs:
 - Development: 0.2s between records, 5s between batches
 - Production: 0.5s between records, 10s between batches
+
+
+## Coding conversions:
+ - Always use f-strings instead of .format(), unless the .format() version is significantly clearer.
+ - Only uses classes when there is a clear benefit. Otherwise, use functions.
+ - Mostly I only want dataclasses or Pydantic models for structured data, not full classes with methods.
+ - I like type hints, especially for function signatures. But also type aliases for complex types.
+ - I prefer simple, functional code over complex OOP patterns.

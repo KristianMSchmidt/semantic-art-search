@@ -4,6 +4,7 @@ from etl.pipeline.transform.utils import (
     safe_int_from_date,
 )
 from etl.pipeline.transform.models import TransformedArtworkData
+from etl.pipeline.transform.models import TransformerArgs
 
 
 # MET classification mapping (from the API client)
@@ -18,21 +19,35 @@ MET_CLASSIFICATION_TO_WORK_TYPE = {
 
 
 def transform_met_data(
-    raw_json: dict, museum_object_id: str
+    transformer_args: TransformerArgs,
 ) -> Optional[TransformedArtworkData]:
     """
-    Transform MET raw JSON data to TransformedArtworkData.
+    Transform raw MET metadata object to TransformedArtworkData.
 
     Returns TransformedArtworkData instance or None if transformation fails.
     """
     try:
-        # Skip non-public domain items
-        if not raw_json.get("isPublicDomain"):
+        # Museum slug check
+        museum_slug = transformer_args.museum_slug
+        assert museum_slug == "met", "Transformer called for wrong museum"
+
+        # Object number
+        object_number = transformer_args.object_number
+        if not object_number:
             return None
 
-        # Required field: object_number (accessionNumber)
-        object_number = raw_json.get("accessionNumber")
-        if not object_number:
+        # Museum DB ID
+        museum_db_id = transformer_args.museum_db_id
+        if not museum_db_id:
+            return None
+
+        # Raw JSON data
+        raw_json = transformer_args.raw_json
+        if not raw_json or not isinstance(raw_json, dict):
+            return None
+
+        # Skip non-public domain items
+        if not raw_json.get("isPublicDomain"):
             return None
 
         # Required field: thumbnail_url
@@ -59,7 +74,7 @@ def transform_met_data(
         searchable_work_types = get_searchable_work_types(work_types)
         if not searchable_work_types:
             print(
-                f"MET: No searchable work types found for {museum_object_id}, classification='{classification}', objectName='{object_name}', work_types={work_types}"
+                f"MET: No searchable work types found for {object_number}:{museum_db_id}, classification='{classification}', objectName='{object_name}', work_types={work_types}"
             )
             return None
 
@@ -105,6 +120,7 @@ def transform_met_data(
         # Return transformed data as Pydantic model
         return TransformedArtworkData(
             object_number=object_number,
+            museum_db_id=museum_db_id,
             title=title,
             work_types=work_types,
             searchable_work_types=searchable_work_types,
@@ -113,17 +129,10 @@ def transform_met_data(
             production_date_end=production_date_end,
             period=period,
             thumbnail_url=str(thumbnail_url),
-            museum_slug="met",
-            museum_db_id=museum_object_id,
+            museum_slug=museum_slug,
             image_url=image_url,
-            # Processing flags default to False
-            image_loaded=False,
-            text_vector_clip=False,
-            image_vector_clip=False,
-            text_vector_jina=False,
-            image_vector_jina=False,
         )
 
     except Exception as e:
-        print(f"MET transform error for {museum_object_id}: {e}")
+        print(f"MET transform error for {object_number}:{museum_db_id}: {e}")
         return None

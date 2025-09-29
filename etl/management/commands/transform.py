@@ -12,31 +12,31 @@ class Command(BaseCommand):
             help="Number of records to process in each batch (default: 1000)",
         )
         parser.add_argument(
-            "--start-id",
-            type=int,
-            default=0,
-            help="Start processing from this ID (default: 0)",
+            "--museum",
+            type=str,
+            choices=["smk", "cma", "rma", "met"],
+            help="Process records for specific museum only (default: all museums)",
         )
 
     def handle(self, *args, **options):
         batch_size = options["batch_size"]
-        start_id = options["start_id"]
+        museum = options.get("museum")
 
+        museum_text = f" for {museum.upper()}" if museum else ""
         self.stdout.write(
             self.style.SUCCESS(
-                f"Starting transform pipeline (batch_size={batch_size}, start_id={start_id})..."
+                f"Starting transform pipeline{museum_text} (batch_size={batch_size})..."
             )
         )
 
         try:
             # Import and run the transform pipeline
             from etl.pipeline.transform.transform import run_transform
-            run_transform(batch_size=batch_size, start_id=start_id)
+
+            run_transform(batch_size=batch_size, museum=museum)
             self.stdout.write(
                 self.style.SUCCESS("Transform pipeline completed successfully!")
             )
         except Exception as e:
-            self.stdout.write(
-                self.style.ERROR(f"Transform pipeline failed: {str(e)}")
-            )
+            self.stdout.write(self.style.ERROR(f"Transform pipeline failed: {str(e)}"))
             raise

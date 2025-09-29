@@ -109,8 +109,21 @@ extract-all: ## upsert-raw-data from ALL museums
 extract-met-force: ## force refetch raw data from MET (ignores existing data)
 	docker compose -f docker-compose.prod.yml exec web python manage.py extract -m met --force-refetch
 
-transform:  ## Run ETL transform pipeline with default settings (batch_size=1000, start_id=0)
-	docker compose -f docker-compose.prod.yml exec web python manage.py transform --batch-size 1000 --start-id 0
+transform:  ## Transform all records for all museums (batch_size=1000)
+	docker compose -f docker-compose.prod.yml exec web python manage.py transform --batch-size 100
+
+transform-smk:  ## Transform all records for SMK museum only
+	docker compose -f docker-compose.prod.yml exec web python manage.py transform --museum smk --batch-size 100
+
+transform-cma:  ## Transform all records for CMA museum only
+	docker compose -f docker-compose.prod.yml exec web python manage.py transform --museum cma --batch-size 100
+
+transform-rma:  ## Transform all records for RMA museum only
+	docker compose -f docker-compose.prod.yml exec web python manage.py transform --museum rma --batch-size 100
+
+transform-met:  ## Transform all records for MET museum only
+	docker compose -f docker-compose.prod.yml exec web python manage.py transform --museum met --batch-size 100
+
 
 # ETL Load Images
 load-images-dry-run:  ## Preview image loading without actual downloads (development)
