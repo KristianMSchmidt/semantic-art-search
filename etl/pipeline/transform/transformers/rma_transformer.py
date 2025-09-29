@@ -1,124 +1,107 @@
 from typing import Optional, Any
 import re
-from etl.pipeline.transform.utils import (
-    get_searchable_work_types,
-)
-from etl.pipeline.transform.models import TransformedArtworkData
-from etl.pipeline.transform.models import TransformerArgs
+from etl.pipeline.transform.base_transformer import BaseTransformer
 from etl.pipeline.shared.rma_utils import extract_provided_cho, extract_object_number
 
 
-def transform_rma_data(
-    transformer_args: TransformerArgs,
-) -> Optional[TransformedArtworkData]:
-    """
-    Transform raw RMA metadata object to TransformedArtworkData.
+class RmaTransformer(BaseTransformer):
+    """RMA (Rijksmuseum Amsterdam) data transformer."""
 
-    Returns TransformedArtworkData instance or None if transformation fails.
-    """
-    try:
-        # Museum slug check
-        museum_slug = transformer_args.museum_slug
-        assert museum_slug == "rma", "Transformer called for wrong museum"
+    museum_slug = "rma"
 
-        # Object number
-        object_number = transformer_args.object_number
-        if not object_number:
-            return None
-
-        # Museum DB ID
-        museum_db_id = transformer_args.museum_db_id
-        if not museum_db_id:
-            return None
-
-        # Raw JSON data
-        raw_json = transformer_args.raw_json
-        if not raw_json or not isinstance(raw_json, dict):
-            return None
-
+    def should_skip_record(self, raw_json: dict) -> tuple[bool, str]:
+        """Check if RMA record should be skipped based on public domain status."""
         metadata = raw_json.get("metadata", {})
         if not metadata:
-            # print("Missing metadata")
-            return None
+            return True, "Missing metadata"
 
         rdf = metadata.get("rdf:RDF", {})
         if not rdf:
-            # print("Missing rdf")
-            return None
+            return True, "Missing rdf"
 
         provided_cho = extract_provided_cho(rdf)
         if not provided_cho:
-            # print("Missing provided_cho")
-            return None
+            return True, "Missing provided_cho"
 
-        # Extract rights
+        # Check public domain status
         rights = extract_rights(provided_cho)
         is_public_domain = check_rights(rights)
         if not is_public_domain:
-            # print("Not public domain")
-            return None
+            return True, "Not public domain"
 
-        # Extract and validate object_number from RDF data
+        # Validate object number from RDF data
         rdf_object_number = extract_object_number(provided_cho)
         if not rdf_object_number:
-            return None
+            return True, "Missing RDF object number"
 
-        # Required field: Thumbnail url (from Image url):
+        return False, ""
+
+    def extract_thumbnail_url(self, raw_json: dict) -> Optional[str]:
+        """Extract thumbnail URL from RMA image data."""
+        metadata = raw_json.get("metadata", {})
+        rdf = metadata.get("rdf:RDF", {})
+
         image_url = extract_image_url(rdf)
         if not image_url or not is_valid_image_url(image_url):
-            # print("Missing or invalid image URL")
             return None
 
         # Adjust thumbnail size for faster loading
-        thumbnail_url = adjust_thumbnail_size(image_url)
+        return adjust_thumbnail_size(image_url)
 
-        # Required field: Extract work types
+    def extract_work_types(self, raw_json: dict) -> list[str]:
+        """Extract work types from RMA RDF data."""
+        metadata = raw_json.get("metadata", {})
+        rdf = metadata.get("rdf:RDF", {})
+
         work_types = extract_worktypes(rdf)
-        if not work_types:
-            # print("Missing work types")
-            return None
+        return work_types or []
 
-        # Required field: searchable_work_types
-        searchable_work_types = get_searchable_work_types(work_types)
-        if not searchable_work_types:
-            return None
+    def extract_title(self, raw_json: dict) -> Optional[str]:
+        """Extract title from RMA provided CHO."""
+        metadata = raw_json.get("metadata", {})
+        rdf = metadata.get("rdf:RDF", {})
+        provided_cho = extract_provided_cho(rdf)
 
-        # Extract title
-        title = extract_title(provided_cho)
-
-        # Extract artists
-        artist = extract_artist_names(rdf)
-
-        # Extract production dates
-        creation_date_str = extract_creation_date(provided_cho)
-        production_years = extract_production_years(creation_date_str)
-        if not production_years:
-            # print("Missing production years")
-            return None
-        else:
-            production_date_start, production_date_end = production_years
-
-        period = None  # Don't think I need this for RMA. Haven't looked closely.
-
-        # Return transformed data as Pydantic model
-        return TransformedArtworkData(
-            object_number=object_number,
-            museum_db_id=museum_db_id,
-            title=title,
-            work_types=work_types,
-            searchable_work_types=searchable_work_types,
-            artist=artist,
-            production_date_start=production_date_start,
-            production_date_end=production_date_end,
-            period=period,
-            thumbnail_url=thumbnail_url,
-            museum_slug=museum_slug,
-            image_url=image_url,
-        )
-
-    except Exception as e:
-        print(f"RMA transform error for {object_number}:{museum_db_id}: {e}")
+        if provided_cho:
+            return extract_title(provided_cho)
         return None
+
+    def extract_artists(self, raw_json: dict) -> list[str]:
+        """Extract artist names from RMA RDF data."""
+        metadata = raw_json.get("metadata", {})
+        rdf = metadata.get("rdf:RDF", {})
+
+        return extract_artist_names(rdf)
+
+    def extract_production_dates(self, raw_json: dict) -> tuple[Optional[int], Optional[int]]:
+        """Extract production dates from RMA creation date."""
+        metadata = raw_json.get("metadata", {})
+        rdf = metadata.get("rdf:RDF", {})
+        provided_cho = extract_provided_cho(rdf)
+
+        if provided_cho:
+            creation_date_str = extract_creation_date(provided_cho)
+            production_years = extract_production_years(creation_date_str)
+            if production_years:
+                return production_years
+
+        return None, None
+
+    def extract_period(self, raw_json: dict) -> Optional[str]:
+        """Extract period from RMA data - not currently used."""
+        return None
+
+    def extract_image_url(self, raw_json: dict) -> Optional[str]:
+        """Extract full resolution image URL from RMA data."""
+        metadata = raw_json.get("metadata", {})
+        rdf = metadata.get("rdf:RDF", {})
+
+        image_url = extract_image_url(rdf)
+        if image_url and is_valid_image_url(image_url):
+            return image_url
+        return None
+
+
 
 
 #### RMA helpers and utility functions #####

@@ -191,6 +191,6 @@ The embedding generation pipeline (`etl/pipeline/load/load_embeddings/service.py
 ## Coding conversions:
  - Always use f-strings instead of .format(), unless the .format() version is significantly clearer.
  - Only uses classes when there is a clear benefit. Otherwise, use functions.
- - Mostly I only want dataclasses or Pydantic models for structured data, not full classes with methods.
+ - Mostly I only want dataclasses or Pydantic models for structured data, not full classes with methods. But ABCs can occasionaaly be useful, as in the ETL transformers.
  - I like type hints, especially for function signatures. But also type aliases for complex types.
  - I prefer simple, functional code over complex OOP patterns.

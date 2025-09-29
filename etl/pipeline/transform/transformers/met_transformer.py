@@ -1,10 +1,6 @@
 from typing import Optional
-from etl.pipeline.transform.utils import (
-    get_searchable_work_types,
-    safe_int_from_date,
-)
-from etl.pipeline.transform.models import TransformedArtworkData
-from etl.pipeline.transform.models import TransformerArgs
+from etl.pipeline.transform.utils import safe_int_from_date
+from etl.pipeline.transform.base_transformer import BaseTransformer
 
 
 # MET classification mapping (from the API client)
@@ -18,44 +14,23 @@ MET_CLASSIFICATION_TO_WORK_TYPE = {
 }
 
 
-def transform_met_data(
-    transformer_args: TransformerArgs,
-) -> Optional[TransformedArtworkData]:
-    """
-    Transform raw MET metadata object to TransformedArtworkData.
+class MetTransformer(BaseTransformer):
+    """MET (Metropolitan Museum of Art) data transformer."""
 
-    Returns TransformedArtworkData instance or None if transformation fails.
-    """
-    try:
-        # Museum slug check
-        museum_slug = transformer_args.museum_slug
-        assert museum_slug == "met", "Transformer called for wrong museum"
+    museum_slug = "met"
 
-        # Object number
-        object_number = transformer_args.object_number
-        if not object_number:
-            return None
-
-        # Museum DB ID
-        museum_db_id = transformer_args.museum_db_id
-        if not museum_db_id:
-            return None
-
-        # Raw JSON data
-        raw_json = transformer_args.raw_json
-        if not raw_json or not isinstance(raw_json, dict):
-            return None
-
-        # Skip non-public domain items
+    def should_skip_record(self, raw_json: dict) -> tuple[bool, str]:
+        """Check if MET record should be skipped based on public domain status."""
         if not raw_json.get("isPublicDomain"):
-            return None
+            return True, "Not public domain"
+        return False, ""
 
-        # Required field: thumbnail_url
-        thumbnail_url = raw_json.get("primaryImageSmall")
-        if not thumbnail_url:
-            return None
+    def extract_thumbnail_url(self, raw_json: dict) -> Optional[str]:
+        """Extract thumbnail URL from MET primaryImageSmall field."""
+        return raw_json.get("primaryImageSmall")
 
-        # Extract work types from classification and objectName
+    def extract_work_types(self, raw_json: dict) -> list[str]:
+        """Extract work types from MET classification and objectName fields."""
         work_types = []
         classification = raw_json.get("classification", "").lower().strip()
         object_name = raw_json.get("objectName", "").lower().strip()
@@ -70,19 +45,17 @@ def transform_met_data(
             # Use object name directly if no classification
             work_types = [object_name]
 
-        # Required field: searchable_work_types
-        searchable_work_types = get_searchable_work_types(work_types)
-        if not searchable_work_types:
-            print(
-                f"MET: No searchable work types found for {object_number}:{museum_db_id}, classification='{classification}', objectName='{object_name}', work_types={work_types}"
-            )
-            return None
+        return work_types
 
-        # Extract title
-        title = raw_json.get("title")
+    def extract_title(self, raw_json: dict) -> Optional[str]:
+        """Extract title from MET title field."""
+        return raw_json.get("title")
 
-        # Extract artists - prefer constituents, fallback to artistDisplayName
+    def extract_artists(self, raw_json: dict) -> list[str]:
+        """Extract artist names from MET constituents or artistDisplayName."""
         artist = []
+
+        # Prefer constituents
         constituents = raw_json.get("constituents", [])
         if constituents:
             artist = [
@@ -97,7 +70,10 @@ def transform_met_data(
             if artist_display_name:
                 artist = [artist_display_name]
 
-        # Extract production dates
+        return artist
+
+    def extract_production_dates(self, raw_json: dict) -> tuple[Optional[int], Optional[int]]:
+        """Extract production dates from MET objectBeginDate and objectEndDate."""
         production_date_start = None
         production_date_end = None
 
@@ -109,30 +85,17 @@ def transform_met_data(
         if end_date:
             production_date_end = safe_int_from_date(str(end_date))
 
-        # Extract period - prefer 'period' field, fallback to 'objectDate'
+        return production_date_start, production_date_end
+
+    def extract_period(self, raw_json: dict) -> Optional[str]:
+        """Extract period from MET period field, fallback to objectDate."""
         period = raw_json.get("period")
         if not period:
             period = raw_json.get("objectDate")
+        return period
 
-        # Extract image URL - use primaryImage
-        image_url = raw_json.get("primaryImage")
+    def extract_image_url(self, raw_json: dict) -> Optional[str]:
+        """Extract full resolution image URL from MET primaryImage field."""
+        return raw_json.get("primaryImage")
 
-        # Return transformed data as Pydantic model
-        return TransformedArtworkData(
-            object_number=object_number,
-            museum_db_id=museum_db_id,
-            title=title,
-            work_types=work_types,
-            searchable_work_types=searchable_work_types,
-            artist=artist,
-            production_date_start=production_date_start,
-            production_date_end=production_date_end,
-            period=period,
-            thumbnail_url=str(thumbnail_url),
-            museum_slug=museum_slug,
-            image_url=image_url,
-        )
 
-    except Exception as e:
-        print(f"MET transform error for {object_number}:{museum_db_id}: {e}")
-        return None

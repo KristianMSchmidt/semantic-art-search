@@ -36,7 +36,7 @@ def transform_and_upsert(
             raw_json=raw_json,
         )
 
-        transformed = transformer(transformer_args)
+        transformed = transformer.transform(transformer_args)
 
         if not transformed:
             return "failed"
