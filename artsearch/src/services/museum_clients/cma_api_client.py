@@ -12,8 +12,8 @@ class CMAAPIClient(MuseumAPIClient):
     BASE_URL = "https://openaccess-api.clevelandart.org/api/artworks/"
     BASE_SEARCH_URL = BASE_URL
 
-    def get_object_url(self, inventory_number: str) -> str:
-        return f"{self.BASE_URL}?accession_number={inventory_number}"
+    def get_object_url(self, object_number: str) -> str:
+        return f"{self.BASE_URL}?accession_number={object_number}"
 
     def _process_item(self, item: dict[str, Any]) -> ArtworkPayload:
         work_types = [item["type"].lower()]

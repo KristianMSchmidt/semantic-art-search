@@ -2,7 +2,6 @@ from typing import Any
 
 from artsearch.src.services.museum_clients.base_client import (
     MuseumAPIClient,
-    MuseumAPIClientError,
     ArtworkPayload,
     ParsedAPIResponse,
 )
@@ -13,8 +12,8 @@ class SMKAPIClient(MuseumAPIClient):
     BASE_URL = "https://api.smk.dk/api/v1/art/"
     BASE_SEARCH_URL = f"{BASE_URL}search/"
 
-    def get_object_url(self, inventory_number: str) -> str:
-        return f"{self.BASE_URL}?object_number={inventory_number}"
+    def get_object_url(self, object_number: str) -> str:
+        return f"{self.BASE_URL}?object_number={object_number}"
 
     def _process_item(self, item: dict[str, Any]) -> ArtworkPayload:
         work_types = [
