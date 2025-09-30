@@ -67,27 +67,31 @@ class Command(BaseCommand):
 
         try:
             service = ImageLoadService()
-            
+
             if dry_run:
                 # For dry run, just show what records would be processed
-                records = service.get_records_needing_processing(batch_size, museum_filter)
+                records = service.get_records_needing_processing(
+                    batch_size, museum_filter
+                )
                 record_count = len(records)
-                
-                self.stdout.write(f"Found {record_count} records that would be processed:")
+
+                self.stdout.write(
+                    f"Found {record_count} records that would be processed:"
+                )
                 for record in records[:10]:  # Show first 10
                     should_process, reason = service.should_process_image(record)
                     status = "PROCESS" if should_process else "SKIP"
                     self.stdout.write(
                         f"  [{status}] {record.museum_slug}:{record.object_number} - {reason}"
                     )
-                
+
                 if record_count > 10:
                     self.stdout.write(f"  ... and {record_count - 10} more records")
             else:
                 # Run continuous batch processing
                 total_stats = {"success": 0, "skipped": 0, "error": 0, "total": 0}
                 batch_num = 1
-                
+
                 while True:
                     # Check if we've hit the batch limit
                     if max_batches and batch_num > max_batches:
@@ -97,28 +101,28 @@ class Command(BaseCommand):
                             )
                         )
                         break
-                    
+
                     self.stdout.write(
                         self.style.HTTP_INFO(f"\n>>> Processing batch {batch_num}...")
                     )
-                    
+
                     # Process one batch
-                    stats = service.run_batch_processing(batch_size, museum_filter, delay_seconds, batch_delay_seconds)
-                    
+                    stats = service.run_batch_processing(
+                        batch_size, museum_filter, delay_seconds, batch_delay_seconds
+                    )
+
                     # If no records were processed, we're done
-                    if stats['total'] == 0:
+                    if stats["total"] == 0:
                         self.stdout.write("No more records to process. Complete!")
                         break
-                    
+
                     # Update totals
                     for key in total_stats:
                         total_stats[key] += stats[key]
-                    
+
                     # Show batch progress with clear formatting
                     self.stdout.write(
-                        self.style.SUCCESS(
-                            f"\n=== BATCH {batch_num} COMPLETE ==="
-                        )
+                        self.style.SUCCESS(f"\n=== BATCH {batch_num} COMPLETE ===")
                     )
                     self.stdout.write(
                         self.style.SUCCESS(
@@ -133,9 +137,9 @@ class Command(BaseCommand):
                         )
                     )
                     self.stdout.write("=" * 50)
-                    
+
                     batch_num += 1
-                
+
                 # Final summary
                 self.stdout.write(
                     self.style.SUCCESS(
@@ -147,8 +151,8 @@ class Command(BaseCommand):
                         f"Errors: {total_stats['error']}"
                     )
                 )
-                
-                if total_stats['error'] > 0:
+
+                if total_stats["error"] > 0:
                     self.stdout.write(
                         self.style.WARNING(
                             f"Warning: {total_stats['error']} records failed to process. "
