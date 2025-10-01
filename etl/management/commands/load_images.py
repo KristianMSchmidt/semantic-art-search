@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from etl.pipeline.load.load_images.service import ImageLoadService
+from etl.services.image_load_service import ImageLoadService
 
 
 class Command(BaseCommand):
@@ -17,12 +17,12 @@ class Command(BaseCommand):
             "--museum",
             type=str,
             choices=["smk", "cma", "rma", "met"],
-            help="Filter by specific museum (e.g. smk, cma, rma, met)",
+            help="Filter by specific museum (e.g. smk, cma, rma, met). Default: all museums",
         )
         parser.add_argument(
-            "--dry-run",
+            "--force",
             action="store_true",
-            help="Show what would be processed without actually downloading images",
+            help="Force reload all images regardless of current image_loaded status",
         )
         parser.add_argument(
             "--max-batches",
@@ -46,119 +46,103 @@ class Command(BaseCommand):
     def handle(self, **options):
         batch_size = options["batch_size"]
         museum_filter = options["museum"]
-        dry_run = options["dry_run"]
+        force_reload = options["force"]
         max_batches = options["max_batches"]
         delay_seconds = options["delay"]
         batch_delay_seconds = options["batch_delay"]
 
-        if dry_run:
-            self.stdout.write(
-                self.style.WARNING("DRY RUN MODE - No images will be downloaded")
-            )
+        museum_text = f" for {museum_filter.upper()}" if museum_filter else " for all museums"
+        force_text = " (force reload enabled)" if force_reload else ""
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Starting image loading pipeline (batch_size={batch_size}, "
-                f"museum_filter={museum_filter}, dry_run={dry_run}, "
-                f"max_batches={max_batches}, delay={delay_seconds}s, "
-                f"batch_delay={batch_delay_seconds}s)..."
+                f"Starting image loading pipeline{museum_text}{force_text} "
+                f"(batch_size={batch_size}, delay={delay_seconds}s, "
+                f"batch_delay={batch_delay_seconds}s, max_batches={max_batches})..."
             )
         )
 
         try:
             service = ImageLoadService()
 
-            if dry_run:
-                # For dry run, just show what records would be processed
-                records = service.get_records_needing_processing(
-                    batch_size, museum_filter
-                )
-                record_count = len(records)
+            # Reset processed tracking if force reload is enabled
+            if force_reload:
+                service.reset_processed_tracking()
 
-                self.stdout.write(
-                    f"Found {record_count} records that would be processed:"
-                )
-                for record in records[:10]:  # Show first 10
-                    should_process, reason = service.should_process_image(record)
-                    status = "PROCESS" if should_process else "SKIP"
-                    self.stdout.write(
-                        f"  [{status}] {record.museum_slug}:{record.object_number} - {reason}"
-                    )
+            # Run continuous batch processing
+            total_stats = {"success": 0, "error": 0, "total": 0}
+            batch_num = 1
 
-                if record_count > 10:
-                    self.stdout.write(f"  ... and {record_count - 10} more records")
-            else:
-                # Run continuous batch processing
-                total_stats = {"success": 0, "skipped": 0, "error": 0, "total": 0}
-                batch_num = 1
-
-                while True:
-                    # Check if we've hit the batch limit
-                    if max_batches and batch_num > max_batches:
-                        self.stdout.write(
-                            self.style.WARNING(
-                                f"Reached maximum batch limit ({max_batches}). Stopping."
-                            )
-                        )
-                        break
-
-                    self.stdout.write(
-                        self.style.HTTP_INFO(f"\n>>> Processing batch {batch_num}...")
-                    )
-
-                    # Process one batch
-                    stats = service.run_batch_processing(
-                        batch_size, museum_filter, delay_seconds, batch_delay_seconds
-                    )
-
-                    # If no records were processed, we're done
-                    if stats["total"] == 0:
-                        self.stdout.write("No more records to process. Complete!")
-                        break
-
-                    # Update totals
-                    for key in total_stats:
-                        total_stats[key] += stats[key]
-
-                    # Show batch progress with clear formatting
-                    self.stdout.write(
-                        self.style.SUCCESS(f"\n=== BATCH {batch_num} COMPLETE ===")
-                    )
-                    self.stdout.write(
-                        self.style.SUCCESS(
-                            f"Batch {batch_num}: {stats['total']} records "
-                            f"(success={stats['success']}, skipped={stats['skipped']}, error={stats['error']})"
-                        )
-                    )
-                    self.stdout.write(
-                        self.style.SUCCESS(
-                            f"Total Progress: {total_stats['total']} records processed "
-                            f"(success={total_stats['success']}, skipped={total_stats['skipped']}, error={total_stats['error']})"
-                        )
-                    )
-                    self.stdout.write("=" * 50)
-
-                    batch_num += 1
-
-                # Final summary
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f"\nImage loading complete! "
-                        f"Processed {batch_num - 1} batches. "
-                        f"Total: {total_stats['total']}, "
-                        f"Success: {total_stats['success']}, "
-                        f"Skipped: {total_stats['skipped']}, "
-                        f"Errors: {total_stats['error']}"
-                    )
-                )
-
-                if total_stats["error"] > 0:
+            while True:
+                # Check if we've hit the batch limit
+                if max_batches and batch_num > max_batches:
                     self.stdout.write(
                         self.style.WARNING(
-                            f"Warning: {total_stats['error']} records failed to process. "
-                            "Check logs for details."
+                            f"Reached maximum batch limit ({max_batches}). Stopping."
                         )
                     )
+                    break
+
+                self.stdout.write(
+                    self.style.HTTP_INFO(f"\n>>> Processing batch {batch_num}...")
+                )
+
+                # Process one batch
+                stats = service.run_batch_processing(
+                    batch_size=batch_size,
+                    museum_filter=museum_filter,
+                    force_reload=force_reload,
+                    delay_seconds=delay_seconds,
+                    batch_delay_seconds=batch_delay_seconds
+                )
+
+                # If no records were processed, we're done
+                if stats["total"] == 0:
+                    self.stdout.write("No more records to process. Complete!")
+                    break
+
+                # Update totals
+                for key in total_stats:
+                    total_stats[key] += stats[key]
+
+                # Show batch progress with clear formatting
+                self.stdout.write(
+                    self.style.SUCCESS(f"\n=== BATCH {batch_num} COMPLETE ===")
+                )
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Batch {batch_num}: {stats['total']} records "
+                        f"(success={stats['success']}, error={stats['error']})"
+                    )
+                )
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Total Progress: {total_stats['total']} records processed "
+                        f"(success={total_stats['success']}, error={total_stats['error']})"
+                    )
+                )
+                self.stdout.write("=" * 50)
+
+                batch_num += 1
+
+            # Final summary
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"\nImage loading complete! "
+                    f"Processed {batch_num - 1} batches. "
+                    f"Total: {total_stats['total']}, "
+                    f"Success: {total_stats['success']}, "
+                    f"Errors: {total_stats['error']}"
+                )
+            )
+
+            if total_stats["error"] > 0:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Warning: {total_stats['error']} records failed to process. "
+                        "Check logs for details."
+                    )
+                )
 
         except Exception as e:
             raise CommandError(f"Image loading pipeline failed: {str(e)}")

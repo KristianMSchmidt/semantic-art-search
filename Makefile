@@ -126,9 +126,6 @@ transform-met:  ## Transform all records for MET museum only
 
 
 # ETL Load Images
-load-images-dry-run:  ## Preview image loading without actual downloads (development)
-	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --dry-run --batch-size 10
-
 load-images-smk:  ## Load thumbnail images for SMK museum (development)
 	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum smk --batch-size 50 --delay 0.3 --batch-delay 10
 
@@ -144,12 +141,28 @@ load-images-met:  ## Load thumbnail images for MET museum (development)
 load-images-all:  ## Load thumbnail images for all museums (development)
 	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --batch-size 100 --delay 0.2 --batch-delay 5
 
-# Production ETL Load Images
-production_load-images-dry-run:  ## Preview image loading without actual downloads (production)
-	docker compose -f docker-compose.prod.yml exec web python manage.py load_images --dry-run --batch-size 10
+# ETL Load Images - Force Reload
+load-images-smk-force:  ## Force reload all thumbnail images for SMK museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum smk --force --batch-size 50 --delay 0.3 --batch-delay 10
 
+load-images-cma-force:  ## Force reload all thumbnail images for CMA museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum cma --force --batch-size 50 --delay 0.3 --batch-delay 10
+
+load-images-rma-force:  ## Force reload all thumbnail images for RMA museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum rma --force --batch-size 50 --delay 0.3 --batch-delay 10
+
+load-images-met-force:  ## Force reload all thumbnail images for MET museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum met --force --batch-size 50 --delay 0.3 --batch-delay 10
+
+load-images-all-force:  ## Force reload all thumbnail images for all museums (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --force --batch-size 100 --delay 0.2 --batch-delay 5
+
+# Production ETL Load Images
 production_load-images-all:  ## Load thumbnail images for all museums (production)
 	docker compose -f docker-compose.prod.yml exec web python manage.py load_images --batch-size 200 --delay 0.1 --batch-delay 3
+
+production_load-images-all-force:  ## Force reload all thumbnail images for all museums (production)
+	docker compose -f docker-compose.prod.yml exec web python manage.py load_images --force --batch-size 200 --delay 0.1 --batch-delay 3
 
 # ETL Load Embeddings (Development)
 load-embeddings-dry-run:  ## Preview embedding generation without actual processing (development)
