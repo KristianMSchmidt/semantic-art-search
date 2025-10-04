@@ -5,7 +5,7 @@ from django.db import models, transaction
 from django.db.models import Q
 
 from etl.models import TransformedData
-from etl.services.bucket_service import BucketService, get_bucket_image_key
+from etl.services.bucket_service import BucketService
 
 logger = logging.getLogger(__name__)
 
@@ -18,32 +18,43 @@ class ImageLoadService:
     No hash-based change detection - keeps things simple.
 
     Features:
-    - Process records where image_loaded=False by default
-    - Force reload option to ignore image_loaded status
+    - Process records where image_loaded=False
     - Batch processing for efficiency
     - Rate limiting to be polite to museum APIs
-    - Processed record tracking to avoid infinite loops during force reload
+    - Natural pagination prevents infinite loops (management command loop)
     """
 
     def __init__(self, bucket_service: Optional[BucketService] = None):
         self.bucket_service = bucket_service or BucketService()
-        self._processed_ids: set[int] = (
-            set()
-        )  # Track processed record IDs during force reload
 
-    def reset_processed_tracking(self) -> None:
+    def reset_image_loaded_field(self, museum_filter: Optional[str] = None) -> int:
         """
-        Reset the tracking of processed records.
-        Should be called when starting a new force reload session.
+        Reset image_loaded field to False for all records.
+        Used for force reload to re-download all images.
+
+        Args:
+            museum_filter: Optional museum slug to filter by
+
+        Returns:
+            Number of records updated
         """
-        self._processed_ids.clear()
-        logger.info("Reset processed record tracking for new force reload session")
+        query = Q()
+
+        if museum_filter:
+            query &= Q(museum_slug=museum_filter)
+
+        count = TransformedData.objects.filter(query).update(image_loaded=False)
+        logger.info(
+            "Reset %d records' image_loaded field to False (museum_filter=%s)",
+            count,
+            museum_filter,
+        )
+        return count
 
     def get_records_needing_processing(
         self,
         batch_size: int = 1000,
         museum_filter: Optional[str] = None,
-        force_reload: bool = False,
     ) -> models.QuerySet[TransformedData]:
         """
         Get TransformedData records that need image processing.
@@ -51,20 +62,13 @@ class ImageLoadService:
         Args:
             batch_size: Maximum number of records to return
             museum_filter: Optional museum slug to filter by
-            force_reload: If True, process all records regardless of image_loaded status
 
         Returns records where:
-        - force_reload=True: All records (excluding already processed in this session)
-        - force_reload=False: Only records where image_loaded=False
+        - image_loaded=False
+        - if museum_filter is set, only that museum
         """
-        if force_reload:
-            # Process all records when force reload is enabled, but exclude already processed ones
-            query = Q()
-            if self._processed_ids:
-                query &= ~Q(id__in=self._processed_ids)
-        else:
-            # Only process records that haven't been loaded yet
-            query = Q(image_loaded=False)
+        # Only process records that haven't been loaded yet
+        query = Q(image_loaded=False)
 
         if museum_filter:
             query &= Q(museum_slug=museum_filter)
@@ -74,7 +78,6 @@ class ImageLoadService:
     def process_single_record(
         self,
         record: TransformedData,
-        force_reload: bool = False,
         delay_seconds: float = 0.0,
     ) -> Literal["success", "error"]:
         """
@@ -82,19 +85,11 @@ class ImageLoadService:
 
         Args:
             record: The TransformedData record to process
-            force_reload: If True, process regardless of current image_loaded status
             delay_seconds: Delay in seconds after processing to rate limit API calls
 
         Returns status of the operation.
-
-        Note: Records are pre-filtered by get_records_needing_processing(),
-        so all records passed to this method should be processed.
         """
         try:
-            # Track this record as processed (regardless of outcome) during force reload
-            if force_reload:
-                self._processed_ids.add(record.pk)
-
             logger.info(
                 f"Processing {record.museum_slug}:{record.object_number}"
             )
@@ -131,7 +126,6 @@ class ImageLoadService:
         self,
         batch_size: int = 1000,
         museum_filter: Optional[str] = None,
-        force_reload: bool = False,
         delay_seconds: float = 0.0,
         batch_delay_seconds: int = 0,
     ) -> dict[str, int]:
@@ -141,7 +135,6 @@ class ImageLoadService:
         Args:
             batch_size: Number of records to process in this batch
             museum_filter: Optional museum slug to filter by
-            force_reload: If True, process all records regardless of image_loaded status
             delay_seconds: Delay in seconds between individual image downloads
             batch_delay_seconds: Delay in seconds after completing the batch
 
@@ -149,17 +142,14 @@ class ImageLoadService:
             Dictionary with counts: {"success": int, "error": int, "total": int}
         """
         logger.info(
-            "Starting image loading batch (batch_size=%d, museum_filter=%s, force_reload=%s, delay=%s, batch_delay=%s)",
+            "Starting image loading batch (batch_size=%d, museum_filter=%s, delay=%s, batch_delay=%s)",
             batch_size,
             museum_filter,
-            force_reload,
             delay_seconds,
             batch_delay_seconds,
         )
 
-        records = self.get_records_needing_processing(
-            batch_size, museum_filter, force_reload
-        )
+        records = self.get_records_needing_processing(batch_size, museum_filter)
         record_count = len(records)
 
         if record_count == 0:
@@ -172,7 +162,7 @@ class ImageLoadService:
         stats = {"success": 0, "error": 0}
 
         for i, record in enumerate(records, 1):
-            status = self.process_single_record(record, force_reload, delay_seconds)
+            status = self.process_single_record(record, delay_seconds)
             stats[status] += 1
 
             if i % 100 == 0:

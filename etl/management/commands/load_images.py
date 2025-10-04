@@ -58,9 +58,28 @@ class Command(BaseCommand):
         try:
             service = ImageLoadService()
 
-            # Reset processed tracking if force reload is enabled
+            # If force reload, reset image_loaded field to False first
             if force_reload:
-                service.reset_processed_tracking()
+                museum_text = (
+                    f"for {museum_filter.upper()}"
+                    if museum_filter
+                    else " for all museums"
+                )
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"\n⚠️  WARNING: Force reload will reset image_loaded flag {museum_text} and re-download images."
+                    )
+                )
+
+                # Ask for confirmation
+                confirmation = input("Are you sure you want to continue? [y/N]: ")
+                if confirmation.lower() != "y":
+                    self.stdout.write(self.style.ERROR("Force reload cancelled."))
+                    return
+
+                self.stdout.write("Resetting image_loaded field...")
+                reset_count = service.reset_image_loaded_field(museum_filter)
+                self.stdout.write(self.style.SUCCESS(f"Reset {reset_count} records\n"))
 
             # Run continuous batch processing
             total_stats = {"success": 0, "error": 0, "total": 0}
@@ -75,7 +94,6 @@ class Command(BaseCommand):
                 stats = service.run_batch_processing(
                     batch_size=batch_size,
                     museum_filter=museum_filter,
-                    force_reload=force_reload,
                     delay_seconds=delay_seconds,
                     batch_delay_seconds=batch_delay_seconds
                 )
