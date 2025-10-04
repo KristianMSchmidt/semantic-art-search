@@ -25,12 +25,6 @@ class Command(BaseCommand):
             help="Force reload all images regardless of current image_loaded status",
         )
         parser.add_argument(
-            "--max-batches",
-            type=int,
-            default=None,
-            help="Maximum number of batches to process (default: no limit)",
-        )
-        parser.add_argument(
             "--delay",
             type=float,
             default=0.2,
@@ -47,7 +41,6 @@ class Command(BaseCommand):
         batch_size = options["batch_size"]
         museum_filter = options["museum"]
         force_reload = options["force"]
-        max_batches = options["max_batches"]
         delay_seconds = options["delay"]
         batch_delay_seconds = options["batch_delay"]
 
@@ -58,7 +51,7 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 f"Starting image loading pipeline{museum_text}{force_text} "
                 f"(batch_size={batch_size}, delay={delay_seconds}s, "
-                f"batch_delay={batch_delay_seconds}s, max_batches={max_batches})..."
+                f"batch_delay={batch_delay_seconds}s)..."
             )
         )
 
@@ -74,15 +67,6 @@ class Command(BaseCommand):
             batch_num = 1
 
             while True:
-                # Check if we've hit the batch limit
-                if max_batches and batch_num > max_batches:
-                    self.stdout.write(
-                        self.style.WARNING(
-                            f"Reached maximum batch limit ({max_batches}). Stopping."
-                        )
-                    )
-                    break
-
                 self.stdout.write(
                     self.style.HTTP_INFO(f"\n>>> Processing batch {batch_num}...")
                 )

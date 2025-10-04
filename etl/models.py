@@ -115,7 +115,6 @@ class TransformedData(models.Model):
 
     # Processing status fields
     image_loaded = models.BooleanField(default=False)
-    vector_loaded = models.BooleanField(default=False)
 
     # Vector storage tracking (for multiple embedding models)
     text_vector_clip = models.BooleanField(default=False)
