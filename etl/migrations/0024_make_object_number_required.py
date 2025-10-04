@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('etl', '0023_populate_object_number'),
+        ('etl', '0023b_deduplicate_object_numbers'),
     ]
 
     operations = [
