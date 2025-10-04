@@ -17,11 +17,7 @@ DJANGO_SETTINGS_MODULE = "djangoconfig.settings"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 addopts = [
     "--reuse-db",
-    "--nomigrations", 
-    "--cov=etl",
-    "--cov=artsearch",
-    "--cov-report=term-missing:skip-covered",
-    "--cov-report=html:htmlcov",
+    "--nomigrations",
     "--tb=short",
     "-v"
 ]

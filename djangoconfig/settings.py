@@ -85,6 +85,9 @@ DATABASES = {
         "PASSWORD": config.postgres_password,
         "HOST": config.postgres_host,
         "PORT": config.postgres_port,
+        "TEST": {
+            "NAME": "test_artsearch_dev",
+        },
     }
 }
 

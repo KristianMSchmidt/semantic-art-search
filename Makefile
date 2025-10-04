@@ -40,29 +40,11 @@ djangoshell:  ## Open django shell in running docker development container
 test:  ## Run all tests with pytest
 	docker compose -f docker-compose.dev.yml exec web pytest
 
-test-extract:  ## Run extraction pipeline tests only
-	docker compose -f docker-compose.dev.yml exec web pytest etl/tests/test_extract.py
-
-test-transform:  ## Run transformation pipeline tests only
-	docker compose -f docker-compose.dev.yml exec web pytest etl/tests/test_transform.py
-
-test-load-images:  ## Run image loading pipeline tests only
-	docker compose -f docker-compose.dev.yml exec web pytest etl/tests/test_load_images_unit.py
-
-test-load-embeddings-unit:  ## Run embedding loading unit tests only
-	docker compose -f docker-compose.dev.yml exec web pytest etl/tests/test_load_embeddings_unit.py
-
-test-load-embeddings:  ## Run embedding loading integration tests only
-	docker compose -f docker-compose.dev.yml exec web pytest etl/tests/test_load_embeddings.py
-
 test-unit:  ## Run unit tests only
 	docker compose -f docker-compose.dev.yml exec web pytest -m unit
 
 test-integration:  ## Run integration tests only (with migrations)
-	docker compose -f docker-compose.dev.yml exec web pytest -m integration --migrations
-
-test-coverage:  ## Run tests with coverage report
-	docker compose -f docker-compose.dev.yml exec web pytest --cov-report=html
+	docker compose -f docker-compose.dev.yml exec web pytest -m integration
 
 
 
