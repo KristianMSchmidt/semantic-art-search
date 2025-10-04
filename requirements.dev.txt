@@ -1,5 +1,2 @@
+# Development tools (linting, formatting)
 ruff
-pytest
-pytest-django
-pytest-mock
-pytest-cov

@@ -1,12 +1,31 @@
-torch
-pillow
-git+https://github.com/openai/CLIP.git
-python-dotenv
-requests
-qdrant-client==1.14.2
-gunicorn
+# Core ML/AI
+torch==2.7.1
+pillow==11.3.0
+clip @ git+https://github.com/openai/CLIP.git@dcba3cb2e2827b402d2701e7e1c7d9fed8a20ef1
+
+# Django
 Django==5.1.5
-django-tailwind
-xmltodict
-boto3
-psycopg2-binary
+django-tailwind==4.2.0
+
+# Vector Database
+qdrant-client==1.14.2
+
+# Storage
+boto3==1.39.16
+
+# Database
+psycopg2-binary==2.9.10
+
+# HTTP/API
+requests==2.32.4
+
+# Utilities
+python-dotenv==1.1.1
+xmltodict==0.14.2
+
+# Web Server
+gunicorn==23.0.0
+
+# Testing (dev dependencies)
+pytest==8.4.2
+pytest-django==4.11.1
