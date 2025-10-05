@@ -37,8 +37,8 @@ def get_dept_object_ids(
         return resp.json().get("objectIDs", [])
 
 
-def get_item(object_id: int, http_session: requests.Session) -> dict:
-    """Fetch a single artwork item from the MET API."""
+def get_item(object_id: int, http_session: requests.Session) -> dict | None:
+    """Fetch a single artwork item from the MET API. Returns None if object not found (404)."""
     object_url = f"{OBJECTS_URL}/{object_id}"
     max_retries = 3
     for attempt in range(max_retries):
@@ -46,6 +46,15 @@ def get_item(object_id: int, http_session: requests.Session) -> dict:
             item = http_session.get(object_url, timeout=10)
             item.raise_for_status()
             return item.json()
+        except requests.HTTPError as e:
+            if e.response.status_code == 404:
+                logging.warning(f"Object {object_id} not found (404), skipping")
+                return None
+            # Retry other HTTP errors
+            print(
+                f"Attempt {attempt + 1} failed for object {object_id}: {e}. Retrying..."
+            )
+            time.sleep(3**attempt)  # Exponential backoff: 1s, 3s, 9s
         except requests.RequestException as e:
             print(
                 f"Attempt {attempt + 1} failed for object {object_id}: {e}. Retrying..."
@@ -123,6 +132,8 @@ def handle_met_upload(
 
         try:
             item = get_item(object_id, http_session)
+            if item is None:
+                continue
             object_number = item["accessionNumber"]
         except requests.RequestException:
             continue
