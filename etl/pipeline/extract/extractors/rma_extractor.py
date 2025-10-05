@@ -6,6 +6,7 @@ import xmltodict
 from etl.pipeline.extract.helpers.upsert_raw_data import store_raw_data
 from etl.pipeline.extract.utils import extract_query_param
 from etl.pipeline.shared.rma_utils import extract_provided_cho, extract_object_number
+from etl.models import MetaDataRaw
 
 MUSEUM_SLUG = "rma"
 WORK_TYPES = [
@@ -64,12 +65,14 @@ def store_raw_data_rma(force_refetch: bool = False):
 
         total_num_created = 0
         total_num_updated = 0
+        total_num_skipped = 0
         items_to_far = 0
         page_token = ""
 
         while True:
             num_created = 0
             num_updated = 0
+            num_skipped = 0
             base_query = BASE_QUERY.copy()
             query = base_query | {
                 "type": work_type,
@@ -118,6 +121,22 @@ def store_raw_data_rma(force_refetch: bool = False):
                     )
                     continue
 
+                # Check for duplicate object_number with different museum_db_id
+                # Prevents flip-flop bug and data corruption in downstream pipeline
+                existing = MetaDataRaw.objects.filter(
+                    museum_slug=MUSEUM_SLUG,
+                    object_number=object_number
+                ).exclude(museum_db_id=item_id).first()
+
+                if existing:
+                    logging.warning(
+                        f"Skipping RMA item {item_id} - duplicate object_number "
+                        f"'{object_number}' already exists with museum_db_id {existing.museum_db_id}"
+                    )
+                    num_skipped += 1
+                    total_num_skipped += 1
+                    continue
+
                 created = store_raw_data(
                     museum_slug=MUSEUM_SLUG,
                     object_number=object_number,
@@ -133,6 +152,7 @@ def store_raw_data_rma(force_refetch: bool = False):
 
             logging.info(f"Number of items created in current batch: {num_created}")
             logging.info(f"Number of items updated in current batch: {num_updated}")
+            logging.info(f"Number of items skipped in current batch: {num_skipped}")
 
             if next_page_token is None or not next_page_token.strip():
                 logging.info(f"All items processed for work type: {work_type}.")
@@ -141,6 +161,9 @@ def store_raw_data_rma(force_refetch: bool = False):
                 )
                 logging.info(
                     f"Total items updated for {work_type}: {total_num_updated}"
+                )
+                logging.info(
+                    f"Total items skipped for {work_type}: {total_num_skipped}"
                 )
                 break
             page_token = next_page_token
