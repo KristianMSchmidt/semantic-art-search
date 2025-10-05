@@ -12,4 +12,3 @@ db.sqlite3
 node_modules
 dev.py
 staticfiles
-CLAUDE.md
