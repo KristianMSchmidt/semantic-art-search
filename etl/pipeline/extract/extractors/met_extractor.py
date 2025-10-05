@@ -111,8 +111,10 @@ def handle_met_upload(
 
     num_created = 0
     num_updated = 0
+    num_skipped = 0
     total_num_created = 0
     total_num_updated = 0
+    total_num_skipped = 0
 
     for idx, object_id in enumerate(objects_to_fetch):
         print(f"Processing {idx + 1} of {len(objects_to_fetch)} objects...")
@@ -123,6 +125,22 @@ def handle_met_upload(
             item = get_item(object_id, http_session)
             object_number = item["accessionNumber"]
         except requests.RequestException:
+            continue
+
+        # Check for duplicate object_number with different museum_db_id
+        # MET has ~0.3% duplicate accession numbers - skip to maintain data integrity
+        existing = MetaDataRaw.objects.filter(
+            museum_slug=MUSEUM_SLUG,
+            object_number=object_number
+        ).exclude(museum_db_id=str(object_id)).first()
+
+        if existing:
+            logging.warning(
+                f"Skipping objectID {object_id} - duplicate object_number "
+                f"'{object_number}' already exists with museum_db_id {existing.museum_db_id}"
+            )
+            num_skipped += 1
+            total_num_skipped += 1
             continue
 
         created = store_raw_data(
@@ -142,11 +160,14 @@ def handle_met_upload(
         if idx % CHUNK_SIZE == 0 and idx > 0:
             logging.info(f"Number of items created in current batch: {num_created}")
             logging.info(f"Number of items updated in current batch: {num_updated}")
+            logging.info(f"Number of items skipped in current batch: {num_skipped}")
             num_created = 0
             num_updated = 0
+            num_skipped = 0
 
     print(f"Total number of items created: {total_num_created}")
     print(f"Total number of items updated: {total_num_updated}")
+    print(f"Total number of items skipped (duplicate object_number): {total_num_skipped}")
     print(f"Total time taken: {time.time() - start_time:.2f} seconds")
 
 
