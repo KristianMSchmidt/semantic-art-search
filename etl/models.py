@@ -11,10 +11,10 @@ class MetaDataRaw(models.Model):
 
     museum_slug = models.CharField(max_length=10)
     object_number = models.CharField(
-        max_length=100, help_text="Stable puclic artwork identifier"
+        max_length=100, help_text="Stable and unique puclic artwork identifier"
     )
     museum_db_id = models.CharField(
-        max_length=100, null=True, blank=True, help_text="Optional museum database ID"
+        max_length=100, help_text="Internal museum database ID"
     )
     raw_json = models.JSONField()
     created_at = models.DateTimeField(
@@ -94,10 +94,12 @@ class TransformedData(models.Model):
     """
 
     # Fields copied from MetaDataRaw on transform
-    object_number = models.CharField(max_length=100)  # Required field
+    object_number = models.CharField(
+        max_length=100, help_text="Stable and unique puclic artwork identifier"
+    )  # Required field
     museum_slug = models.CharField(max_length=10)  # Required field
     museum_db_id = models.CharField(
-        max_length=100, null=True, blank=True, help_text="Optional museum database ID"
+        max_length=100, help_text="Internal museum database ID"
     )
 
     # Extracted fields from raw_json
