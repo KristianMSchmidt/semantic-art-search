@@ -170,11 +170,6 @@ def get_bucket_image_key(museum: str, object_number: str) -> str:
     return f"{museum}_{object_number}.jpg"
 
 
-def get_cdn_thumbnail_url(museum: str, object_number: str) -> str:
-    key = get_bucket_image_key(museum=museum, object_number=object_number)
-    return f"https://cdn.kristianms.com/{key}"
-
-
 def get_bucket_image_url(museum: str, object_number: str) -> str:
     """Get direct S3 URL for image in bucket (not CDN)."""
     key = get_bucket_image_key(museum, object_number)
