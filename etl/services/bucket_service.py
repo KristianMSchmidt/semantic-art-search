@@ -98,7 +98,7 @@ class BucketService:
         content_type = resp.headers.get("Content-Type", "image/jpeg")
         if not content_type.startswith("image/"):
             raise ValueError(f"Unexpected content type: {content_type}")
-        cache_control = "max-age=31536000"  # 1 year
+        cache_control = "max-age=2592000"  # 30 days
 
         # Resize image before upload (with graceful fallback)
         try:
@@ -130,7 +130,7 @@ class BucketService:
             Key=new_key,
             MetadataDirective="REPLACE",
             ContentType="image/jpeg",
-            CacheControl="max-age=31536000",  # 1 year
+            CacheControl="max-age=2592000",  # 30 days
             ACL="public-read",
         )
 
