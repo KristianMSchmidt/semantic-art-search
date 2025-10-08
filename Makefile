@@ -139,6 +139,10 @@ load-images-met-force:  ## Force reload all thumbnail images for MET museum (dev
 load-images-all-force:  ## Force reload all thumbnail images for all museums (development)
 	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --force --batch-size 100 --delay 0.2 --batch-delay 5
 
+# ETL Load Images - Retry Failed
+load-images-smk-retry-failed:  ## Retry previously failed images for SMK museum (works for --museum cma/rma/met too)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum smk --retry-failed --batch-size 50 --delay 0.3 --batch-delay 10
+
 # Production ETL Load Images
 production_load-images-all:  ## Load thumbnail images for all museums (production)
 	docker compose -f docker-compose.prod.yml exec web python manage.py load_images --batch-size 200 --delay 0.1 --batch-delay 3

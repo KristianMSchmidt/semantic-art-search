@@ -25,6 +25,11 @@ class Command(BaseCommand):
             help="Force reload all images regardless of current image_loaded status",
         )
         parser.add_argument(
+            "--retry-failed",
+            action="store_true",
+            help="Retry previously failed images by resetting image_load_failed flag",
+        )
+        parser.add_argument(
             "--delay",
             type=float,
             default=0.2,
@@ -41,15 +46,17 @@ class Command(BaseCommand):
         batch_size = options["batch_size"]
         museum_filter = options["museum"]
         force_reload = options["force"]
+        retry_failed = options["retry_failed"]
         delay_seconds = options["delay"]
         batch_delay_seconds = options["batch_delay"]
 
         museum_text = f" for {museum_filter.upper()}" if museum_filter else " for all museums"
         force_text = " (force reload enabled)" if force_reload else ""
+        retry_text = " (retry failed enabled)" if retry_failed else ""
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Starting image loading pipeline{museum_text}{force_text} "
+                f"Starting image loading pipeline{museum_text}{force_text}{retry_text} "
                 f"(batch_size={batch_size}, delay={delay_seconds}s, "
                 f"batch_delay={batch_delay_seconds}s)..."
             )
@@ -80,6 +87,25 @@ class Command(BaseCommand):
                 self.stdout.write("Resetting image_loaded field...")
                 reset_count = service.reset_image_loaded_field(museum_filter)
                 self.stdout.write(self.style.SUCCESS(f"Reset {reset_count} records\n"))
+
+            # If retry failed, reset image_load_failed field to False
+            if retry_failed:
+                museum_text = (
+                    f"for {museum_filter.upper()}"
+                    if museum_filter
+                    else "for all museums"
+                )
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"\nRetrying previously failed images {museum_text}..."
+                    )
+                )
+                reset_count = service.reset_image_load_failed_field(museum_filter)
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Reset image_load_failed flag for {reset_count} records\n"
+                    )
+                )
 
             # Run continuous batch processing
             total_stats = {"success": 0, "error": 0, "total": 0}
