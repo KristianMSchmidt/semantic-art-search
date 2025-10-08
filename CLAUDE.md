@@ -179,6 +179,12 @@ make load-images-dev-small
 - Typical size: ~100-200KB (vs 1MB+ originals)
 - Configurable via `IMAGE_MAX_DIMENSION` and `IMAGE_JPEG_QUALITY` env vars
 
+**Image Delivery:**
+- Currently using direct Linode Object Storage URLs (no CDN)
+- Performance: ~200ms for US users, ~50ms for EU users with 100-200KB images
+- Browser caching: 30 days (`max-age=2592000`)
+- **Future CDN option**: If global performance becomes an issue, Cloudflare CDN can be added without code changes (just proxy DNS through Cloudflare). Decision deferred to focus on product features over infrastructure optimization.
+
 ### 4. Load Embeddings (CLIP → Qdrant)
 **Status: ✅ Done**
 
