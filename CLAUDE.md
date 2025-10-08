@@ -166,8 +166,18 @@ make load-images-dev-small
 **Data Flow:**
 1. Query `TransformedData` where `image_loaded=False`
 2. Download image from `thumbnail_url` (museum API)
-3. Upload to S3 bucket as `{museum}_{object_number}.jpg`
-4. Set `image_loaded=True`
+3. Resize image to max 800px (maintaining aspect ratio)
+4. Upload to S3 bucket as `{museum}_{object_number}.jpg`
+5. Set `image_loaded=True`
+
+**Image Resizing:**
+- All images resized before upload (max dimension: 800px)
+- Aspect ratio always maintained (no distortion)
+- RMA uses IIIF API to request 800px directly
+- CMA/SMK/MET images resized client-side using Pillow
+- Quality: JPEG at 85% quality
+- Typical size: ~100-200KB (vs 1MB+ originals)
+- Configurable via `IMAGE_MAX_DIMENSION` and `IMAGE_JPEG_QUALITY` env vars
 
 ### 4. Load Embeddings (CLIP → Qdrant)
 **Status: ✅ Done**
