@@ -107,9 +107,10 @@ class RmaTransformer(BaseTransformer):
 #### RMA helpers and utility functions #####
 
 
-def adjust_thumbnail_size(image_url: str, width=600) -> str:
+def adjust_thumbnail_size(image_url: str, width=800) -> str:
     """
-    Adjusts IIIF image thumbnail URLs to use a smaller width instead of 'max' for faster loading.
+    Adjusts IIIF image thumbnail URLs to use optimal width for UI and CLIP embeddings.
+    800px provides crisp retina display (384px × 2) and excellent CLIP quality (3.5× oversampling).
     """
     if image_url.startswith("https://iiif.micr.io/") and "/full/max/" in image_url:
         return image_url.replace("/full/max/", f"/full/{width},/")

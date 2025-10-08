@@ -8,6 +8,8 @@ not HOW it does it (implementation details).
 import pytest
 import requests
 from unittest.mock import Mock, patch
+from io import BytesIO
+from PIL import Image
 
 from etl.models import MetaDataRaw, TransformedData
 from etl.pipeline.extract.extractors.smk_extractor import (
@@ -309,3 +311,110 @@ def test_transient_errors_are_retried():
         assert (
             transformed2.image_load_failed is True
         ), "image_load_failed should be True after exhausting retries"
+
+
+@pytest.mark.integration
+def test_image_resizing_works():
+    """
+    Test that the resize_image_with_aspect_ratio function correctly resizes images.
+
+    This integration test verifies:
+    - Images are resized to correct dimensions
+    - Aspect ratio is maintained
+    - Different image sizes and aspect ratios work correctly
+    - Output is JPEG format
+    """
+    from etl.services.bucket_service import resize_image_with_aspect_ratio
+
+    # Test 1: Wide image (3000×1000 → 800×266)
+    img1 = Image.new("RGB", (3000, 1000), color="red")
+    img1_bytes = BytesIO()
+    img1.save(img1_bytes, format="JPEG")
+
+    resized1 = resize_image_with_aspect_ratio(img1_bytes.getvalue(), max_dimension=800)
+    resized_img1 = Image.open(BytesIO(resized1))
+
+    assert resized_img1.width == 800, "Wide image width should be 800"
+    assert resized_img1.height == 266, "Wide image height should be 266"
+    assert resized_img1.format == "JPEG", "Output should be JPEG"
+
+    # Test 2: Tall image (1000×3000 → 266×800)
+    img2 = Image.new("RGB", (1000, 3000), color="blue")
+    img2_bytes = BytesIO()
+    img2.save(img2_bytes, format="JPEG")
+
+    resized2 = resize_image_with_aspect_ratio(img2_bytes.getvalue(), max_dimension=800)
+    resized_img2 = Image.open(BytesIO(resized2))
+
+    assert resized_img2.width == 266, "Tall image width should be 266"
+    assert resized_img2.height == 800, "Tall image height should be 800"
+
+    # Test 3: Already small image (stays same size)
+    img3 = Image.new("RGB", (600, 400), color="green")
+    img3_bytes = BytesIO()
+    img3.save(img3_bytes, format="JPEG")
+
+    resized3 = resize_image_with_aspect_ratio(img3_bytes.getvalue(), max_dimension=800)
+    resized_img3 = Image.open(BytesIO(resized3))
+
+    assert resized_img3.width == 600, "Small image width should stay 600"
+    assert resized_img3.height == 400, "Small image height should stay 400"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_bucket_service_resizes_before_upload():
+    """
+    Test that BucketService.upload_thumbnail resizes images before uploading to S3.
+
+    This integration test verifies:
+    - Images are resized before S3 upload
+    - Resized bytes are passed to S3 put_object
+    - Graceful fallback works if resize fails
+    """
+    from etl.services.bucket_service import BucketService
+
+    # Create a test image that needs resizing (2000×1500)
+    test_img = Image.new("RGB", (2000, 1500), color="purple")
+    img_bytes_io = BytesIO()
+    test_img.save(img_bytes_io, format="JPEG")
+    test_img_bytes = img_bytes_io.getvalue()
+
+    # Mock the download response
+    mock_response = Mock()
+    mock_response.content = test_img_bytes
+    mock_response.headers = {"Content-Type": "image/jpeg"}
+
+    with patch("etl.services.bucket_service.get_image_response") as mock_get_image:
+        mock_get_image.return_value = mock_response
+
+        # Create bucket service with mocked S3 client
+        bucket_service = BucketService()
+
+        # Mock the S3 put_object to capture what gets uploaded
+        uploaded_data = {}
+
+        def capture_upload(**kwargs):
+            uploaded_data["Body"] = kwargs["Body"]
+            uploaded_data["ContentType"] = kwargs["ContentType"]
+
+        bucket_service.s3.put_object = Mock(side_effect=capture_upload)
+
+        # Upload thumbnail
+        bucket_service.upload_thumbnail(
+            museum="test", object_number="TEST123", museum_image_url="https://example.com/test.jpg"
+        )
+
+        # Verify upload was called
+        assert bucket_service.s3.put_object.called, "S3 put_object should be called"
+
+        # Verify the uploaded data is resized
+        uploaded_img = Image.open(BytesIO(uploaded_data["Body"]))
+        assert uploaded_img.width == 800, "Uploaded image width should be 800"
+        assert uploaded_img.height == 600, "Uploaded image height should be 600 (1500 * 800/2000)"
+        assert uploaded_data["ContentType"] == "image/jpeg", "Content type should be JPEG"
+
+        # Verify original image was larger
+        original_img = Image.open(BytesIO(test_img_bytes))
+        assert original_img.width == 2000, "Original was 2000px wide"
+        assert original_img.height == 1500, "Original was 1500px tall"

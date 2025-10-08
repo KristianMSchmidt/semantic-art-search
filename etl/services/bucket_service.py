@@ -2,8 +2,58 @@ import boto3
 from botocore.config import Config
 import requests
 from botocore.exceptions import ClientError
+from io import BytesIO
+from PIL import Image
 from artsearch.src.config import config
 from artsearch.src.services.clip_embedder import get_image_response
+
+
+def resize_image_with_aspect_ratio(
+    image_bytes: bytes, max_dimension: int = 800, jpeg_quality: int = 85
+) -> bytes:
+    """
+    Resize image maintaining aspect ratio with max dimension constraint.
+
+    Args:
+        image_bytes: Original image bytes
+        max_dimension: Maximum dimension (width or height) in pixels
+        jpeg_quality: JPEG compression quality (0-100)
+
+    Returns:
+        Resized image as JPEG bytes
+
+    Examples:
+        - 3000×1000 → 800×267 (width capped)
+        - 1000×3000 → 267×800 (height capped)
+        - 2000×2000 → 800×800 (square)
+    """
+    # Open image from bytes
+    img = Image.open(BytesIO(image_bytes))
+
+    # Convert to RGB if needed (handles RGBA, grayscale, etc.)
+    if img.mode != "RGB":
+        img = img.convert("RGB")
+
+    # Calculate new dimensions maintaining aspect ratio
+    width, height = img.size
+    if max(width, height) <= max_dimension:
+        # Image is already small enough, just convert format
+        output = BytesIO()
+        img.save(output, format="JPEG", quality=jpeg_quality, optimize=True)
+        return output.getvalue()
+
+    # Calculate scale factor based on longest dimension
+    scale_factor = max_dimension / max(width, height)
+    new_width = int(width * scale_factor)
+    new_height = int(height * scale_factor)
+
+    # Resize using high-quality Lanczos algorithm
+    img_resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+    # Save to bytes
+    output = BytesIO()
+    img_resized.save(output, format="JPEG", quality=jpeg_quality, optimize=True)
+    return output.getvalue()
 
 
 class BucketService:
@@ -50,10 +100,23 @@ class BucketService:
             raise ValueError(f"Unexpected content type: {content_type}")
         cache_control = "max-age=31536000"  # 1 year
 
+        # Resize image before upload (with graceful fallback)
+        try:
+            image_bytes = resize_image_with_aspect_ratio(
+                resp.content,
+                max_dimension=config.image_max_dimension,
+                jpeg_quality=config.image_jpeg_quality,
+            )
+            content_type = "image/jpeg"  # Always JPEG after resize
+        except Exception as e:
+            print(f"Warning: Failed to resize image for {museum}:{object_number}: {e}")
+            print("Uploading original image as fallback")
+            image_bytes = resp.content
+
         self.s3.put_object(
             Bucket=self.bucket_name,
             Key=key,
-            Body=resp.content,
+            Body=image_bytes,
             ACL="public-read",
             ContentType=content_type,
             CacheControl=cache_control,

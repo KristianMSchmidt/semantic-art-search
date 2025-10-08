@@ -27,6 +27,9 @@ class Config(BaseModel):
     postgres_db: str
     postgres_host: str
     postgres_port: str
+    # Image processing settings
+    image_max_dimension: int = 800
+    image_jpeg_quality: int = 85
 
 
 def create_config():
@@ -54,6 +57,9 @@ def create_config():
     postgres_db = os.getenv("POSTGRES_DB")
     postgres_host = os.getenv("POSTGRES_HOST")
     postgres_port = os.getenv("POSTGRES_PORT")
+    # Image processing settings (optional, with defaults)
+    image_max_dimension = int(os.getenv("IMAGE_MAX_DIMENSION", "800"))
+    image_jpeg_quality = int(os.getenv("IMAGE_JPEG_QUALITY", "85"))
 
     if not qdrant_url:
         raise ValueError("QDRANT_URL is not set")
@@ -102,6 +108,8 @@ def create_config():
         postgres_db=postgres_db,
         postgres_port=postgres_port,
         postgres_host=postgres_host,
+        image_max_dimension=image_max_dimension,
+        image_jpeg_quality=image_jpeg_quality,
     )
 
 
