@@ -140,7 +140,7 @@ def delete_altarpieces(collection_name: str = config.qdrant_collection_name):
 
 def upload_all_thumbnails(collection_name: str = config.qdrant_collection_name) -> None:
     qdrant_service = get_qdrant_service()
-    bucket_service = BucketService()
+    bucket_service = BucketService(use_etl_bucket=True)
 
     next_page_token = None
 

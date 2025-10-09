@@ -18,10 +18,14 @@ class Config(BaseModel):
     allowed_hosts: list[str] = []
     debug: bool = False
     clip_model_name: ClipSelection
+
+    aws_region_etl: str
+    aws_region_app: str
+    bucket_name_etl: str
+    bucket_name_app: str
     aws_access_key_id: str
     aws_secret_access_key: str
-    aws_region: str
-    bucket_name: str
+
     postgres_user: str
     postgres_password: str
     postgres_db: str
@@ -48,9 +52,14 @@ def create_config():
     device = os.getenv("DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
     debug = os.getenv("DEBUG", "False").lower() == "true"
     allowed_hosts = os.getenv("ALLOWED_HOSTS", "").split(",")
+
+    aws_region_etl = os.getenv("AWS_REGION_ETL")
+    aws_region_app = os.getenv("AWS_REGION_APP")
+    bucket_name_etl = os.getenv("BUCKET_NAME_ETL")
+    bucket_name_app = os.getenv("BUCKET_NAME_APP")
     aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
     aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-    aws_region = os.getenv("AWS_REGION")
+
     bucket_name = os.getenv("BUCKET_NAME")
     postgres_user = os.getenv("POSTGRES_USER")
     postgres_password = os.getenv("POSTGRES_PASSWORD")
@@ -71,14 +80,18 @@ def create_config():
         raise ValueError("DJANGO_SECRET_KEY is not set")
     if not allowed_hosts:
         raise ValueError("ALLOWED_HOSTS is not set")
+    if not aws_region_etl:
+        raise ValueError("AWS_REGION_ETL is not set")
+    if not aws_region_app:
+        raise ValueError("AWS_REGION_APP is not set")
+    if not bucket_name_etl:
+        raise ValueError("BUCKET_NAME_ETL is not set")
+    if not bucket_name_app:
+        raise ValueError("BUCKET_NAME_APP is not set")
     if not aws_access_key_id:
         raise ValueError("AWS_ACCESS_KEY_ID is not set")
     if not aws_secret_access_key:
         raise ValueError("AWS_SECRET_ACCESS_KEY is not set")
-    if not aws_region:
-        raise ValueError("AWS_REGION is not set")
-    if not bucket_name:
-        raise ValueError("BUCKET_NAME is not set")
     if not postgres_user:
         raise ValueError("POSTGRES_USER is not set")
     if not postgres_password:
@@ -99,10 +112,12 @@ def create_config():
         allowed_hosts=allowed_hosts,
         debug=debug,
         clip_model_name="ViT-L/14",
+        aws_region_etl=aws_region_etl,
+        aws_region_app=aws_region_app,
+        bucket_name_etl=bucket_name_etl,
+        bucket_name_app=bucket_name_app,
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
-        aws_region=aws_region,
-        bucket_name=bucket_name,
         postgres_user=postgres_user,
         postgres_password=postgres_password,
         postgres_db=postgres_db,

@@ -76,7 +76,7 @@ class ImageLoadService:
     """
 
     def __init__(self, bucket_service: Optional[BucketService] = None):
-        self.bucket_service = bucket_service or BucketService()
+        self.bucket_service = bucket_service or BucketService(use_etl_bucket=True)
 
     def reset_image_loaded_field(self, museum_filter: Optional[str] = None) -> int:
         """

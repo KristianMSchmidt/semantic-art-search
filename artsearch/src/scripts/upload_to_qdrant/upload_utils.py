@@ -148,7 +148,7 @@ def upload_to_qdrant(
     qdrant_service = get_qdrant_service()
     clip_embedder = get_clip_embedder(model_name=clip_model_name)
     museum_api_client = get_museum_client(museum_name)
-    bucket_service = BucketService()
+    bucket_service = BucketService(use_etl_bucket=True)
 
     # Create collection if it doesn't exist
     qdrant_service.create_qdrant_collection(

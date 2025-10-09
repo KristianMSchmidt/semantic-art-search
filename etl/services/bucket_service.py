@@ -56,15 +56,31 @@ def resize_image_with_aspect_ratio(
     return output.getvalue()
 
 
+def get_bucket_config(use_etl_bucket: bool) -> tuple[str, str]:
+    """
+    Get bucket name and region based on context.
+
+    Args:
+        use_etl_bucket: If True, return ETL bucket config; if False, return app bucket config
+
+    Returns:
+        Tuple of (bucket_name, region)
+    """
+    if use_etl_bucket:
+        return config.bucket_name_etl, config.aws_region_etl
+    else:
+        return config.bucket_name_app, config.aws_region_app
+
+
 class BucketService:
     def __init__(
         self,
-        bucket_name: str = config.bucket_name,
-        region: str = config.aws_region,
+        use_etl_bucket: bool,
         aws_access_key_id: str = config.aws_access_key_id,
         aws_secret_access_key: str = config.aws_secret_access_key,
     ):
-        self.bucket_name = bucket_name
+        # Select bucket and region based on context
+        self.bucket_name, region = get_bucket_config(use_etl_bucket)
 
         boto3_cfg = Config(
             signature_version="s3",
@@ -170,9 +186,20 @@ def get_bucket_image_key(museum: str, object_number: str) -> str:
     return f"{museum}_{object_number}.jpg"
 
 
-def get_bucket_image_url(museum: str, object_number: str) -> str:
-    """Get direct S3 URL for image in bucket (not CDN)."""
+def get_bucket_image_url(
+    museum: str, object_number: str, use_etl_bucket: bool
+) -> str:
+    """
+    Get direct S3 URL for image in bucket.
+
+    Args:
+        museum: Museum slug
+        object_number: Artwork object number
+        use_etl_bucket: If True, use ETL bucket; if False, use app bucket
+
+    Returns:
+        Full HTTPS URL to image in bucket
+    """
     key = get_bucket_image_key(museum, object_number)
-    region = config.aws_region
-    bucket = config.bucket_name
+    bucket, region = get_bucket_config(use_etl_bucket)
     return f"https://{region}.linodeobjects.com/{bucket}/{key}"

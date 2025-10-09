@@ -200,8 +200,10 @@ class EmbeddingLoadService:
             NotImplementedError: If vector type calculation is not yet implemented
         """
         if vector_type == "image_clip":
-            # Get image URL from E0 bucket
-            bucket_url = get_bucket_image_url(record.museum_slug, record.object_number)
+            # Get image URL from ETL bucket
+            bucket_url = get_bucket_image_url(
+                record.museum_slug, record.object_number, use_etl_bucket=True
+            )
             embedding = self.clip_embedder.generate_thumbnail_embedding(
                 thumbnail_url=bucket_url, object_number=record.object_number
             )

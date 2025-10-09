@@ -389,7 +389,7 @@ def test_bucket_service_resizes_before_upload():
         mock_get_image.return_value = mock_response
 
         # Create bucket service with mocked S3 client
-        bucket_service = BucketService()
+        bucket_service = BucketService(use_etl_bucket=True)
 
         # Mock the S3 put_object to capture what gets uploaded
         uploaded_data = {}

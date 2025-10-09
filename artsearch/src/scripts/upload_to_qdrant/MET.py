@@ -12,7 +12,7 @@ from artsearch.src.services.museum_clients.met_api_client import METAPIClient
 qdrant_service = get_qdrant_service()
 clip_embedder = get_clip_embedder()
 met_api_client = METAPIClient()
-bucket_service = BucketService()
+bucket_service = BucketService(use_etl_bucket=True)
 
 CHUNK_SIZE = 100
 

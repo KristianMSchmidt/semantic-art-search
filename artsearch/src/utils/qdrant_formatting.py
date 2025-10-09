@@ -67,7 +67,7 @@ def format_payload(payload: models.Payload | None) -> dict:
     ]
 
     thumbnail_url = get_bucket_image_url(
-        payload["museum"], payload["object_number"]
+        payload["museum"], payload["object_number"], use_etl_bucket=False
     )
 
     source_url = get_source_url(
