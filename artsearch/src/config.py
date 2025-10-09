@@ -60,7 +60,6 @@ def create_config():
     aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
     aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
 
-    bucket_name = os.getenv("BUCKET_NAME")
     postgres_user = os.getenv("POSTGRES_USER")
     postgres_password = os.getenv("POSTGRES_PASSWORD")
     postgres_db = os.getenv("POSTGRES_DB")
