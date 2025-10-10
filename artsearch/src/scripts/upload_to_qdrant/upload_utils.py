@@ -4,10 +4,10 @@ Utility functions for uploading data to Qdrant
 
 import time
 import logging
-import uuid
 import copy
 from typing import Any
 from qdrant_client.http.models import PointStruct
+from etl.utils import generate_uuid5
 from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.src.services.clip_embedder import (
     CLIPEmbedder,
@@ -46,11 +46,6 @@ def get_user_confirmation(
         logging.info("Exiting the program.")
         exit()
     logging.info("Proceeding with the program...")
-
-
-def generate_uuid5(museum_name: str, object_number: str) -> str:
-    """Generate a UUID5 from the museum name and object number."""
-    return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{museum_name}-{object_number}"))
 
 
 def prepare_point_struct(
@@ -119,7 +114,7 @@ def upload_to_qdrant(
     museum_name: str,
     limit: int,
     clip_model_name: ClipSelection = CLIP_MODEL_NAME,
-    upload_collection_name: str = config.qdrant_collection_name,
+    upload_collection_name: str = config.qdrant_collection_name_etl,
 ) -> int:
     """
     Uploads artworks from a museum API to a the image bucket and the Qdrant collection with CLIP embeddings.

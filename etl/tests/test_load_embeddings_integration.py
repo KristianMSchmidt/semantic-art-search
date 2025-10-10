@@ -17,6 +17,7 @@ from etl.pipeline.extract.extractors.smk_extractor import (
 from etl.pipeline.extract.helpers.upsert_raw_data import store_raw_data
 from etl.pipeline.transform.transform import transform_and_upsert
 from etl.services.embedding_load_service import EmbeddingLoadService
+from etl.utils import generate_uuid5
 
 
 @pytest.mark.integration
@@ -80,15 +81,22 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
     )
 
     # Step 3: Verify initial state
-    assert transformed.image_vector_clip is False, "Should start with image_vector_clip=False"
-    assert transformed.text_vector_clip is False, "Should start with text_vector_clip=False"
+    assert transformed.image_vector_clip is False, (
+        "Should start with image_vector_clip=False"
+    )
+    assert transformed.text_vector_clip is False, (
+        "Should start with text_vector_clip=False"
+    )
 
     # Step 4: Test prerequisite - should NOT process if image_loaded=False
     assert transformed.image_loaded is False, "Should start with image_loaded=False"
 
-    with patch("etl.services.embedding_load_service.get_clip_embedder") as mock_get_clip, \
-         patch("etl.services.embedding_load_service.get_qdrant_service") as mock_get_qdrant:
-
+    with (
+        patch("etl.services.embedding_load_service.get_clip_embedder") as mock_get_clip,
+        patch(
+            "etl.services.embedding_load_service.get_qdrant_service"
+        ) as mock_get_qdrant,
+    ):
         # Setup mocks
         mock_clip_embedder = Mock()
         mock_get_clip.return_value = mock_clip_embedder
@@ -102,7 +110,9 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
         service = EmbeddingLoadService(collection_name="test_collection")
 
         # Should return empty because image_loaded=False
-        records = service.get_records_needing_processing(batch_size=100, museum_filter="smk")
+        records = service.get_records_needing_processing(
+            batch_size=100, museum_filter="smk"
+        )
         our_records = [r for r in records if r.object_number == object_number]
         assert len(our_records) == 0, "Should not process records without images loaded"
 
@@ -111,9 +121,12 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
     transformed.save(update_fields=["image_loaded"])
 
     # Step 6: Now test embedding processing with mocked CLIP and Qdrant
-    with patch("etl.services.embedding_load_service.get_clip_embedder") as mock_get_clip, \
-         patch("etl.services.embedding_load_service.get_qdrant_service") as mock_get_qdrant:
-
+    with (
+        patch("etl.services.embedding_load_service.get_clip_embedder") as mock_get_clip,
+        patch(
+            "etl.services.embedding_load_service.get_qdrant_service"
+        ) as mock_get_qdrant,
+    ):
         # Setup mocks
         mock_clip_embedder = Mock()
         # Return fake 768-dimensional embedding
@@ -131,9 +144,13 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
         service = EmbeddingLoadService(collection_name="test_collection")
 
         # Should now return our record (image_loaded=True, vector missing)
-        records = service.get_records_needing_processing(batch_size=100, museum_filter="smk")
+        records = service.get_records_needing_processing(
+            batch_size=100, museum_filter="smk"
+        )
         our_records = [r for r in records if r.object_number == object_number]
-        assert len(our_records) == 1, "Should process records with images loaded and vector missing"
+        assert len(our_records) == 1, (
+            "Should process records with images loaded and vector missing"
+        )
 
         # Process the record
         transformed.refresh_from_db()
@@ -153,7 +170,11 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
         assert len(points) == 1, "Should upload exactly 1 point"
 
         point = points[0]
-        assert point.id == transformed.pk, "Point ID should match database PK"
+        # Verify UUID5 is deterministic
+        expected_id = generate_uuid5(transformed.museum_slug, transformed.object_number)
+        assert point.id == expected_id, (
+            f"Point ID should be UUID5 based on museum+object_number"
+        )
 
         # Verify named vectors structure
         vectors = point.vector
@@ -163,7 +184,9 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
         assert "text_jina" in vectors, "Should have text_jina vector (zero)"
 
         # Verify active vector has calculated values
-        assert vectors["image_clip"] == fake_embedding, "image_clip should have calculated values"
+        assert vectors["image_clip"] == fake_embedding, (
+            "image_clip should have calculated values"
+        )
 
         # Verify non-active vectors have zeros
         assert vectors["text_clip"] == [0.0] * 768, "text_clip should be zero vector"
@@ -173,27 +196,39 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
         # Verify payload structure
         payload = point.payload
         assert payload["museum"] == "smk", "Payload should have museum"
-        assert payload["object_number"] == object_number, "Payload should have object_number"
+        assert payload["object_number"] == object_number, (
+            "Payload should have object_number"
+        )
         assert "title" in payload, "Payload should have title"
         assert "artist" in payload, "Payload should have artist"
         assert "production_date" in payload, "Payload should have production_date"
         assert "work_types" in payload, "Payload should have work_types"
-        assert "searchable_work_types" in payload, "Payload should have searchable_work_types"
+        assert "searchable_work_types" in payload, (
+            "Payload should have searchable_work_types"
+        )
 
         # Verify database flag was updated
         transformed.refresh_from_db()
-        assert transformed.image_vector_clip is True, "image_vector_clip should be True after processing"
-        assert transformed.text_vector_clip is False, "text_vector_clip should still be False (not active)"
+        assert transformed.image_vector_clip is True, (
+            "image_vector_clip should be True after processing"
+        )
+        assert transformed.text_vector_clip is False, (
+            "text_vector_clip should still be False (not active)"
+        )
 
         # Step 7: Test idempotency - process again
         mock_clip_embedder.reset_mock()
         mock_qdrant_service.reset_mock()
 
         # Get records needing processing - should be empty now
-        records = service.get_records_needing_processing(batch_size=100, museum_filter="smk")
+        records = service.get_records_needing_processing(
+            batch_size=100, museum_filter="smk"
+        )
         our_records = [r for r in records if r.object_number == object_number]
 
-        assert len(our_records) == 0, "Record with all active vectors calculated should not be returned"
+        assert len(our_records) == 0, (
+            "Record with all active vectors calculated should not be returned"
+        )
 
         # Process again - should skip
         transformed.refresh_from_db()
@@ -210,9 +245,13 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
     assert count >= 1, "Should reset at least our test record"
 
     transformed.refresh_from_db()
-    assert transformed.image_vector_clip is False, "reset_vector_fields should set flag to False"
+    assert transformed.image_vector_clip is False, (
+        "reset_vector_fields should set flag to False"
+    )
 
     # Now should need processing again
-    records = service.get_records_needing_processing(batch_size=100, museum_filter="smk")
+    records = service.get_records_needing_processing(
+        batch_size=100, museum_filter="smk"
+    )
     our_records = [r for r in records if r.object_number == object_number]
     assert len(our_records) == 1, "After reset, record should need processing again"

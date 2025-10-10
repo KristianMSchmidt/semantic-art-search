@@ -90,7 +90,7 @@ def handle_met_upload(
             # Step 5: Upload to qdrant (after thumbnail upload)
             try:
                 qdrant_service.qdrant_client.upsert(
-                    collection_name=config.qdrant_collection_name,
+                    collection_name=config.qdrant_collection_name_etl,
                     points=[point],
                 )
 

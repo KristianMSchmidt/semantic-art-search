@@ -39,8 +39,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--collection-name",
             type=str,
-            default="artworks_etl_v1",
-            help="Qdrant collection name to store embeddings (default: artworks_etl_v1)",
+            default=None,
+            help="Qdrant collection name to store embeddings (default: from QDRANT_COLLECTION_NAME_ETL env var)",
         )
 
     def handle(self, **options):

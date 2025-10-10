@@ -7,8 +7,10 @@ from qdrant_client.http.models import PointStruct, VectorParams, Distance
 
 from etl.models import TransformedData
 from etl.services.bucket_service import get_bucket_image_url
+from etl.utils import generate_uuid5
 from artsearch.src.services.clip_embedder import get_clip_embedder
 from artsearch.src.services.qdrant_service import get_qdrant_service
+from artsearch.src.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +44,8 @@ class EmbeddingLoadService:
     - Natural pagination prevents infinite loops (management command loop)
     """
 
-    def __init__(self, collection_name: str = "artworks_etl_v1"):
-        self.collection_name = collection_name
+    def __init__(self, collection_name: str | None = None):
+        self.collection_name = collection_name or config.qdrant_collection_name_etl
         self.clip_embedder = get_clip_embedder()
         self.qdrant_service = get_qdrant_service()
         self._ensure_collection_exists()
@@ -178,7 +180,7 @@ class EmbeddingLoadService:
         }
 
         return PointStruct(
-            id=record.pk,
+            id=generate_uuid5(record.museum_slug, record.object_number),
             vector=vectors,  # type: ignore
             payload=payload,
         )

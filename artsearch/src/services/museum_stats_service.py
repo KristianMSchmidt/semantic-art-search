@@ -24,7 +24,7 @@ class MuseumWorkTypeSummary:
 
 @lru_cache(maxsize=1)
 def aggregate_work_type_counts(
-    collection_name: str = config.qdrant_collection_name,
+    collection_name: str = config.qdrant_collection_name_app,
     work_type_key: str = "searchable_work_types",
 ) -> tuple[MuseumWorkTypeCount, MuseumTotalCount]:
     logging.info("Counting work types")

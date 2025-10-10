@@ -262,7 +262,7 @@ class QdrantService:
         values: list[Any],
         museum: str,
         id_key: str = "object_number",
-        collection_name: str = config.qdrant_collection_name,
+        collection_name: str = config.qdrant_collection_name_etl,
     ) -> set[str]:
         """
         Given a qdrant collection key, a museum name and list of values,
@@ -305,5 +305,5 @@ class QdrantService:
 def get_qdrant_service() -> QdrantService:
     return QdrantService(
         qdrant_client=get_qdrant_client(),
-        collection_name=config.qdrant_collection_name,
+        collection_name=config.qdrant_collection_name_app,
     )

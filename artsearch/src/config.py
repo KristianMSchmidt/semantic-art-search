@@ -12,7 +12,9 @@ ClipSelection = Literal["ViT-L/14"]
 class Config(BaseModel):
     qdrant_url: str
     qdrant_api_key: str
-    qdrant_collection_name: str
+    qdrant_collection_name_etl: str
+    qdrant_collection_name_app: str
+
     django_secret_key: str
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     allowed_hosts: list[str] = []
@@ -47,19 +49,21 @@ def create_config():
 
     qdrant_url = os.getenv("QDRANT_URL")
     qdrant_api_key = os.getenv("QDRANT_API_KEY")
-    qdrant_collection_name = "artworks_ViTL14_v3"
+    qdrant_collection_name_app = os.getenv("QDRANT_COLLECTION_NAME_APP")
+    qdrant_collection_name_etl = os.getenv("QDRANT_COLLECTION_NAME_ETL")
     django_secret_key = os.getenv("DJANGO_SECRET_KEY")
     device = os.getenv("DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
     debug = os.getenv("DEBUG", "False").lower() == "true"
     allowed_hosts = os.getenv("ALLOWED_HOSTS", "").split(",")
 
+    # AWS S3 / Linode Object Storage configuration
     aws_region_etl = os.getenv("AWS_REGION_ETL")
     aws_region_app = os.getenv("AWS_REGION_APP")
     bucket_name_etl = os.getenv("BUCKET_NAME_ETL")
     bucket_name_app = os.getenv("BUCKET_NAME_APP")
     aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
     aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-
+    # Postgres configuration
     postgres_user = os.getenv("POSTGRES_USER")
     postgres_password = os.getenv("POSTGRES_PASSWORD")
     postgres_db = os.getenv("POSTGRES_DB")
@@ -73,8 +77,10 @@ def create_config():
         raise ValueError("QDRANT_URL is not set")
     if not qdrant_api_key:
         raise ValueError("QDRANT_API_KEY is not set")
-    if not qdrant_collection_name:
-        raise ValueError("QDRANT_COLLECTION_NAME is not set")
+    if not qdrant_collection_name_etl:
+        raise ValueError("QDRANT_COLLECTION_NAME_APP is not set")
+    if not qdrant_collection_name_app:
+        raise ValueError("QDRANT_COLLECTION_NAME_ETL is not set")
     if not django_secret_key:
         raise ValueError("DJANGO_SECRET_KEY is not set")
     if not allowed_hosts:
@@ -105,7 +111,8 @@ def create_config():
     return Config(
         qdrant_url=qdrant_url,
         qdrant_api_key=qdrant_api_key,
-        qdrant_collection_name=qdrant_collection_name,
+        qdrant_collection_name_etl=qdrant_collection_name_etl,
+        qdrant_collection_name_app=qdrant_collection_name_app,
         django_secret_key=django_secret_key,
         device=device,
         allowed_hosts=allowed_hosts,
