@@ -11,7 +11,7 @@ class MetaDataRaw(models.Model):
 
     museum_slug = models.CharField(max_length=10)
     object_number = models.CharField(
-        max_length=100, help_text="Stable and unique puclic artwork identifier"
+        max_length=100, help_text="Stable and unique public artwork identifier"
     )
     museum_db_id = models.CharField(
         max_length=100, help_text="Internal museum database ID"
