@@ -46,8 +46,8 @@ class MuseumAPIClient(ABC):
         self.http_session = http_session or get_configured_session()
 
     @abstractmethod
-    def get_thumbnail_url(self, inventory_number: str) -> str:
-        """Fetch the thumbnail URL for a given inventory number."""
+    def get_object_url(self, object_number: str) -> str:
+        """Construct the API url."""
         pass
 
     @abstractmethod

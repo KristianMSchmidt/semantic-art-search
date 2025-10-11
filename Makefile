@@ -4,12 +4,12 @@
 ## Used for both development and production. See targets below.
 ## ----------------------------------------------------------------------
 
+
 help:   # Show this help.
 	@sed -ne '/@sed/!s/## //p' $(MAKEFILE_LIST)
 
 
 # ---------- Development ---------- #
-
 tailwind-install:  ## install tailwind
 	python manage.py tailwind install
 
@@ -25,13 +25,31 @@ develop:  ## Run development server
 stop: ## Stop development server
 	docker compose -f docker-compose.dev.yml down --remove-orphans
 
+migrations:  ## Run migrations
+	docker compose -f docker-compose.dev.yml exec web python manage.py makemigrations
+
+migrate:  ## Apply migrations
+	docker compose -f docker-compose.dev.yml exec web python manage.py migrate
+
 shell:  ## Open shell in running docker development container
 	docker compose -f docker-compose.dev.yml exec web /bin/bash
 
 djangoshell:  ## Open django shell in running docker development container
 	docker compose -f docker-compose.dev.yml exec web python manage.py shell
 
+test:  ## Run all tests with pytest
+	docker compose -f docker-compose.dev.yml exec web pytest
+
+test-unit:  ## Run unit tests only
+	docker compose -f docker-compose.dev.yml exec web pytest -m unit
+
+test-integration:  ## Run integration tests only (with migrations)
+	docker compose -f docker-compose.dev.yml exec web pytest -m integration
+
+
+
 # ---------- Data ---------- #
+
 adhoc: # Adhoc scripts only used during development
 	python -m artsearch.src.scripts.adhoc
 
@@ -54,6 +72,124 @@ update-payload: ## Update collection payload
 	python -m artsearch.src.scripts.update_payload
 
 
+# ---------- ETL ---------- #
+extract-smk: ## upsert-raw-data from SMK
+	docker compose -f docker-compose.prod.yml exec web python manage.py extract -m smk
+
+extract-cma: ## upsert-raw-data from CMA
+	docker compose -f docker-compose.prod.yml exec web python manage.py extract -m cma
+
+extract-rma: ## upsert-raw-data from RMA
+	docker compose -f docker-compose.prod.yml exec web python manage.py extract -m rma
+
+extract-met: ## upsert-raw-data from MET
+	docker compose -f docker-compose.prod.yml exec web python manage.py extract -m met
+
+extract-all: ## upsert-raw-data from ALL museums
+	docker compose -f docker-compose.prod.yml exec web python manage.py extract --all
+
+extract-met-force: ## force refetch raw data from MET (ignores existing data)
+	docker compose -f docker-compose.prod.yml exec web python manage.py extract -m met --force-refetch
+
+transform:  ## Transform all records for all museums (batch_size=1000)
+	docker compose -f docker-compose.prod.yml exec web python manage.py transform --batch-size 100
+
+transform-smk:  ## Transform all records for SMK museum only
+	docker compose -f docker-compose.prod.yml exec web python manage.py transform --museum smk --batch-size 100
+
+transform-cma:  ## Transform all records for CMA museum only
+	docker compose -f docker-compose.prod.yml exec web python manage.py transform --museum cma --batch-size 100
+
+transform-rma:  ## Transform all records for RMA museum only
+	docker compose -f docker-compose.prod.yml exec web python manage.py transform --museum rma --batch-size 100
+
+transform-met:  ## Transform all records for MET museum only
+	docker compose -f docker-compose.prod.yml exec web python manage.py transform --museum met --batch-size 100
+
+
+# ETL Load Images
+load-images-smk:  ## Load thumbnail images for SMK museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum smk --batch-size 50 --delay 0.3 --batch-delay 10
+
+load-images-cma:  ## Load thumbnail images for CMA museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum cma --batch-size 50 --delay 0.3 --batch-delay 10
+
+load-images-rma:  ## Load thumbnail images for RMA museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum rma --batch-size 50 --delay 0.3 --batch-delay 10
+
+load-images-met:  ## Load thumbnail images for MET museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum met --batch-size 50 --delay 0.3 --batch-delay 10
+
+load-images-all:  ## Load thumbnail images for all museums (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --batch-size 100 --delay 0.2 --batch-delay 5
+
+# ETL Load Images - Force Reload
+load-images-smk-force:  ## Force reload all thumbnail images for SMK museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum smk --force --batch-size 50 --delay 0.3 --batch-delay 10
+
+load-images-cma-force:  ## Force reload all thumbnail images for CMA museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum cma --force --batch-size 50 --delay 0.3 --batch-delay 10
+
+load-images-rma-force:  ## Force reload all thumbnail images for RMA museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum rma --force --batch-size 50 --delay 0.3 --batch-delay 10
+
+load-images-met-force:  ## Force reload all thumbnail images for MET museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum met --force --batch-size 50 --delay 0.3 --batch-delay 10
+
+load-images-all-force:  ## Force reload all thumbnail images for all museums (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --force --batch-size 100 --delay 0.2 --batch-delay 5
+
+# ETL Load Images - Retry Failed
+load-images-smk-retry-failed:  ## Retry previously failed images for SMK museum (works for --museum cma/rma/met too)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_images --museum smk --retry-failed --batch-size 50 --delay 0.3 --batch-delay 10
+
+# Production ETL Load Images
+production_load-images-all:  ## Load thumbnail images for all museums (production)
+	docker compose -f docker-compose.prod.yml exec web python manage.py load_images --batch-size 200 --delay 0.1 --batch-delay 3
+
+production_load-images-all-force:  ## Force reload all thumbnail images for all museums (production)
+	docker compose -f docker-compose.prod.yml exec web python manage.py load_images --force --batch-size 200 --delay 0.1 --batch-delay 3
+
+# ETL Load Embeddings
+load-embeddings-smk:  ## Generate CLIP embeddings for SMK museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --museum smk --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-cma:  ## Generate CLIP embeddings for CMA museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --museum cma --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-rma:  ## Generate CLIP embeddings for RMA museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --museum rma --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-met:  ## Generate CLIP embeddings for MET museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --museum met --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-all:  ## Generate CLIP embeddings for all museums (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --batch-size 100 --delay 0.1 --batch-delay 2
+
+# ETL Load Embeddings - Force Reload
+load-embeddings-smk-force:  ## Force regenerate embeddings for SMK museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --museum smk --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-cma-force:  ## Force regenerate embeddings for CMA museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --museum cma --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-rma-force:  ## Force regenerate embeddings for RMA museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --museum rma --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-met-force:  ## Force regenerate embeddings for MET museum (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --museum met --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-all-force:  ## Force regenerate embeddings for all museums (development)
+	docker compose -f docker-compose.dev.yml exec web python manage.py load_embeddings --force --batch-size 100 --delay 0.1 --batch-delay 2
+
+# Production ETL Load Embeddings
+production_load-embeddings-all:  ## Generate CLIP embeddings for all museums (production)
+	docker compose -f docker-compose.prod.yml exec web python manage.py load_embeddings --batch-size 200 --delay 0.1 --batch-delay 2
+
+production_load-embeddings-all-force:  ## Force regenerate embeddings for all museums (production)
+	docker compose -f docker-compose.prod.yml exec web python manage.py load_embeddings --force --batch-size 200 --delay 0.1 --batch-delay 2
+
+
 # ---------- Production ---------- #
 production_stop: ## Stop production server
 	docker compose -f docker-compose.prod.yml down --remove-orphans
@@ -67,7 +203,7 @@ production_djangologs: ## Show django logs
 production_accesslogs: ## Show nginx access logs
 	docker logs semantic-art-searchkristianmscom-nginx-1
 
-production_shell: # Open shell in running docker production container
+production_shell: ## Open shell in running docker production container
 	docker compose -f docker-compose.prod.yml exec web /bin/bash
 
 production_djangoshell:  ## Open django shell in running docker production container

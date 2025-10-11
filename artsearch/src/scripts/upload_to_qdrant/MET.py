@@ -12,7 +12,7 @@ from artsearch.src.services.museum_clients.met_api_client import METAPIClient
 qdrant_service = get_qdrant_service()
 clip_embedder = get_clip_embedder()
 met_api_client = METAPIClient()
-bucket_service = BucketService()
+bucket_service = BucketService(use_etl_bucket=True)
 
 CHUNK_SIZE = 100
 
@@ -90,7 +90,7 @@ def handle_met_upload(
             # Step 5: Upload to qdrant (after thumbnail upload)
             try:
                 qdrant_service.qdrant_client.upsert(
-                    collection_name=config.qdrant_collection_name,
+                    collection_name=config.qdrant_collection_name_etl,
                     points=[point],
                 )
 

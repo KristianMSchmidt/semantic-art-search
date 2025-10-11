@@ -25,6 +25,9 @@ class METAPIClient:
     def __init__(self):
         self.http_session = requests.Session()
 
+    def get_object_url(self, museum_db_id: int) -> str:
+        return f"{self.OBJECTS_URL}/{museum_db_id}"
+
     def process_item(self, item: dict[str, Any]) -> ArtworkPayload:
         # Is public domain?
         if not item["isPublicDomain"]:
@@ -104,7 +107,7 @@ class METAPIClient:
 
     def get_item(self, object_id: int) -> dict[str, Any]:
         """Fetch a single artwork item from the MET API."""
-        object_url = f"{self.OBJECTS_URL}/{object_id}"
+        object_url = self.get_object_url(object_id)
         try:
             item = self.http_session.get(object_url, timeout=10)
             item.raise_for_status()

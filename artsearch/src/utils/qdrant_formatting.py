@@ -1,7 +1,9 @@
+"""Helper functions to format downloaded Qdrant payloads for frontend display."""
+
 from qdrant_client import models
 
 from artsearch.src.constants import WORK_TYPES_DICT, SUPPORTED_MUSEUMS
-from artsearch.src.services.bucket_service import get_cdn_thumbnail_url
+from etl.services.bucket_service import get_bucket_image_url
 
 
 def get_full_museum_name(museum_slug: str) -> str:
@@ -64,8 +66,8 @@ def format_payload(payload: models.Payload | None) -> dict:
         get_work_type_translation(name).capitalize() for name in payload["work_types"]
     ]
 
-    cdn_thumbnail_url = get_cdn_thumbnail_url(
-        payload["museum"], payload["object_number"]
+    thumbnail_url = get_bucket_image_url(
+        payload["museum"], payload["object_number"], use_etl_bucket=False
     )
 
     source_url = get_source_url(
@@ -75,7 +77,7 @@ def format_payload(payload: models.Payload | None) -> dict:
         "title": payload["titles"][0]["title"],
         "artist": ", ".join(payload["artist"]),
         "work_types": work_types,
-        "thumbnail_url": cdn_thumbnail_url,
+        "thumbnail_url": thumbnail_url,
         "period": period,
         "object_number": payload["object_number"],
         "museum": get_full_museum_name(payload["museum"]),

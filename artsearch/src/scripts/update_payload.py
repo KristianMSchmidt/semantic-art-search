@@ -44,7 +44,7 @@ def process_points(points: list[models.Record]) -> list[models.PointStruct]:
     return processed_points
 
 
-def main(collection_name: str = config.qdrant_collection_name) -> None:
+def main(collection_name: str) -> None:
     """Main entry point of the script."""
     qdrant_service = get_qdrant_service()
 
@@ -67,4 +67,6 @@ def main(collection_name: str = config.qdrant_collection_name) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    # collection_name = config.qdrant_collection_name_etl
+    # main(collection_name)
+    pass

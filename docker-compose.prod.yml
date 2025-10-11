@@ -5,7 +5,6 @@ services:
     command: /bin/sh -c /code/entrypoint.prod.sh
     volumes:
       - static_volume:/code/staticfiles
-      - database_volume:/code/data
     expose:
       - 8017
     networks:
@@ -47,7 +46,6 @@ services:
       - reverse-proxy_proxynet
 
 volumes:
-  database_volume: {}
   static_volume: {}
 
 networks:

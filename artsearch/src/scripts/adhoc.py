@@ -8,20 +8,19 @@ from qdrant_client.models import PointStruct
 
 from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.src.services.museum_clients.factory import get_museum_client
-from artsearch.src.config import config
-from artsearch.src.scripts.upload_to_qdrant.upload_utils import generate_uuid5
 from artsearch.src.services.bucket_service import BucketService
+
+from etl.utils import generate_uuid5
 
 logging.basicConfig(level=logging.WARNING)
 
 
-def delete_all_points_from_met():
+def delete_all_points_from_met(collection_name: str) -> None:
     """
     Delete all points from the MET collection in Qdrant.
     This is a destructive operation and should be used with caution.
     """
     qdrant_service = get_qdrant_service()
-    collection_name = config.qdrant_collection_name
     client = qdrant_service.qdrant_client
 
     # Fetch all points in the collection
@@ -51,9 +50,8 @@ def delete_all_points_from_met():
     )
 
 
-def test_get_existing_values():
+def test_get_existing_values(collection_name: str):
     qdrant_service = get_qdrant_service()
-    collection_name = config.qdrant_collection_name
     values = [436236, 9999999999]
     existing_values = qdrant_service.get_existing_values(
         collection_name=collection_name,
@@ -64,7 +62,7 @@ def test_get_existing_values():
     print(f"Existing values in collection {collection_name}: {existing_values}")
 
 
-def count_ids(collection_name: str = config.qdrant_collection_name) -> None:
+def count_ids(collection_name: str) -> None:
     """
     Count number of unique qdrant IDs and unique "oject_numbers" in qdrant collection.
     """
@@ -109,7 +107,7 @@ def count_ids(collection_name: str = config.qdrant_collection_name) -> None:
         )
 
 
-def delete_altarpieces(collection_name: str = config.qdrant_collection_name):
+def delete_altarpieces(collection_name: str):
     qdrant_service = get_qdrant_service()
     client = qdrant_service.qdrant_client
     query_filter = models.Filter(
@@ -138,9 +136,9 @@ def delete_altarpieces(collection_name: str = config.qdrant_collection_name):
         print(f"Point with ID {point.id} deleted from collection {collection_name}")
 
 
-def upload_all_thumbnails(collection_name: str = config.qdrant_collection_name) -> None:
+def upload_all_thumbnails(collection_name: str) -> None:
     qdrant_service = get_qdrant_service()
-    bucket_service = BucketService()
+    bucket_service = BucketService(use_etl_bucket=True)
 
     next_page_token = None
 
@@ -239,7 +237,7 @@ def make_favicon():
 
     # Get the thumbnail URL for the specified artwork
     object_number = "KMSr171"
-    thumbnail_url = smk_client.get_thumbnail_url(object_number)
+    thumbnail_url = "Example URL"
 
     # Fetch the image from the URL
     response = requests.get(thumbnail_url, stream=True)

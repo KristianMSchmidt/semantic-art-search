@@ -13,29 +13,11 @@ from artsearch.src.services.museum_clients.utils import get_searchle_work_types
 
 
 class RMAAPIClient(MuseumAPIClient):
-    BASE_URL = "https://data.rijksmuseum.nl/oai?verb=GetRecord&metadataPrefix=edm&identifier=https://id.rijksmuseum.nl/"
+    BASE_URL = "https://data.rijksmuseum.nl/oai?verb=GetRecord&metadataPrefix=edm&identifier=https://id.rijksmuseum.nl"
     BASE_SEARCH_URL = "https://data.rijksmuseum.nl/search/collection"
 
-    def get_thumbnail_url(self, inventory_number: str) -> str:
-        url = f"{RMAAPIClient.BASE_SEARCH_URL}?objectNumber={inventory_number}"
-        response = self.http_session.get(url)
-        response.raise_for_status()
-        data = response.json()
-        items = data["orderedItems"]
-        assert len(items) == 1, (
-            f"Expected 1 item for inventory number {inventory_number}, but got {len(items)}"
-        )
-        item_id = items[0]["id"].split("/")[-1]
-        rdf_data = get_record_rdf_data(item_id, self.http_session)
-        assert rdf_data is not None, f"Failed to fetch RDF data for {item_id}"
-        image_url = extract_image_url(rdf_data)
-        assert image_url is not None, (
-            f"Failed to extract image URL for {inventory_number}"
-        )
-        # If image_url ends with ".jpg:", then strip the colon
-        if image_url.endswith(".jpg:"):
-            image_url = image_url[:-1]
-        return image_url
+    def get_object_url(self, museum_db_id: str) -> str:
+        return f"{self.BASE_URL}/{museum_db_id}"
 
     def _process_item(self, item: dict[str, Any]) -> ArtworkPayload | None:
         """

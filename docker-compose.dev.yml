@@ -1,4 +1,5 @@
 services:
+  # Django web app
   web:
     build: .
     command: /bin/sh -c /code/entrypoint.dev.sh
@@ -6,8 +7,3 @@ services:
       - .:/code
     ports:
       - "8000:8000"
-    env_file:
-      - .env.dev
-
-volumes:
-  database_volume: {}
