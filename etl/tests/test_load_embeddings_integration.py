@@ -199,6 +199,10 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
         assert payload["object_number"] == object_number, (
             "Payload should have object_number"
         )
+        assert "museum_db_id" in payload, "Payload should have museum_db_id"
+        assert payload["museum_db_id"] == museum_db_id, (
+            "Payload museum_db_id should match record"
+        )
         assert "title" in payload, "Payload should have title"
         assert "artist" in payload, "Payload should have artist"
         assert "production_date" in payload, "Payload should have production_date"

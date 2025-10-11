@@ -100,7 +100,7 @@ class TransformedData(models.Model):
     museum_slug = models.CharField(max_length=10)  # Required field
     museum_db_id = models.CharField(
         max_length=100, help_text="Internal museum database ID"
-    )
+    )  # Required field
 
     # Extracted fields from raw_json
     searchable_work_types = models.JSONField()  # Required field, list[str]

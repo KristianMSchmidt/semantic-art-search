@@ -172,6 +172,7 @@ class EmbeddingLoadService:
         payload = {
             "museum": record.museum_slug,
             "object_number": record.object_number,
+            "museum_db_id": record.museum_db_id,
             "title": record.get_primary_title(),
             "artist": record.get_artists(),
             "production_date": record.get_period(),
