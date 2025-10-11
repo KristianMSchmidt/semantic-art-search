@@ -56,12 +56,8 @@ def format_payload(payload: models.Payload | None) -> dict:
     if payload is None:
         raise ValueError("Payload cannot be None")
 
-    if payload["production_date_start"] == payload["production_date_end"]:
-        period = payload["production_date_start"]
-    else:
-        period = (
-            f"{payload['production_date_start']} - {payload['production_date_end']}"
-        )
+    production_date = payload.get("production_date", "")
+
     work_types = [
         get_work_type_translation(name).capitalize() for name in payload["work_types"]
     ]
@@ -74,11 +70,11 @@ def format_payload(payload: models.Payload | None) -> dict:
         payload["museum"], payload["object_number"], payload.get("museum_db_id", None)
     )
     return {
-        "title": payload["titles"][0]["title"],
-        "artist": ", ".join(payload["artist"]),
+        "title": payload["title"],
+        "artist": payload["artist"],
         "work_types": work_types,
         "thumbnail_url": thumbnail_url,
-        "period": period,
+        "production_date": production_date,
         "object_number": payload["object_number"],
         "museum": get_full_museum_name(payload["museum"]),
         "source_url": source_url,

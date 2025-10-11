@@ -135,16 +135,17 @@ class QdrantService:
         # but seems not to be needed yet.
         search_params = models.SearchParams(exact=True)
 
-        hits = self.qdrant_client.search(
+        response = self.qdrant_client.query_points(
             collection_name=self.collection_name,
-            query_vector=query_vector,
+            query=query_vector,
             limit=limit,
             offset=offset,
             query_filter=query_filter,
             search_params=search_params,
+            using="image_clip",
         )
 
-        return format_hits(hits)
+        return format_hits(response.points)
 
     def search_text(self, search_function_args: SearchFunctionArguments) -> list[dict]:
         """Search for related artworks based on a text query."""
@@ -184,7 +185,18 @@ class QdrantService:
         )
         if not items or items[0].vector is None:
             raise ValueError("No vector found for the given object number and museum.")
-        query_vector = cast(list[float], items[0].vector)
+        vec = items[0].vector
+        # Qdrant may return either a single vector (list[float]) or a dict of named vectors.
+        if isinstance(vec, dict):
+            named_vecs = cast(dict[str, list[float]], vec)
+            image_clip_vec = named_vecs.get("image_clip")
+            if image_clip_vec is None:
+                raise ValueError(
+                    "No 'image_clip' vector found in the point's named vectors."
+                )
+            query_vector = cast(list[float], image_clip_vec)
+        else:
+            query_vector = cast(list[float], vec)
 
         return self._search(
             query_vector, limit, offset, work_types, museums, object_number
