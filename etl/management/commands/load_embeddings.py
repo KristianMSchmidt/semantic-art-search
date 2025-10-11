@@ -82,7 +82,7 @@ class Command(BaseCommand):
 
                 # Ask for confirmation
                 confirmation = input("Are you sure you want to continue? [y/N]: ")
-                if confirmation.lower() != "y":
+                if confirmation.strip().lower() != "y":
                     self.stdout.write(self.style.ERROR("Force reload cancelled."))
                     return
 
