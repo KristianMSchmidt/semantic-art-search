@@ -186,9 +186,7 @@ def get_bucket_image_key(museum: str, object_number: str) -> str:
     return f"{museum}_{object_number}.jpg"
 
 
-def get_bucket_image_url(
-    museum: str, object_number: str, use_etl_bucket: bool
-) -> str:
+def get_bucket_image_url(museum: str, object_number: str, use_etl_bucket: bool) -> str:
     """
     Get direct S3 URL for image in bucket.
 
