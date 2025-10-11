@@ -198,10 +198,10 @@ production_start: ## Start production server as daemon
 	docker compose -f docker-compose.prod.yml up --build --remove-orphans -d
 
 production_djangologs: ## Show django logs
-	docker logs semantic-art-searchkristianmscom-web-1
+	docker logs live-app-web-1
 
 production_accesslogs: ## Show nginx access logs
-	docker logs semantic-art-searchkristianmscom-nginx-1
+	docker logs live-app-nginx-1
 
 production_shell: ## Open shell in running docker production container
 	docker compose -f docker-compose.prod.yml exec web /bin/bash
