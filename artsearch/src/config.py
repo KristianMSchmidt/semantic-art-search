@@ -78,9 +78,9 @@ def create_config():
     if not qdrant_api_key:
         raise ValueError("QDRANT_API_KEY is not set")
     if not qdrant_collection_name_etl:
-        raise ValueError("QDRANT_COLLECTION_NAME_APP is not set")
-    if not qdrant_collection_name_app:
         raise ValueError("QDRANT_COLLECTION_NAME_ETL is not set")
+    if not qdrant_collection_name_app:
+        raise ValueError("QDRANT_COLLECTION_NAME_APP is not set")
     if not django_secret_key:
         raise ValueError("DJANGO_SECRET_KEY is not set")
     if not allowed_hosts:
