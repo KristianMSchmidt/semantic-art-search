@@ -60,7 +60,15 @@ title="View on GitHub"
         </div>
 
         <!-- Work Type Dropdown -->
-        <div id="work-type-container" class="w-full sm:w-auto">
+        <div
+            id="work-type-container"
+            class="w-full sm:w-auto"
+            hx-get="{% url 'update-museums' %}"
+            hx-trigger="change delay:150ms"
+            hx-include="#work-type-container, #museum-dropdown"
+            hx-target="#museum-dropdown"
+            hx-swap="innerHTML"
+        >
             {% with filter_ctx=work_type_filter_context %}
                 {% include "partials/dropdown.html" %}
             {% endwith %}

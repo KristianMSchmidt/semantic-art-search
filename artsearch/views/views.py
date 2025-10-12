@@ -7,6 +7,7 @@ from artsearch.views.context_builders import (
     SearchParams,
 )
 from artsearch.views.log_utils import log_search_query
+from artsearch.src.services.museum_stats_service import get_total_works_for_filters
 
 
 def home_view(request: HttpRequest) -> HttpResponse:
@@ -42,6 +43,31 @@ def update_work_types(request):
     """
     HTMX view that updates the work type dropdown based on selected museums.
     """
-    filter_contexts = build_filter_contexts(SearchParams(request=request))
-    context = {"filter_ctx": filter_contexts["work_type_filter_context"]}
-    return render(request, "partials/dropdown.html", context)
+    params = SearchParams(request=request)
+    filter_contexts = build_filter_contexts(params)
+    total_works = get_total_works_for_filters(
+        params.selected_museums,
+        params.selected_work_types,
+    )
+    context = {
+        "filter_ctx": filter_contexts["work_type_filter_context"],
+        "total_works": total_works,
+    }
+    return render(request, "partials/dropdown_with_count.html", context)
+
+
+def update_museums(request):
+    """
+    HTMX view that updates the museum dropdown based on selected work types.
+    """
+    params = SearchParams(request=request)
+    filter_contexts = build_filter_contexts(params)
+    total_works = get_total_works_for_filters(
+        params.selected_museums,
+        params.selected_work_types,
+    )
+    context = {
+        "filter_ctx": filter_contexts["museum_filter_context"],
+        "total_works": total_works,
+    }
+    return render(request, "partials/dropdown_with_count.html", context)

@@ -87,6 +87,7 @@ def handle_search(
     limit: int,
     museum_prefilter: list[str] | None,
     work_type_prefilter: list[str] | None,
+    total_works: int | None = None,
     museum_slugs: list[str] = get_museum_slugs(),
 ) -> dict[Any, Any]:
     """
@@ -134,7 +135,8 @@ def handle_search(
                 results = qdrant_service.search_similar_images(search_arguments)
             else:
                 results = qdrant_service.search_text(search_arguments)
-            text_above_results = "Search results (best match first)"
+            works_text = f"({total_works} works)" if total_works is not None else ""
+            text_above_results = f"Search results {works_text}".strip()
         except QueryParsingError as e:
             error_message = str(e)
             error_type = "warning"
