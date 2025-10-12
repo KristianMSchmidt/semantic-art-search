@@ -1,6 +1,6 @@
-<div class="relative w-full sm:w-auto" x-data="dropdownComponent({ 
-        selected: JSON.parse('{{ filter_ctx.selected_items_json|escapejs }}'), 
-        all: JSON.parse('{{ filter_ctx.all_items_json|escapejs }}'), 
+<div class="relative w-full sm:w-auto" x-data="dropdownComponent({
+        selected: JSON.parse('{{ filter_ctx.selected_items_json|escapejs }}'),
+        all: JSON.parse('{{ filter_ctx.all_items_json|escapejs }}'),
         labelName: '{{ filter_ctx.label_name }}'
     })">
     <!-- Button -->
@@ -29,9 +29,9 @@
                     :checked="selectedItems.length === allItems.length"
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                 <span class="text-nowrap">
-                    Select All 
-                    {% if filter_ctx.dropdown_name == 'work_types' %}
-                        <span class="text-gray-600 font-normal">({{ filter_ctx.total_work_count }} works)</span>
+                    Select All
+                    {% if filter_ctx.total_work_count %}
+                        <span class="text-gray-500 font-normal">({{ filter_ctx.total_work_count }} works)</span>
                     {% endif %}
                 </span>
             </label>
@@ -48,9 +48,9 @@
                         class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                     <span class="text-nowrap">
                             {{ dropdown_item.label | capfirst }}
-                            {% if filter_ctx.dropdown_name == 'work_types' %}
-                            <span class="text-gray-600 font-normal">({{ dropdown_item.count }} works)</span>
-                            {% endif %} 
+                            {% if dropdown_item.count is not None %}
+                            <span class="text-gray-500 font-normal">({{ dropdown_item.count }} works)</span>
+                            {% endif %}
                     </span>
                 </label>
                 {% endfor %}

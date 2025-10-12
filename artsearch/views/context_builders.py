@@ -9,6 +9,8 @@ from django.urls import reverse
 from artsearch.src.services.museum_stats_service import (
     get_work_type_names,
     aggregate_work_type_count_for_selected_museums,
+    aggregate_museum_count_for_selected_work_types,
+    get_total_works_for_filters,
 )
 from artsearch.src.services.search_service import handle_search
 from artsearch.src.utils.get_museums import get_museum_slugs
@@ -119,12 +121,27 @@ def prepare_work_types_for_dropdown(
 
 
 def prepare_museums_for_dropdown(
+    museum_counts: dict[str, int] | None = None,
     supported_museums: list[dict[str, str]] = SUPPORTED_MUSEUMS,
-) -> list[dict[str, str]]:
-    return [
-        {"value": museum["slug"], "label": museum["full_name"]}
-        for museum in supported_museums
-    ]
+) -> list[dict[str, Any]]:
+    """
+    Prepare museums for the dropdown menu.
+    If museum_counts is provided, include count for each museum.
+    """
+    museums_for_dropdown = []
+
+    for museum in supported_museums:
+        museum_slug = museum["slug"]
+        museum_item: dict[str, Any] = {
+            "value": museum_slug,
+            "label": museum["full_name"],
+        }
+        if museum_counts is not None:
+            museum_item["count"] = museum_counts.get(museum_slug, 0)
+
+        museums_for_dropdown.append(museum_item)
+
+    return museums_for_dropdown
 
 
 def prepare_initial_label(
@@ -212,12 +229,18 @@ def build_search_context(params: SearchParams) -> dict[str, Any]:
         get_work_type_names(), params.selected_work_types
     )
 
+    total_works = get_total_works_for_filters(
+        params.selected_museums,
+        params.selected_work_types,
+    )
+
     search_results = handle_search(
         query=params.query,
         offset=offset,
         limit=limit,
         museum_prefilter=museum_prefilter,
         work_type_prefilter=work_type_prefilter,
+        total_works=total_works,
     )
 
     urls = make_urls_with_params(
@@ -248,10 +271,13 @@ def build_filter_contexts(params: SearchParams) -> dict[str, FilterContext]:
     selected_work_types = params.selected_work_types
 
     work_type_summary = aggregate_work_type_count_for_selected_museums(selected_museums)
-    total_work_count = work_type_summary.total
+    work_type_total = work_type_summary.total
+
+    museum_summary = aggregate_museum_count_for_selected_work_types(selected_work_types)
+    museum_total = museum_summary.total
 
     prepared_work_types = prepare_work_types_for_dropdown(work_type_summary.work_types)
-    prepared_museums = prepare_museums_for_dropdown()
+    prepared_museums = prepare_museums_for_dropdown(museum_summary.work_types)
 
     initial_work_types_label = prepare_initial_label(
         selected_work_types, work_type_names, "work_types"
@@ -266,7 +292,7 @@ def build_filter_contexts(params: SearchParams) -> dict[str, FilterContext]:
             initial_button_label=initial_work_types_label,
             dropdown_items=prepared_work_types,
             selected_items=selected_work_types,
-            total_work_count=total_work_count,
+            total_work_count=work_type_total,
             all_items_json=json.dumps(work_type_names),
             selected_items_json=json.dumps(selected_work_types),
             label_name="Work Type",
@@ -276,6 +302,7 @@ def build_filter_contexts(params: SearchParams) -> dict[str, FilterContext]:
             initial_button_label=initial_museums_label,
             dropdown_items=prepared_museums,
             selected_items=selected_museums,
+            total_work_count=museum_total,
             all_items_json=json.dumps(museum_names),
             selected_items_json=json.dumps(selected_museums),
             label_name="Museum",
@@ -290,6 +317,7 @@ def build_home_context(
     Build the full context for the search view.
     """
     filter_contexts = build_filter_contexts(params)
+
     return {
         **filter_contexts,
         "example_queries": example_queries,

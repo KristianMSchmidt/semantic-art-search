@@ -371,3 +371,4 @@ DATABASES = {
 - Don't commit, stage, or push any changes to the repository unless explicitly instructed to do so.
 - Please run ETL tests after making changes to ensure everything works as expected.
 - Please review ETL tests after changes refactoring to ensure they still align with the updated code.
+- Remember to run "make tailwind-start" when working on frontend templates to enable hot-reloading of Tailwind CSS.
