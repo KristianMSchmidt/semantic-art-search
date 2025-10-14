@@ -14,6 +14,7 @@ class MetaDataRawAdmin(admin.ModelAdmin):
         "last_updated",
     )
     list_filter = ("museum_slug", "created_at", "last_updated")
+
     search_fields = ("museum_slug", "object_number", "museum_db_id")
     ordering = ("-last_updated",)
     readonly_fields = (
@@ -38,7 +39,16 @@ class TransformedDataAdmin(admin.ModelAdmin):
         "created_at",
         "last_updated",
     )
-    list_filter = ("museum_slug", "created_at")
+    list_filter = (
+        "museum_slug",
+        "created_at",
+        "last_updated",
+        "image_loaded",
+        "image_load_failed",
+        "image_vector_clip",
+        "image_vector_jina",
+    )
+
     search_fields = ("object_number", "title", "museum_slug")
     ordering = ("-created_at",)
     readonly_fields = (
