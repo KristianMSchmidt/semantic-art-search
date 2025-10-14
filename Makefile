@@ -124,10 +124,10 @@ load-images-smk:  ## Load thumbnail images for SMK museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum smk --batch-size 50 --delay 0.2 --batch-delay 5
 
 load-images-cma:  ## Load thumbnail images for CMA museum
-	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum cma --batch-size 50 --delay 0.2 --batch-delay 5
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum cma --batch-size 50 --delay 0.1 --batch-delay 2
 
 load-images-rma:  ## Load thumbnail images for RMA museum
-	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum rma --batch-size 50 --delay 0.2 --batch-delay 5
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum rma --batch-size 50 --delay 0.1 --batch-delay 2
 
 load-images-met:  ## Load thumbnail images for MET museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum met --batch-size 50 --delay 0.2 --batch-delay 5
@@ -140,10 +140,10 @@ load-images-smk-force:  ## Force reload all thumbnail images for SMK museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum smk --force --batch-size 50 --delay 0.2 --batch-delay 5
 
 load-images-cma-force:  ## Force reload all thumbnail images for CMA museum
-	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum cma --force --batch-size 50 --delay 0.2 --batch-delay 5
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum cma --force --batch-size 50 --delay 0.1 --batch-delay 2
 
 load-images-rma-force:  ## Force reload all thumbnail images for RMA museum
-	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum rma --force --batch-size 50 --delay 0.2 --batch-delay 5
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum rma --force --batch-size 50 --delay 0.1 --batch-delay 2
 
 load-images-met-force:  ## Force reload all thumbnail images for MET museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum met --force --batch-size 50 --delay 0.2 --batch-delay 5
