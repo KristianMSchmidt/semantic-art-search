@@ -57,24 +57,6 @@ class MetaDataRaw(models.Model):
 
     get_museum_page_link_html.short_description = "Page"
 
-    def get_museum_page_url_html(self):
-        """HTML link for admin detail view."""
-        url = self.get_museum_page_url()
-        if url:
-            return format_html('<a href="{}" target="_blank">{}</a>', url, url)
-        return "N/A"
-
-    get_museum_page_url_html.short_description = "Museum Page URL"
-
-    def get_museum_api_url_html(self):
-        """HTML link for admin detail view."""
-        url = self.get_museum_api_url()
-        if url:
-            return format_html('<a href="{}" target="_blank">{}</a>', url, url)
-        return "N/A"
-
-    get_museum_api_url_html.short_description = "Museum API URL"
-
     def get_museum_api_link_html(self):
         """HTML API link for admin list display."""
         url = self.get_museum_api_url()
@@ -190,29 +172,11 @@ class TransformedData(models.Model):
 
     get_museum_page_link_html.short_description = "Page"
 
-    def get_museum_page_url_html(self):
-        """HTML link for admin detail view."""
-        url = self.get_museum_page_url()
-        if url:
-            return format_html('<a href="{}" target="_blank">{}</a>', url, url)
-        return "N/A"
-
-    get_museum_page_url_html.short_description = "Museum Page URL"
-
-    def get_museum_api_url_html(self):
-        """HTML link for admin detail view."""
-        url = self.get_museum_api_url()
-        if url:
-            return format_html('<a href="{}" target="_blank">{}</a>', url, url)
-        return "N/A"
-
-    get_museum_api_url_html.short_description = "Museum API URL"
-
     def get_museum_api_link_html(self):
         """HTML API link for admin list display."""
         url = self.get_museum_api_url()
         if url:
-            return format_html('<a href="{}" target="_blank">API</a>', url)
+            return format_html('<a href="{}" target="_blank">🔗</a>', url)
         return "–"
 
     get_museum_api_link_html.short_description = "API"

@@ -69,21 +69,18 @@ production_djangoshell:  ## Open django shell in running docker production conta
 	docker compose -f docker-compose.prod.yml exec web python manage.py shell
 
 
-# ---------- Data ---------- #
-
-adhoc: # Adhoc scripts only used during development
-	python -m artsearch.src.scripts.adhoc
+# ---------- Data / Reporting ---------- #
 
 stats: ## Get work type stats
 	python -m artsearch.src.services.museum_stats_service
-
-update-payload: ## Update collection payload
-	python -m artsearch.src.scripts.update_payload
 
 
 # ---------- ETL ---------- #
 # Note: ETL commands use 'docker compose run --rm' to create one-time containers
 # that spin up, execute the command, and clean up automatically (no permanent container needed)
+
+update-payloads: ## Update Qdrant collection payload (ad-hoc ETL maintenance)
+	docker compose -f docker-compose.dev.yml exec web python -m etl.scripts.update_payload
 
 extract-smk: ## Extract raw data from SMK
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract -m smk

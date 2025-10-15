@@ -16,12 +16,7 @@ class MetaDataRawAdmin(admin.ModelAdmin):
     list_filter = ("museum_slug", "created_at", "last_updated")
     search_fields = ("museum_slug", "object_number", "museum_db_id")
     ordering = ("-last_updated",)
-    readonly_fields = (
-        "created_at",
-        "last_updated",
-        "get_museum_page_url_html",
-        "get_museum_api_url_html",
-    )
+    readonly_fields = ("created_at", "last_updated")
 
     def has_add_permission(self, request):
         """Prevent adding new MetaDataRaw entries via the admin interface."""
@@ -41,12 +36,7 @@ class TransformedDataAdmin(admin.ModelAdmin):
     list_filter = ("museum_slug", "created_at")
     search_fields = ("object_number", "title", "museum_slug")
     ordering = ("-created_at",)
-    readonly_fields = (
-        "created_at",
-        "last_updated",
-        "get_museum_page_url_html",
-        "get_museum_api_url_html",
-    )
+    readonly_fields = ("created_at", "last_updated")
 
     def has_add_permission(self, request):
         """Prevent adding new TransformedData entries via the admin interface."""

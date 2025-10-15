@@ -19,6 +19,7 @@ from etl.pipeline.extract.extractors.smk_extractor import (
 from etl.pipeline.extract.helpers.upsert_raw_data import store_raw_data
 from etl.pipeline.transform.transform import transform_and_upsert
 from etl.services.image_load_service import ImageLoadService
+from etl.services.bucket_service import BucketService, resize_image_with_aspect_ratio
 
 
 @pytest.mark.integration
@@ -103,7 +104,9 @@ def test_image_load_updates_database_flag_and_respects_idempotency():
 
         # Verify database flag was updated
         transformed.refresh_from_db()
-        assert transformed.image_loaded is True, "image_loaded should be True after processing"
+        assert transformed.image_loaded is True, (
+            "image_loaded should be True after processing"
+        )
 
         # Step 4: Test idempotency - process again
         mock_bucket_service.reset_mock()
@@ -116,9 +119,9 @@ def test_image_load_updates_database_flag_and_respects_idempotency():
         # Filter to our specific object_number since other records might exist
         our_records = [r for r in records if r.object_number == object_number]
 
-        assert (
-            len(our_records) == 0
-        ), "Record with image_loaded=True should not be returned for processing"
+        assert len(our_records) == 0, (
+            "Record with image_loaded=True should not be returned for processing"
+        )
 
         # Verify upload_thumbnail was NOT called again
         mock_bucket_service.upload_thumbnail.assert_not_called()
@@ -128,12 +131,14 @@ def test_image_load_updates_database_flag_and_respects_idempotency():
     assert count >= 1, "Should reset at least our test record"
 
     transformed.refresh_from_db()
-    assert (
-        transformed.image_loaded is False
-    ), "reset_image_loaded_field should set flag to False"
+    assert transformed.image_loaded is False, (
+        "reset_image_loaded_field should set flag to False"
+    )
 
     # Now get_records_needing_processing should return it again
-    records = service.get_records_needing_processing(batch_size=100, museum_filter="smk")
+    records = service.get_records_needing_processing(
+        batch_size=100, museum_filter="smk"
+    )
     our_records = [r for r in records if r.object_number == object_number]
     assert len(our_records) == 1, "After reset, record should need processing again"
 
@@ -182,16 +187,16 @@ def test_failed_images_are_marked_and_skipped():
         assert status == "error", "Processing should return error status"
 
         # Verify upload_thumbnail was called exactly once (no retries for 404)
-        assert (
-            mock_bucket_service.upload_thumbnail.call_count == 1
-        ), "404 errors should fail immediately without retries"
+        assert mock_bucket_service.upload_thumbnail.call_count == 1, (
+            "404 errors should fail immediately without retries"
+        )
 
         # Verify image_load_failed was set
         transformed.refresh_from_db()
         assert transformed.image_loaded is False, "image_loaded should still be False"
-        assert (
-            transformed.image_load_failed is True
-        ), "image_load_failed should be True after error"
+        assert transformed.image_load_failed is True, (
+            "image_load_failed should be True after error"
+        )
 
         # Step 3: Verify record is excluded from future queries
         records = service.get_records_needing_processing(
@@ -199,18 +204,18 @@ def test_failed_images_are_marked_and_skipped():
         )
         our_records = [r for r in records if r.object_number == "TEST001"]
 
-        assert (
-            len(our_records) == 0
-        ), "Failed record should be excluded from get_records_needing_processing"
+        assert len(our_records) == 0, (
+            "Failed record should be excluded from get_records_needing_processing"
+        )
 
         # Step 4: Test reset_image_load_failed_field
         count = service.reset_image_load_failed_field(museum_filter="test")
         assert count >= 1, "Should reset at least our test record"
 
         transformed.refresh_from_db()
-        assert (
-            transformed.image_load_failed is False
-        ), "reset_image_load_failed_field should set flag to False"
+        assert transformed.image_load_failed is False, (
+            "reset_image_load_failed_field should set flag to False"
+        )
 
         # Step 5: Verify record is included again after reset
         records = service.get_records_needing_processing(
@@ -261,16 +266,16 @@ def test_transient_errors_are_retried():
             status = service.process_single_record(transformed1, delay_seconds=0.0)
 
         assert status == "success", "Should succeed after retry"
-        assert (
-            mock_bucket_service.upload_thumbnail.call_count == 2
-        ), "Should have retried once (2 total calls)"
+        assert mock_bucket_service.upload_thumbnail.call_count == 2, (
+            "Should have retried once (2 total calls)"
+        )
 
         # Verify success state
         transformed1.refresh_from_db()
         assert transformed1.image_loaded is True, "image_loaded should be True"
-        assert (
-            transformed1.image_load_failed is False
-        ), "image_load_failed should be False"
+        assert transformed1.image_load_failed is False, (
+            "image_load_failed should be False"
+        )
 
     # Test Case 2: All retries exhausted
     transformed2 = TransformedData.objects.create(
@@ -301,16 +306,16 @@ def test_transient_errors_are_retried():
             )
 
         assert status == "error", "Should fail after exhausting retries"
-        assert (
-            mock_bucket_service.upload_thumbnail.call_count == 3
-        ), "Should have tried 3 times (max_retries=3)"
+        assert mock_bucket_service.upload_thumbnail.call_count == 3, (
+            "Should have tried 3 times (max_retries=3)"
+        )
 
         # Verify failed state
         transformed2.refresh_from_db()
         assert transformed2.image_loaded is False, "image_loaded should be False"
-        assert (
-            transformed2.image_load_failed is True
-        ), "image_load_failed should be True after exhausting retries"
+        assert transformed2.image_load_failed is True, (
+            "image_load_failed should be True after exhausting retries"
+        )
 
 
 @pytest.mark.integration
@@ -324,7 +329,6 @@ def test_image_resizing_works():
     - Different image sizes and aspect ratios work correctly
     - Output is JPEG format
     """
-    from etl.services.bucket_service import resize_image_with_aspect_ratio
 
     # Test 1: Wide image (3000×1000 → 800×266)
     img1 = Image.new("RGB", (3000, 1000), color="red")
@@ -372,7 +376,6 @@ def test_bucket_service_resizes_before_upload():
     - Resized bytes are passed to S3 put_object
     - Graceful fallback works if resize fails
     """
-    from etl.services.bucket_service import BucketService
 
     # Create a test image that needs resizing (2000×1500)
     test_img = Image.new("RGB", (2000, 1500), color="purple")
@@ -398,11 +401,15 @@ def test_bucket_service_resizes_before_upload():
             uploaded_data["Body"] = kwargs["Body"]
             uploaded_data["ContentType"] = kwargs["ContentType"]
 
-        bucket_service.s3.put_object = Mock(side_effect=capture_upload)
+        # Replace the entire s3 client with a Mock that exposes put_object to avoid
+        # assigning to attributes on a typed/immutable client object.
+        bucket_service.s3 = Mock(put_object=Mock(side_effect=capture_upload))
 
         # Upload thumbnail
         bucket_service.upload_thumbnail(
-            museum="test", object_number="TEST123", museum_image_url="https://example.com/test.jpg"
+            museum="test",
+            object_number="TEST123",
+            museum_image_url="https://example.com/test.jpg",
         )
 
         # Verify upload was called
@@ -411,8 +418,12 @@ def test_bucket_service_resizes_before_upload():
         # Verify the uploaded data is resized
         uploaded_img = Image.open(BytesIO(uploaded_data["Body"]))
         assert uploaded_img.width == 800, "Uploaded image width should be 800"
-        assert uploaded_img.height == 600, "Uploaded image height should be 600 (1500 * 800/2000)"
-        assert uploaded_data["ContentType"] == "image/jpeg", "Content type should be JPEG"
+        assert uploaded_img.height == 600, (
+            "Uploaded image height should be 600 (1500 * 800/2000)"
+        )
+        assert uploaded_data["ContentType"] == "image/jpeg", (
+            "Content type should be JPEG"
+        )
 
         # Verify original image was larger
         original_img = Image.open(BytesIO(test_img_bytes))
