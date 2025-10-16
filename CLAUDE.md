@@ -1,8 +1,6 @@
-# CLAUDE.private.md
+# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-**PRIVATE FILE**: This is gitignored and won't be committed to the repository.
 
 ## Project Overview
 
