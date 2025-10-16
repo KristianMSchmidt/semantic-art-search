@@ -44,10 +44,15 @@ class EmbeddingLoadService:
     - Natural pagination prevents infinite loops (management command loop)
     """
 
-    def __init__(self, collection_name: str | None = None):
+    def __init__(
+        self,
+        collection_name: str | None = None,
+        clip_embedder=None,
+        qdrant_service=None,
+    ):
         self.collection_name = collection_name or config.qdrant_collection_name_etl
-        self.clip_embedder = get_clip_embedder()
-        self.qdrant_service = get_qdrant_service()
+        self.clip_embedder = clip_embedder or get_clip_embedder()
+        self.qdrant_service = qdrant_service or get_qdrant_service()
         self._ensure_collection_exists()
 
     def reset_vector_fields(self, museum_filter: Optional[str] = None) -> int:

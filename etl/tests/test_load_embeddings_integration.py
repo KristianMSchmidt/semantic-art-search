@@ -7,7 +7,7 @@ not HOW it does it (implementation details).
 
 import pytest
 import requests
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, MagicMock
 
 from etl.models import MetaDataRaw, TransformedData
 from etl.pipeline.extract.extractors.smk_extractor import (
@@ -91,158 +91,150 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
     # Step 4: Test prerequisite - should NOT process if image_loaded=False
     assert transformed.image_loaded is False, "Should start with image_loaded=False"
 
-    with (
-        patch("etl.services.embedding_load_service.get_clip_embedder") as mock_get_clip,
-        patch(
-            "etl.services.embedding_load_service.get_qdrant_service"
-        ) as mock_get_qdrant,
-    ):
-        # Setup mocks
-        mock_clip_embedder = Mock()
-        mock_get_clip.return_value = mock_clip_embedder
+    # Setup mocks
+    mock_clip_embedder = Mock()
 
-        mock_qdrant_service = Mock()
-        mock_qdrant_client = MagicMock()
-        mock_qdrant_client.collection_exists.return_value = True
-        mock_qdrant_service.qdrant_client = mock_qdrant_client
-        mock_get_qdrant.return_value = mock_qdrant_service
+    mock_qdrant_service = Mock()
+    mock_qdrant_client = MagicMock()
+    mock_qdrant_client.collection_exists.return_value = True
+    mock_qdrant_service.qdrant_client = mock_qdrant_client
 
-        service = EmbeddingLoadService(collection_name="test_collection")
+    service = EmbeddingLoadService(
+        collection_name="test_collection",
+        clip_embedder=mock_clip_embedder,
+        qdrant_service=mock_qdrant_service,
+    )
 
-        # Should return empty because image_loaded=False
-        records = service.get_records_needing_processing(
-            batch_size=100, museum_filter="smk"
-        )
-        our_records = [r for r in records if r.object_number == object_number]
-        assert len(our_records) == 0, "Should not process records without images loaded"
+    # Should return empty because image_loaded=False
+    records = service.get_records_needing_processing(
+        batch_size=100, museum_filter="smk"
+    )
+    our_records = [r for r in records if r.object_number == object_number]
+    assert len(our_records) == 0, "Should not process records without images loaded"
 
     # Step 5: Set image_loaded=True (simulating image load pipeline completion)
     transformed.image_loaded = True
     transformed.save(update_fields=["image_loaded"])
 
     # Step 6: Now test embedding processing with mocked CLIP and Qdrant
-    with (
-        patch("etl.services.embedding_load_service.get_clip_embedder") as mock_get_clip,
-        patch(
-            "etl.services.embedding_load_service.get_qdrant_service"
-        ) as mock_get_qdrant,
-    ):
-        # Setup mocks
-        mock_clip_embedder = Mock()
-        # Return fake 768-dimensional embedding
-        fake_embedding = [0.1] * 768
-        mock_clip_embedder.generate_thumbnail_embedding.return_value = fake_embedding
-        mock_get_clip.return_value = mock_clip_embedder
+    # Setup mocks
+    mock_clip_embedder = Mock()
+    # Return fake 768-dimensional embedding
+    fake_embedding = [0.1] * 768
+    mock_clip_embedder.generate_thumbnail_embedding.return_value = fake_embedding
 
-        mock_qdrant_service = Mock()
-        mock_qdrant_client = MagicMock()
-        mock_qdrant_client.collection_exists.return_value = True
-        mock_qdrant_service.qdrant_client = mock_qdrant_client
-        mock_get_qdrant.return_value = mock_qdrant_service
+    mock_qdrant_service = Mock()
+    mock_qdrant_client = MagicMock()
+    mock_qdrant_client.collection_exists.return_value = True
+    mock_qdrant_service.qdrant_client = mock_qdrant_client
 
-        # Create service
-        service = EmbeddingLoadService(collection_name="test_collection")
+    # Create service with dependency injection
+    service = EmbeddingLoadService(
+        collection_name="test_collection",
+        clip_embedder=mock_clip_embedder,
+        qdrant_service=mock_qdrant_service,
+    )
 
-        # Should now return our record (image_loaded=True, vector missing)
-        records = service.get_records_needing_processing(
-            batch_size=100, museum_filter="smk"
-        )
-        our_records = [r for r in records if r.object_number == object_number]
-        assert len(our_records) == 1, (
-            "Should process records with images loaded and vector missing"
-        )
+    # Should now return our record (image_loaded=True, vector missing)
+    records = service.get_records_needing_processing(
+        batch_size=100, museum_filter="smk"
+    )
+    our_records = [r for r in records if r.object_number == object_number]
+    assert len(our_records) == 1, (
+        "Should process records with images loaded and vector missing"
+    )
 
-        # Process the record
-        transformed.refresh_from_db()
-        status = service.process_single_record(transformed, delay_seconds=0.0)
+    # Process the record
+    transformed.refresh_from_db()
+    status = service.process_single_record(transformed, delay_seconds=0.0)
 
-        assert status == "success", "Processing should succeed"
+    assert status == "success", "Processing should succeed"
 
-        # Verify CLIP embedder was called
-        mock_clip_embedder.generate_thumbnail_embedding.assert_called_once()
+    # Verify CLIP embedder was called
+    mock_clip_embedder.generate_thumbnail_embedding.assert_called_once()
 
-        # Verify Qdrant upload was called
-        mock_qdrant_service.upload_points.assert_called_once()
+    # Verify Qdrant upload was called
+    mock_qdrant_service.upload_points.assert_called_once()
 
-        # Verify the Qdrant point structure
-        upload_call_args = mock_qdrant_service.upload_points.call_args
-        points = upload_call_args[0][0]
-        assert len(points) == 1, "Should upload exactly 1 point"
+    # Verify the Qdrant point structure
+    upload_call_args = mock_qdrant_service.upload_points.call_args
+    points = upload_call_args[0][0]
+    assert len(points) == 1, "Should upload exactly 1 point"
 
-        point = points[0]
-        # Verify UUID5 is deterministic
-        expected_id = generate_uuid5(transformed.museum_slug, transformed.object_number)
-        assert point.id == expected_id, (
-            f"Point ID should be UUID5 based on museum+object_number"
-        )
+    point = points[0]
+    # Verify UUID5 is deterministic
+    expected_id = generate_uuid5(transformed.museum_slug, transformed.object_number)
+    assert point.id == expected_id, (
+        f"Point ID should be UUID5 based on museum+object_number"
+    )
 
-        # Verify named vectors structure
-        vectors = point.vector
-        assert "image_clip" in vectors, "Should have image_clip vector"
-        assert "text_clip" in vectors, "Should have text_clip vector (zero)"
-        assert "image_jina" in vectors, "Should have image_jina vector (zero)"
-        assert "text_jina" in vectors, "Should have text_jina vector (zero)"
+    # Verify named vectors structure
+    vectors = point.vector
+    assert "image_clip" in vectors, "Should have image_clip vector"
+    assert "text_clip" in vectors, "Should have text_clip vector (zero)"
+    assert "image_jina" in vectors, "Should have image_jina vector (zero)"
+    assert "text_jina" in vectors, "Should have text_jina vector (zero)"
 
-        # Verify active vector has calculated values
-        assert vectors["image_clip"] == fake_embedding, (
-            "image_clip should have calculated values"
-        )
+    # Verify active vector has calculated values
+    assert vectors["image_clip"] == fake_embedding, (
+        "image_clip should have calculated values"
+    )
 
-        # Verify non-active vectors have zeros
-        assert vectors["text_clip"] == [0.0] * 768, "text_clip should be zero vector"
-        assert vectors["image_jina"] == [0.0] * 256, "image_jina should be zero vector"
-        assert vectors["text_jina"] == [0.0] * 256, "text_jina should be zero vector"
+    # Verify non-active vectors have zeros
+    assert vectors["text_clip"] == [0.0] * 768, "text_clip should be zero vector"
+    assert vectors["image_jina"] == [0.0] * 256, "image_jina should be zero vector"
+    assert vectors["text_jina"] == [0.0] * 256, "text_jina should be zero vector"
 
-        # Verify payload structure
-        payload = point.payload
-        assert payload["museum"] == "smk", "Payload should have museum"
-        assert payload["object_number"] == object_number, (
-            "Payload should have object_number"
-        )
-        assert "museum_db_id" in payload, "Payload should have museum_db_id"
-        assert payload["museum_db_id"] == museum_db_id, (
-            "Payload museum_db_id should match record"
-        )
-        assert "title" in payload, "Payload should have title"
-        assert "artist" in payload, "Payload should have artist"
-        assert "production_date" in payload, "Payload should have production_date"
-        assert "work_types" in payload, "Payload should have work_types"
-        assert "searchable_work_types" in payload, (
-            "Payload should have searchable_work_types"
-        )
+    # Verify payload structure
+    payload = point.payload
+    assert payload["museum"] == "smk", "Payload should have museum"
+    assert payload["object_number"] == object_number, (
+        "Payload should have object_number"
+    )
+    assert "museum_db_id" in payload, "Payload should have museum_db_id"
+    assert payload["museum_db_id"] == museum_db_id, (
+        "Payload museum_db_id should match record"
+    )
+    assert "title" in payload, "Payload should have title"
+    assert "artist" in payload, "Payload should have artist"
+    assert "production_date" in payload, "Payload should have production_date"
+    assert "work_types" in payload, "Payload should have work_types"
+    assert "searchable_work_types" in payload, (
+        "Payload should have searchable_work_types"
+    )
 
-        # Verify database flag was updated
-        transformed.refresh_from_db()
-        assert transformed.image_vector_clip is True, (
-            "image_vector_clip should be True after processing"
-        )
-        assert transformed.text_vector_clip is False, (
-            "text_vector_clip should still be False (not active)"
-        )
+    # Verify database flag was updated
+    transformed.refresh_from_db()
+    assert transformed.image_vector_clip is True, (
+        "image_vector_clip should be True after processing"
+    )
+    assert transformed.text_vector_clip is False, (
+        "text_vector_clip should still be False (not active)"
+    )
 
-        # Step 7: Test idempotency - process again
-        mock_clip_embedder.reset_mock()
-        mock_qdrant_service.reset_mock()
+    # Step 7: Test idempotency - process again
+    mock_clip_embedder.reset_mock()
+    mock_qdrant_service.reset_mock()
 
-        # Get records needing processing - should be empty now
-        records = service.get_records_needing_processing(
-            batch_size=100, museum_filter="smk"
-        )
-        our_records = [r for r in records if r.object_number == object_number]
+    # Get records needing processing - should be empty now
+    records = service.get_records_needing_processing(
+        batch_size=100, museum_filter="smk"
+    )
+    our_records = [r for r in records if r.object_number == object_number]
 
-        assert len(our_records) == 0, (
-            "Record with all active vectors calculated should not be returned"
-        )
+    assert len(our_records) == 0, (
+        "Record with all active vectors calculated should not be returned"
+    )
 
-        # Process again - should skip
-        transformed.refresh_from_db()
-        status = service.process_single_record(transformed, delay_seconds=0.0)
+    # Process again - should skip
+    transformed.refresh_from_db()
+    status = service.process_single_record(transformed, delay_seconds=0.0)
 
-        assert status == "success", "Processing should succeed (but skip)"
+    assert status == "success", "Processing should succeed (but skip)"
 
-        # Verify CLIP and Qdrant were NOT called (skipped because already calculated)
-        mock_clip_embedder.generate_thumbnail_embedding.assert_not_called()
-        mock_qdrant_service.upload_points.assert_not_called()
+    # Verify CLIP and Qdrant were NOT called (skipped because already calculated)
+    mock_clip_embedder.generate_thumbnail_embedding.assert_not_called()
+    mock_qdrant_service.upload_points.assert_not_called()
 
     # Step 8: Test reset functionality
     count = service.reset_vector_fields(museum_filter="smk")

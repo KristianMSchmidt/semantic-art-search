@@ -6,3 +6,6 @@ class CMAAPIClient(MuseumAPIClient):
 
     def get_object_url(self, object_number: str) -> str:
         return f"{self.BASE_URL}?accession_number={object_number}"
+
+    def get_page_url(self, object_number: str) -> str:
+        return f"https://www.clevelandart.org/art/{object_number}"

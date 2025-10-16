@@ -10,3 +10,7 @@ class RMAAPIClient(MuseumAPIClient):
         The object_number parameter name is kept for interface consistency.
         """
         return f"{self.BASE_URL}/{museum_db_id}"
+
+    def get_page_url(self, object_number: str) -> str:
+        """For RMA page URL, we use object_number (dc:identifier), not museum_db_id."""
+        return f"https://www.rijksmuseum.nl/en/collection/{object_number}"

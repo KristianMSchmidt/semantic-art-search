@@ -25,16 +25,14 @@ class QueryAnalysisResult:
     warning_message: str | None = None
 
 
-# Create a global instance (initialized once and reused)
-qdrant_service = get_qdrant_service()
-
-
 def analyze_query(
     query: str, museum_slugs: list[str] = get_museum_slugs()
 ) -> QueryAnalysisResult:
     """
     Checks if the query has the form {museum_slug}:{object_number}.
     """
+    qdrant_service = get_qdrant_service()
+
     if ":" in query:
         object_museum, object_number = query.split(":", 1)
         object_museum = object_museum.strip().lower()
@@ -92,6 +90,8 @@ def handle_search(
     """
     Handle the search logic based on the provided query and filters.
     """
+    qdrant_service = get_qdrant_service()
+
     text_above_results = ""
     results = []
     error_message = None

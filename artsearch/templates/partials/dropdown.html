@@ -30,9 +30,7 @@
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                 <span class="text-nowrap">
                     Select All
-                    {% if filter_ctx.total_work_count %}
-                        <span class="text-gray-500 font-normal">({{ filter_ctx.total_work_count }} works)</span>
-                    {% endif %}
+                    <span class="text-gray-500 font-normal">({{ filter_ctx.total_work_count }} works)</span>
                 </span>
             </label>
 
@@ -47,7 +45,12 @@
                         x-model="selectedItems"
                         class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                     <span class="text-nowrap">
-                            {{ dropdown_item.label | capfirst }}
+                            {% if dropdown_item.short_label %}
+                                <span class="sm:hidden">{{ dropdown_item.short_label | capfirst }}</span>
+                                <span class="hidden sm:inline">{{ dropdown_item.label | capfirst }}</span>
+                            {% else %}
+                                {{ dropdown_item.label | capfirst }}
+                            {% endif %}
                             {% if dropdown_item.count is not None %}
                             <span class="text-gray-500 font-normal">({{ dropdown_item.count }} works)</span>
                             {% endif %}

@@ -354,6 +354,58 @@ DATABASES = {
 - Filter by work type (painting, print, drawing, etc.)
 - Results are paginated with 20 items per page
 
+## Architectural Separation: ETL vs App
+
+### Current Architecture
+
+The repository contains two architecturally distinct components:
+
+1. **artsearch app** (`artsearch/`): User-facing search application
+   - Search service and views
+   - Museum client utilities (for generating object URLs)
+   - Frontend formatting utilities
+   - Django admin customizations
+
+2. **ETL pipeline** (`etl/`): Data processing infrastructure
+   - Extract: Bulk data fetching from museum APIs
+   - Transform: Data standardization and validation
+   - Load: Image storage and embedding generation
+   - Django models for raw and transformed data
+
+### Design Principle: Keep ETL and App Separate
+
+**Why**: The ETL pipeline may be split into a separate repository in the future. Maintaining clear boundaries now makes this easier later.
+
+**How**:
+- **Avoid creating new cross-dependencies** between `etl/` and `artsearch/`
+- **Accept intentional duplication** when it represents genuine architectural independence
+  - Example: Museum API URLs defined in both extractors and museum clients serve different purposes
+  - Extractors: Bulk data collection (search endpoints, pagination)
+  - Museum clients: Individual object URL construction (single item lookups)
+
+### Known Coupling Points
+
+These are the current dependencies between ETL and artsearch app:
+
+1. **`get_bucket_image_url()`** from `etl/services/bucket_service.py`
+   - Used by: ETL image loader + artsearch frontend formatting
+   - Reason: Both need to construct S3 URLs for thumbnails
+
+2. **Museum client utilities** from `artsearch/src/services/museum_clients/utils.py`
+   - Used by: ETL models (admin links) + artsearch frontend formatting
+   - Reason: Both need to construct museum page/API URLs for individual objects
+
+3. **`get_qdrant_service()`** from `artsearch/src/services/qdrant_service.py`
+   - Used by: ETL embedding loader + ETL payload scripts + artsearch search service + artsearch stats service
+   - Reason: Both need to interact with Qdrant vector database (ETL for writes, app for reads)
+
+**Future split strategy**: When splitting repositories, these can be:
+- Extracted to a shared package/library
+- Duplicated in both repos (they're small and stable)
+- Left as a dependency (one repo depends on the other)
+
+**Current stance**: Don't solve this prematurely. The coupling is documented and minimal.
+
 ## Coding Conventions
 
 - **Prefer simple, functional code** over complex OOP patterns
@@ -366,9 +418,17 @@ DATABASES = {
 ## Important Instruction Reminders
 
 - Prefer editing existing files rather than creating new ones.
-- Only create new files when it’s necessary for the requested change.
+- Only create new files when it's necessary for the requested change.
 - Update claude.private.md when there are significant architectural or design changes.
 - Don't commit, stage, or push any changes to the repository unless explicitly instructed to do so.
-- Please run ETL tests after making changes to ensure everything works as expected.
-- Please review ETL tests after changes refactoring to ensure they still align with the updated code.
+- **Refactor before testing**: If code is designed in a way that makes it difficult to test (e.g., global instances initialized at module level, tight coupling to external services), refactor it first to make it testable. Prefer simple patterns like:
+  - Call functions directly instead of storing global instances
+  - Use dependency injection or lazy initialization instead of module-level initialization
+  - Keep functions pure and side-effect-free where possible
+- **Testing**:
+  - Run **ETL tests** (`make test-etl`) after changes to the ETL pipeline (extractors, transformers, image/embedding loaders, ETL models, or ETL services)
+  - Run **app tests** (`make test-app`) after changes to artsearch views, view context builders, or search services
+  - Run **all tests** (`make test`) after architectural changes that affect both components
+  - For other changes (frontend templates, museum clients, utilities), tests are not required unless specifically requested
+- Please review ETL tests after refactoring to ensure they still align with the updated code.
 - Remember to run "make tailwind-start" when working on frontend templates to enable hot-reloading of Tailwind CSS.

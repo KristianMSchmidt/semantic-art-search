@@ -11,3 +11,7 @@ class METAPIClient(MuseumAPIClient):
         The object_number parameter name is kept for interface consistency.
         """
         return f"{self.OBJECTS_URL}/{museum_db_id}"
+
+    def get_page_url(self, museum_db_id: int) -> str:
+        """For MET page URL, we use museum_db_id (objectID), not object_number."""
+        return f"https://www.metmuseum.org/art/collection/search/{museum_db_id}"

@@ -46,6 +46,12 @@ test-unit:  ## Run unit tests only
 test-integration:  ## Run integration tests only (with migrations)
 	docker compose -f docker-compose.dev.yml exec web pytest -m integration
 
+test-etl:  ## Run ETL tests only
+	docker compose -f docker-compose.dev.yml exec web pytest etl/tests
+
+test-app:  ## Run artsearch app tests only
+	docker compose -f docker-compose.dev.yml exec web pytest artsearch/tests
+
 
 
 
