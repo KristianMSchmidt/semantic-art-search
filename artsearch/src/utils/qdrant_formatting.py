@@ -45,7 +45,7 @@ def format_payload(payload: models.Payload | None) -> dict:
     )
 
     source_url = get_museum_page_url(
-        payload["museum"], payload["object_number"], payload.get("museum_db_id", None)
+        payload["museum"], payload["object_number"], payload["museum_db_id"]
     )
     return {
         "title": payload["title"],

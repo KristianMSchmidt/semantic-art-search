@@ -12,8 +12,8 @@ class Command(BaseCommand):
             "-m",
             "--museum",
             dest="museum",
-            choices=["smk", "cma", "rma", "met"],
-            help="Slug of the museum to upsert (e.g. smk, cma, rma, met)",
+            choices=["smk", "cma", "rma", "met", "aic"],
+            help="Slug of the museum to upsert (e.g. smk, cma, rma, met, aic)",
         )
         group.add_argument(
             "--all",

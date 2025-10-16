@@ -100,6 +100,9 @@ extract-rma: ## Extract raw data from RMA
 extract-met: ## Extract raw data from MET
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract -m met
 
+extract-aic: ## Extract raw data from AIC
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract -m aic
+
 extract-all: ## Extract raw data from ALL museums
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract --all
 

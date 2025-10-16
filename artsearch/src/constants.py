@@ -19,6 +19,11 @@ SUPPORTED_MUSEUMS = [
         "full_name": "Metropolitan Museum of Art",
         "short_name": "The Met",
     },
+    {
+        "slug": "aic",
+        "full_name": "Art Institute of Chicago",
+        "short_name": "Art Institute of Chicago",
+    },
 ]
 
 # A set work types that the user can filter on in the search if there are any works of that type
