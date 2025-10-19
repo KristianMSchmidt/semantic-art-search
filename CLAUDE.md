@@ -417,7 +417,7 @@ These are the current dependencies between ETL and artsearch app:
 
 - Prefer editing existing files rather than creating new ones.
 - Only create new files when it's necessary for the requested change.
-- Update claude.private.md when there are significant architectural or design changes.
+- Update CLAUDE.md when there are significant architectural or design changes.
 - Don't commit, stage, or push any changes to the repository unless explicitly instructed to do so.
 - **Refactor before testing**: If code is designed in a way that makes it difficult to test (e.g., global instances initialized at module level, tight coupling to external services), refactor it first to make it testable. Prefer simple patterns like:
   - Call functions directly instead of storing global instances
