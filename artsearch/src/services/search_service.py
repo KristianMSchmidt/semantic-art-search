@@ -5,7 +5,6 @@ from artsearch.src.services.qdrant_service import (
     SearchFunctionArguments,
     get_qdrant_service,
 )
-from artsearch.src.services.museum_clients.base_client import MuseumAPIClientError
 from artsearch.src.utils.get_museums import get_museum_full_name, get_museum_slugs
 
 
@@ -26,16 +25,14 @@ class QueryAnalysisResult:
     warning_message: str | None = None
 
 
-# Create a global instance (initialized once and reused)
-qdrant_service = get_qdrant_service()
-
-
 def analyze_query(
     query: str, museum_slugs: list[str] = get_museum_slugs()
 ) -> QueryAnalysisResult:
     """
     Checks if the query has the form {museum_slug}:{object_number}.
     """
+    qdrant_service = get_qdrant_service()
+
     if ":" in query:
         object_museum, object_number = query.split(":", 1)
         object_museum = object_museum.strip().lower()
@@ -93,6 +90,8 @@ def handle_search(
     """
     Handle the search logic based on the provided query and filters.
     """
+    qdrant_service = get_qdrant_service()
+
     text_above_results = ""
     results = []
     error_message = None
@@ -111,9 +110,6 @@ def handle_search(
                 work_types=work_type_prefilter,
                 museums=museum_prefilter,
             )
-        except MuseumAPIClientError as e:
-            error_message = str(e)
-            error_type = "warning"
         except Exception:
             traceback.print_exc()
             error_message = "An unexpected error occurred. Please try again."
@@ -138,9 +134,6 @@ def handle_search(
             works_text = f"({total_works} works)" if total_works is not None else ""
             text_above_results = f"Search results {works_text}".strip()
         except QueryParsingError as e:
-            error_message = str(e)
-            error_type = "warning"
-        except MuseumAPIClientError as e:
             error_message = str(e)
             error_type = "warning"
         except Exception:

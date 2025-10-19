@@ -1440,6 +1440,10 @@ select {
     margin-bottom: 1.25rem;
   }
 
+  .sm\:inline {
+    display: inline;
+  }
+
   .sm\:flex {
     display: flex;
   }

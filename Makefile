@@ -46,6 +46,12 @@ test-unit:  ## Run unit tests only
 test-integration:  ## Run integration tests only (with migrations)
 	docker compose -f docker-compose.dev.yml exec web pytest -m integration
 
+test-etl:  ## Run ETL tests only
+	docker compose -f docker-compose.dev.yml exec web pytest etl/tests
+
+test-app:  ## Run artsearch app tests only
+	docker compose -f docker-compose.dev.yml exec web pytest artsearch/tests
+
 
 
 
@@ -69,21 +75,18 @@ production_djangoshell:  ## Open django shell in running docker production conta
 	docker compose -f docker-compose.prod.yml exec web python manage.py shell
 
 
-# ---------- Data ---------- #
-
-adhoc: # Adhoc scripts only used during development
-	python -m artsearch.src.scripts.adhoc
+# ---------- Data / Reporting ---------- #
 
 stats: ## Get work type stats
 	python -m artsearch.src.services.museum_stats_service
-
-update-payload: ## Update collection payload
-	python -m artsearch.src.scripts.update_payload
 
 
 # ---------- ETL ---------- #
 # Note: ETL commands use 'docker compose run --rm' to create one-time containers
 # that spin up, execute the command, and clean up automatically (no permanent container needed)
+
+update-payloads: ## Update Qdrant collection payload (ad-hoc ETL maintenance)
+	docker compose -f docker-compose.dev.yml exec web python -m etl.scripts.update_payload
 
 extract-smk: ## Extract raw data from SMK
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract -m smk
@@ -124,10 +127,10 @@ load-images-smk:  ## Load thumbnail images for SMK museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum smk --batch-size 50 --delay 0.2 --batch-delay 5
 
 load-images-cma:  ## Load thumbnail images for CMA museum
-	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum cma --batch-size 50 --delay 0.2 --batch-delay 5
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum cma --batch-size 50 --delay 0.1 --batch-delay 2
 
 load-images-rma:  ## Load thumbnail images for RMA museum
-	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum rma --batch-size 50 --delay 0.2 --batch-delay 5
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum rma --batch-size 50 --delay 0.1 --batch-delay 2
 
 load-images-met:  ## Load thumbnail images for MET museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum met --batch-size 50 --delay 0.2 --batch-delay 5
@@ -140,10 +143,10 @@ load-images-smk-force:  ## Force reload all thumbnail images for SMK museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum smk --force --batch-size 50 --delay 0.2 --batch-delay 5
 
 load-images-cma-force:  ## Force reload all thumbnail images for CMA museum
-	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum cma --force --batch-size 50 --delay 0.2 --batch-delay 5
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum cma --force --batch-size 50 --delay 0.1 --batch-delay 2
 
 load-images-rma-force:  ## Force reload all thumbnail images for RMA museum
-	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum rma --force --batch-size 50 --delay 0.2 --batch-delay 5
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum rma --force --batch-size 50 --delay 0.1 --batch-delay 2
 
 load-images-met-force:  ## Force reload all thumbnail images for MET museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum met --force --batch-size 50 --delay 0.2 --batch-delay 5

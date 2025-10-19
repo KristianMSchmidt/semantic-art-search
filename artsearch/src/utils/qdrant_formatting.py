@@ -3,6 +3,7 @@
 from qdrant_client import models
 
 from artsearch.src.constants import WORK_TYPES_DICT, SUPPORTED_MUSEUMS
+from artsearch.src.services.museum_clients.utils import get_museum_page_url
 from etl.services.bucket_service import get_bucket_image_url
 
 
@@ -26,29 +27,6 @@ def get_work_type_translation(work_type: str) -> str:
         return work_type
 
 
-def get_source_url(
-    museum_slug: str, object_number: str, museum_db_id: str | None = None
-) -> str | None:
-    """
-    Returns the URL to the artwork's page at the source museum, based on slug and object number / museum_db_id.
-    """
-    if museum_slug == "met" and museum_db_id is None:
-        raise ValueError(
-            "museum_db_id must be provided for the Metropolitan Museum of Art"
-        )
-    match museum_slug:
-        case "smk":
-            return f"https://open.smk.dk/artwork/image/{object_number}"
-        case "cma":
-            return f"https://www.clevelandart.org/art/{object_number}"
-        case "rma":
-            return f"https://www.rijksmuseum.nl/en/collection/{object_number}"
-        case "met":
-            return f"https://www.metmuseum.org/art/collection/search/{museum_db_id}"
-        case _:
-            return None  # Unknown museum
-
-
 def format_payload(payload: models.Payload | None) -> dict:
     """
     Make payload ready for display in the frontend.
@@ -56,12 +34,8 @@ def format_payload(payload: models.Payload | None) -> dict:
     if payload is None:
         raise ValueError("Payload cannot be None")
 
-    if payload["production_date_start"] == payload["production_date_end"]:
-        period = payload["production_date_start"]
-    else:
-        period = (
-            f"{payload['production_date_start']} - {payload['production_date_end']}"
-        )
+    production_date = payload.get("production_date", "")
+
     work_types = [
         get_work_type_translation(name).capitalize() for name in payload["work_types"]
     ]
@@ -70,15 +44,15 @@ def format_payload(payload: models.Payload | None) -> dict:
         payload["museum"], payload["object_number"], use_etl_bucket=False
     )
 
-    source_url = get_source_url(
+    source_url = get_museum_page_url(
         payload["museum"], payload["object_number"], payload.get("museum_db_id", None)
     )
     return {
-        "title": payload["titles"][0]["title"],
-        "artist": ", ".join(payload["artist"]),
+        "title": payload["title"],
+        "artist": payload["artist"],
         "work_types": work_types,
         "thumbnail_url": thumbnail_url,
-        "period": period,
+        "production_date": production_date,
         "object_number": payload["object_number"],
         "museum": get_full_museum_name(payload["museum"]),
         "source_url": source_url,

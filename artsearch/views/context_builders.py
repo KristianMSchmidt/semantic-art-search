@@ -53,7 +53,7 @@ class FilterContext:
     label_name: str
     all_items_json: str
     selected_items_json: str
-    total_work_count: int | None = None
+    total_work_count: int
 
 
 def retrieve_query(request: HttpRequest) -> str | None:
@@ -135,6 +135,7 @@ def prepare_museums_for_dropdown(
         museum_item: dict[str, Any] = {
             "value": museum_slug,
             "label": museum["full_name"],
+            "short_label": museum["short_name"],
         }
         if museum_counts is not None:
             museum_item["count"] = museum_counts.get(museum_slug, 0)

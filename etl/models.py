@@ -1,7 +1,9 @@
 from django.db import models
 from django.utils.html import format_html
-from artsearch.src.utils.qdrant_formatting import get_source_url
-from artsearch.src.services.museum_clients.factory import get_museum_client
+from artsearch.src.services.museum_clients.utils import (
+    get_museum_api_url,
+    get_museum_page_url,
+)
 
 
 class MetaDataRaw(models.Model):
@@ -38,46 +40,18 @@ class MetaDataRaw(models.Model):
     def __str__(self):
         return f"{self.museum_slug}:{self.object_number}"
 
-    def get_museum_page_url(self) -> str | None:
-        """Construct a URL to the museum's frontend page for this artwork."""
-        return get_source_url(self.museum_slug, self.object_number, self.museum_db_id)
-
-    def get_museum_api_url(self) -> str | None:
-        """Construct a URL to the museum's API endpoint for this artwork."""
-        return get_museum_api_url(
-            self.museum_slug, self.object_number, self.museum_db_id
-        )
-
     def get_museum_page_link_html(self):
         """HTML link for admin list display."""
-        url = self.get_museum_page_url()
+        url = get_museum_page_url(self.museum_slug, self.object_number, self.museum_db_id)
         if url:
             return format_html('<a href="{}" target="_blank">🔗</a>', url)
         return "–"
 
     get_museum_page_link_html.short_description = "Page"
 
-    def get_museum_page_url_html(self):
-        """HTML link for admin detail view."""
-        url = self.get_museum_page_url()
-        if url:
-            return format_html('<a href="{}" target="_blank">{}</a>', url, url)
-        return "N/A"
-
-    get_museum_page_url_html.short_description = "Museum Page URL"
-
-    def get_museum_api_url_html(self):
-        """HTML link for admin detail view."""
-        url = self.get_museum_api_url()
-        if url:
-            return format_html('<a href="{}" target="_blank">{}</a>', url, url)
-        return "N/A"
-
-    get_museum_api_url_html.short_description = "Museum API URL"
-
     def get_museum_api_link_html(self):
         """HTML API link for admin list display."""
-        url = self.get_museum_api_url()
+        url = get_museum_api_url(self.museum_slug, self.object_number, self.museum_db_id)
         if url:
             return format_html('<a href="{}" target="_blank">🔗</a>', url)
         return "–"
@@ -171,60 +145,20 @@ class TransformedData(models.Model):
             return self.period
         return "Date unknown"
 
-    def get_museum_page_url(self) -> str | None:
-        """Construct a URL to the museum's frontend page for this artwork."""
-        return get_source_url(self.museum_slug, self.object_number, self.museum_db_id)
-
-    def get_museum_api_url(self) -> str | None:
-        """Construct a URL to the museum's API endpoint for this artwork."""
-        return get_museum_api_url(
-            self.museum_slug, self.object_number, self.museum_db_id
-        )
-
     def get_museum_page_link_html(self):
         """HTML link for admin list display."""
-        url = self.get_museum_page_url()
+        url = get_museum_page_url(self.museum_slug, self.object_number, self.museum_db_id)
         if url:
             return format_html('<a href="{}" target="_blank">🔗</a>', url)
         return "–"
 
     get_museum_page_link_html.short_description = "Page"
 
-    def get_museum_page_url_html(self):
-        """HTML link for admin detail view."""
-        url = self.get_museum_page_url()
-        if url:
-            return format_html('<a href="{}" target="_blank">{}</a>', url, url)
-        return "N/A"
-
-    get_museum_page_url_html.short_description = "Museum Page URL"
-
-    def get_museum_api_url_html(self):
-        """HTML link for admin detail view."""
-        url = self.get_museum_api_url()
-        if url:
-            return format_html('<a href="{}" target="_blank">{}</a>', url, url)
-        return "N/A"
-
-    get_museum_api_url_html.short_description = "Museum API URL"
-
     def get_museum_api_link_html(self):
         """HTML API link for admin list display."""
-        url = self.get_museum_api_url()
+        url = get_museum_api_url(self.museum_slug, self.object_number, self.museum_db_id)
         if url:
-            return format_html('<a href="{}" target="_blank">API</a>', url)
+            return format_html('<a href="{}" target="_blank">🔗</a>', url)
         return "–"
 
     get_museum_api_link_html.short_description = "API"
-
-
-def get_museum_api_url(
-    museum_slug: str, object_number: str, museum_db_id: str | None = None
-) -> str | None:
-    """Returns the URL to the artwork's API endpoint at the source museum."""
-    museum_api_client = get_museum_client(museum_slug)
-    if museum_slug in ("met", "rma"):
-        assert museum_db_id is not None, "museum_db_id is required for MET"
-        return museum_api_client.get_object_url(museum_db_id)
-    else:
-        return museum_api_client.get_object_url(object_number)
