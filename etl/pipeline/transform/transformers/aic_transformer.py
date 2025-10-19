@@ -1,6 +1,16 @@
 from typing import Optional
 from etl.pipeline.transform.base_transformer import BaseTransformer
 
+# Expected artwork types that should be filtered in extraction
+# Must match ALLOWED_ARTWORK_TYPES in aic_extractor.py (case-insensitive)
+EXPECTED_ARTWORK_TYPES = {
+    "painting",
+    "drawing and watercolor",
+    "print",
+    "miniature painting",
+    "design",
+}
+
 
 class AicTransformer(BaseTransformer):
     """AIC (Art Institute of Chicago) data transformer."""
@@ -39,39 +49,40 @@ class AicTransformer(BaseTransformer):
         - artwork_type_title: "Painting", "Print", "Sculpture", etc. (most general)
         - classification_title: "oil on canvas", "woodblock print", etc. (more specific)
 
-        We'll try to only use artwork_type_title for simplicity.
+        We primarily use artwork_type_title, with classification for additional context.
         """
         work_types = set()
 
-        artwork_type = raw_json.get("artwork_type_title", "").lower()
-        classification = raw_json.get("classification_title", "").lower()
+        artwork_type = raw_json.get("artwork_type_title", "").lower().strip()
+        classification = raw_json.get("classification_title", "").lower().strip()
 
-        assert artwork_type in (
-            "painting",
-            "drawing and watercolor",
-            "print",
-            "miniature painting",
-            "design",
-        )
+        # Validate that extraction filter is working correctly
+        if artwork_type not in EXPECTED_ARTWORK_TYPES:
+            raise ValueError(
+                f"Unexpected AIC artwork_type: '{artwork_type}'. "
+                f"This should have been filtered during extraction. "
+                f"Check that ALLOWED_ARTWORK_TYPES in aic_extractor.py matches EXPECTED_ARTWORK_TYPES."
+            )
 
+        # Handle special cases with more nuanced logic
         if artwork_type == "drawing and watercolor":
+            # Prefer more specific classification if available
             if classification in ["watercolor", "pastel", "gouache", "aquatint"]:
-                work_types.add(classification)  # Use more specific type if available
+                work_types.add(classification)
             else:
-                work_types.add("drawing")  # Default to drawing if unsure
+                work_types.add("drawing")
         elif artwork_type == "miniature painting":
+            # This is both a miniature and a painting
             work_types.update({"miniature", "painting"})
-        elif artwork_type in ("painting", "print", "design"):
+        elif artwork_type:
+            # Standard case: use artwork type directly
             work_types.add(artwork_type)
-        else:
-            raise Exception("Unexpected work type")
 
-        # Above should ensure that all artworks have a searchable work type.
-        # For extra info, we also add the classification:
-        # (Optional - I could remove this)
-        work_types.add(classification)
+        # Add classification for additional context if non-empty
+        # (set will automatically prevent duplicates)
+        if classification:
+            work_types.add(classification)
 
-        print(f"Work types: {work_types}")
         return list(work_types)
 
     def extract_title(self, raw_json: dict) -> Optional[str]:

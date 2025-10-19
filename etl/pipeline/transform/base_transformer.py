@@ -18,7 +18,9 @@ class BaseTransformer(ABC):
 
     museum_slug: str  # Must be set by subclasses
 
-    def transform(self, transformer_args: TransformerArgs) -> Optional[TransformedArtworkData]:
+    def transform(
+        self, transformer_args: TransformerArgs
+    ) -> Optional[TransformedArtworkData]:
         """
         Transform raw museum metadata to TransformedArtworkData.
 
@@ -28,7 +30,9 @@ class BaseTransformer(ABC):
         try:
             # Validate museum slug
             if transformer_args.museum_slug != self.museum_slug:
-                logger.error(f"Transformer called for wrong museum: expected {self.museum_slug}, got {transformer_args.museum_slug}")
+                logger.error(
+                    f"Transformer called for wrong museum: expected {self.museum_slug}, got {transformer_args.museum_slug}"
+                )
                 return None
 
             # Validate required args
@@ -40,33 +44,46 @@ class BaseTransformer(ABC):
                 logger.debug(f"{self.museum_slug}: Missing museum_db_id")
                 return None
 
-            if not transformer_args.raw_json or not isinstance(transformer_args.raw_json, dict):
+            if not transformer_args.raw_json or not isinstance(
+                transformer_args.raw_json, dict
+            ):
                 logger.debug(f"{self.museum_slug}: Invalid raw_json data")
                 return None
 
             # Check if record should be skipped (museum-specific logic)
-            should_skip, skip_reason = self.should_skip_record(transformer_args.raw_json)
+            should_skip, skip_reason = self.should_skip_record(
+                transformer_args.raw_json
+            )
             if should_skip:
-                logger.debug(f"{self.museum_slug}:{transformer_args.object_number} - Skipped: {skip_reason}")
+                logger.debug(
+                    f"{self.museum_slug}:{transformer_args.object_number} - Skipped: {skip_reason}"
+                )
                 return None
 
             # Extract required thumbnail_url
             thumbnail_url = self.extract_thumbnail_url(transformer_args.raw_json)
             if not thumbnail_url:
-                logger.debug(f"{self.museum_slug}:{transformer_args.object_number} - Missing thumbnail_url")
+                logger.debug(
+                    f"{self.museum_slug}:{transformer_args.object_number} - Missing thumbnail_url"
+                )
                 return None
 
             # Extract work types and validate
             work_types = self.extract_work_types(transformer_args.raw_json)
             searchable_work_types = get_searchable_work_types(work_types)
+
             if not searchable_work_types:
-                logger.debug(f"{self.museum_slug}:{transformer_args.object_number} - No searchable work types found, work_types={work_types}")
+                logger.debug(
+                    f"{self.museum_slug}:{transformer_args.object_number} - No searchable work types found, work_types={work_types}"
+                )
                 return None
 
             # Extract optional fields
             title = self.extract_title(transformer_args.raw_json)
             artist = self.extract_artists(transformer_args.raw_json)
-            production_date_start, production_date_end = self.extract_production_dates(transformer_args.raw_json)
+            production_date_start, production_date_end = self.extract_production_dates(
+                transformer_args.raw_json
+            )
             period = self.extract_period(transformer_args.raw_json)
             image_url = self.extract_image_url(transformer_args.raw_json)
 
@@ -87,7 +104,9 @@ class BaseTransformer(ABC):
             )
 
         except Exception as e:
-            logger.exception(f"{self.museum_slug} transform error for {transformer_args.object_number}:{transformer_args.museum_db_id}: {e}")
+            logger.exception(
+                f"{self.museum_slug} transform error for {transformer_args.object_number}:{transformer_args.museum_db_id}: {e}"
+            )
             return None
 
     # Abstract methods for museum-specific data extraction
@@ -113,7 +132,9 @@ class BaseTransformer(ABC):
         pass
 
     @abstractmethod
-    def extract_production_dates(self, raw_json: dict) -> tuple[Optional[int], Optional[int]]:
+    def extract_production_dates(
+        self, raw_json: dict
+    ) -> tuple[Optional[int], Optional[int]]:
         """Extract production date range from raw JSON data. Returns (start_year, end_year)."""
         pass
 

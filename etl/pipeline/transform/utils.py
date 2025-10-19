@@ -20,19 +20,18 @@ def get_searchable_work_types(work_types: list[str]) -> list[str]:
         # Get translated/normalized work type name, if available
         work_type = get_standardized_work_type(work_type)
 
-        # Direct match
-        if work_type in SEARCHABLE_WORK_TYPES:
-            searchable_work_types.add(work_type)
-            continue
-
-        # Partial matches
-        #  - "painting - oil on canvas" -> "painting",
-        #  - "prints" -> "print",
-        #  - "prints and drawings" -> "print" + "drawing"
+        # Match searchable work types using word boundaries to avoid false positives
+        # The 's?' makes the plural 's' optional, so "print" matches both "print" and "prints"
+        # Examples:
+        #  - 'miniature' -> 'miniature' ✓
+        #  - "painting - oil on canvas" -> "painting" ✓
+        #  - "prints and drawings" -> "print" + "drawing" ✓
+        #  - "blueprint" -> no match (avoids false positive for "print") ✓
+        #  - "combustion" -> no match (avoids false positive for "bust") ✓
         for searchable_work_type in SEARCHABLE_WORK_TYPES:
-            if searchable_work_type in work_type:
+            pattern = rf"\b{re.escape(searchable_work_type)}s?\b"
+            if re.search(pattern, work_type):
                 searchable_work_types.add(searchable_work_type)
-
     return list(searchable_work_types)
 
 

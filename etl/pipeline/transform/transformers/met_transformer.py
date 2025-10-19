@@ -2,17 +2,6 @@ from typing import Optional
 from etl.pipeline.transform.utils import safe_int_from_date
 from etl.pipeline.transform.base_transformer import BaseTransformer
 
-# Review this if we rerun MET extraction later
-# Seems like I could avoid this filtering and handle it in get_searchable_work_types instead
-WANTED_MET_CLASSIFICATIONS = {
-    "paintings",
-    "miniatures",
-    "pastels",
-    "oil sketches on paper",
-    "drawings",
-    "prints",
-}
-
 
 class MetTransformer(BaseTransformer):
     """MET (Metropolitan Museum of Art) data transformer."""
@@ -30,22 +19,29 @@ class MetTransformer(BaseTransformer):
         return raw_json.get("primaryImageSmall")
 
     def extract_work_types(self, raw_json: dict) -> list[str]:
-        """Extract work types from MET classification and objectName fields."""
-        work_types = []
+        """
+        Extract work types from MET classification and objectName fields.
+
+        NB:
+            - Many MET artworks do not have a classification.
+            - We include objectName to capture more work type info.
+            - "classification" includes 'paintings', 'drawings', 'sculpture', 'prints',
+                 'fire-arms-miniature', 'miscellaneous-paintings & portraits', 'furniture' etc.
+            - "objectName" includes 'painting', 'painting, sculture', 'drawing', 'watercolor', 'salad bowl' etc.
+        """
+        work_types = set()
         classification = raw_json.get("classification", "").lower().strip()
         object_name = raw_json.get("objectName", "").lower().strip()
 
         if classification:
-            # Handle multiple classifications separated by &
-            classification_parts = [part.strip() for part in classification.split("&")]
-            for part in classification_parts:
-                if part in WANTED_MET_CLASSIFICATIONS:
-                    work_types.append(part)
-        elif object_name:
-            # Use object name directly if no classification
-            work_types = [object_name]
+            work_types.add(classification)
 
-        return work_types
+        if object_name:
+            # We split by comma since there are object names like "painting, miniature"
+            object_name_parts = {part.strip() for part in object_name.split(",")}
+            work_types.update(object_name_parts)
+
+        return list(work_types)
 
     def extract_title(self, raw_json: dict) -> Optional[str]:
         """Extract title from MET title field."""

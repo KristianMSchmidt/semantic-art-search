@@ -15,7 +15,8 @@ SEARCHABLE_WORK_TYPES = set(
 )
 
 # Dictionary for work types that need translation or standardized naming
-# Used both at runtime and in the ETL transformation process to normalize work types
+# Used both at runtime (to translate and standardize the work type tags shown on the artwork cards) and in the
+# ETL transformation process to find searchable work types from various input work type names.
 WORK_TYPES_DICT = {
     "ornamenttekening": "ornamental drawing",
     "albumblad": "album leaf",
