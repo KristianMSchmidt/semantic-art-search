@@ -6,13 +6,26 @@ from etl.pipeline.extract.helpers.upsert_raw_data import store_raw_data
 
 
 MUSEUM_SLUG = "aic"
-LIMIT = 100  # Maximum allowed by AIC API
-BASE_URL = "https://api.artic.edu/api/v1/artworks/search"
+LIMIT = 100  # 100 is maximum allowed by AIC API
+BASE_URL = "https://api.artic.edu/api/v1/artworks"  # Listing endpoint (search endpoint has 1K/10K limits)
 SLEEP_BETWEEN_REQUESTS = (
-    1.5  # Seconds (rate limit: 60 req/min, this gives 40 req/min with safety margin)
+    # Be polite to the AIC API
+    3  # Seconds (rate limit: 60 req/min, this gives 20 req/min for safety)
 )
 
+# Artwork types to include (client-side filtering)
+# NB: A complete list of artwork types can be fetched here https://api.artic.edu/api/v1/artwork-types
+# We fetch ALL artworks from AIC via listing endpoint, then filter by these types
+ALLOWED_ARTWORK_TYPES = {
+    "Painting",
+    "Drawing and Watercolor",
+    "Print",
+    "Miniature Painting",
+    "Design",
+}
+
 # Fields to request from the API
+# To not overload the museum API, we only request the fields we know we need.
 FIELDS = [
     "id",
     "title",
@@ -20,23 +33,12 @@ FIELDS = [
     "date_start",
     "date_end",
     "date_display",
-    "medium_display",
     "main_reference_number",
     "image_id",  # Used to construct IIIF image URLs
-    "is_public_domain",  # Required for filtering
+    "is_public_domain",
     "artwork_type_title",
-    "artwork_type_id",
-    "department_title",
     "artist_title",
-    "category_titles",
-    "term_titles",
-    "style_title",
-    "style_titles",
     "classification_title",
-    "classification_titles",
-    "material_titles",
-    "technique_titles",
-    "updated_at",
 ]
 
 
@@ -77,15 +79,14 @@ def store_raw_data_aic(force_refetch: bool = False):
     """
     Fetch and store raw artwork data from the Art Institute of Chicago API.
 
-    Server-side filtering:
+    Strategy: Use the /artworks listing endpoint (no pagination limit) to fetch ALL
+    artworks, then filter client-side for:
     - Public domain only (is_public_domain=true)
-
-    Client-side validation:
     - Has image_id (required for image loading stage)
+    - Artwork type in ALLOWED_ARTWORK_TYPES
     - Has main_reference_number (our unique identifier)
 
-    Work type filtering (paintings, drawings, etc.) is deferred to the transform stage
-    for maximum flexibility.
+    This avoids the /search endpoint's pagination limitations entirely.
 
     Args:
         force_refetch: If True, refetch all items regardless of existing data
@@ -93,23 +94,21 @@ def store_raw_data_aic(force_refetch: bool = False):
     start_time = time.time()
     http_session = requests.Session()
 
-    page = 1
     total_num_created = 0
     total_num_updated = 0
     total_num_skipped = 0
+    page = 1
 
-    logging.info("Starting AIC extraction for public domain artworks")
+    logging.info("Starting AIC extraction using /artworks listing endpoint")
+    logging.info(
+        f"Filtering for artwork types: {', '.join(sorted(ALLOWED_ARTWORK_TYPES))}"
+    )
 
     while True:
-        num_created = 0
-        num_updated = 0
-        num_skipped = 0
-
-        # Build query parameters - server-side filter for public domain
+        # Build query parameters for listing endpoint
         query = {
-            "query[bool][filter][0][term][is_public_domain]": "true",
             "fields": ",".join(FIELDS),
-            "size": LIMIT,  # Search endpoint uses 'size' not 'limit'
+            "limit": LIMIT,
             "page": page,
         }
 
@@ -127,39 +126,44 @@ def store_raw_data_aic(force_refetch: bool = False):
             logging.info("No more items to process")
             break
 
-        logging.info(f"Total items matching query: {total}")
+        if page == 1:
+            logging.info(f"Total artworks in AIC collection: {total:,}")
+            logging.info(f"Total pages to process: {total_pages:,}")
+
         logging.info(f"Processing page {page}/{total_pages} ({len(items)} items)")
 
+        page_created = 0
+        page_updated = 0
+        page_skipped = 0
+
         for item in items:
-            # Client-side validation
+            # Client-side filtering
             is_public_domain = item.get("is_public_domain", False)
             image_id = item.get("image_id")
             object_number = item.get("main_reference_number")
+            artwork_type_title = item.get("artwork_type_title")
 
-            # Defensive check: verify public domain (should be true from server filter)
+            # Filter 1: Must be public domain
             if not is_public_domain:
-                logging.warning(
-                    f"Skipping item with id {item.get('id')} - not public domain (unexpected)"
-                )
-                num_skipped += 1
-                total_num_skipped += 1
+                page_skipped += 1
                 continue
 
-            # Skip items without image_id (required for image loading stage)
+            # Filter 2: Must have image_id
             if not image_id:
-                num_skipped += 1
-                total_num_skipped += 1
+                page_skipped += 1
                 continue
 
-            # Skip items without main_reference_number (our unique identifier)
+            # Filter 3: Must have main_reference_number
             if not object_number:
-                logging.warning(
-                    f"Skipping item with id {item.get('id')} - missing main_reference_number"
-                )
-                num_skipped += 1
-                total_num_skipped += 1
+                page_skipped += 1
                 continue
 
+            # Filter 4: Must be in allowed artwork types
+            if artwork_type_title not in ALLOWED_ARTWORK_TYPES:
+                page_skipped += 1
+                continue
+
+            # All filters passed - store the artwork
             created = store_raw_data(
                 museum_slug=MUSEUM_SLUG,
                 object_number=object_number,
@@ -168,19 +172,22 @@ def store_raw_data_aic(force_refetch: bool = False):
             )
 
             if created:
-                num_created += 1
+                page_created += 1
                 total_num_created += 1
             else:
-                num_updated += 1
+                page_updated += 1
                 total_num_updated += 1
 
+        total_num_skipped += page_skipped
+
         logging.info(
-            f"Items created: {num_created}, updated: {num_updated}, skipped (filtered): {num_skipped}"
+            f"Page {page} complete: created={page_created}, updated={page_updated}, "
+            f"skipped={page_skipped} (filtered out)"
         )
 
         # Check if we've processed all pages
         if page >= total_pages:
-            logging.info("All pages processed for AIC")
+            logging.info("All pages processed")
             break
 
         page += 1

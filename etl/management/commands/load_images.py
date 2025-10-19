@@ -16,8 +16,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--museum",
             type=str,
-            choices=["smk", "cma", "rma", "met"],
-            help="Filter by specific museum (e.g. smk, cma, rma, met). Default: all museums",
+            choices=["smk", "cma", "rma", "met", "aic"],
+            help="Filter by specific museum (e.g. smk, cma, rma, met, aic). Default: all museums",
         )
         parser.add_argument(
             "--force",
@@ -50,7 +50,9 @@ class Command(BaseCommand):
         delay_seconds = options["delay"]
         batch_delay_seconds = options["batch_delay"]
 
-        museum_text = f" for {museum_filter.upper()}" if museum_filter else " for all museums"
+        museum_text = (
+            f" for {museum_filter.upper()}" if museum_filter else " for all museums"
+        )
         force_text = " (force reload enabled)" if force_reload else ""
         retry_text = " (retry failed enabled)" if retry_failed else ""
 
@@ -121,7 +123,7 @@ class Command(BaseCommand):
                     batch_size=batch_size,
                     museum_filter=museum_filter,
                     delay_seconds=delay_seconds,
-                    batch_delay_seconds=batch_delay_seconds
+                    batch_delay_seconds=batch_delay_seconds,
                 )
 
                 # If no records were processed, we're done

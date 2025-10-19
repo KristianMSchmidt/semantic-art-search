@@ -16,8 +16,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--museum",
             type=str,
-            choices=["smk", "cma", "rma", "met"],
-            help="Filter by specific museum (e.g. smk, cma, rma, met). Default: all museums",
+            choices=["smk", "cma", "rma", "met", "aic"],
+            help="Filter by specific museum (e.g. smk, cma, rma, met, aic). Default: all museums",
         )
         parser.add_argument(
             "--force",

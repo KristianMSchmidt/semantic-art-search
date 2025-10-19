@@ -2,7 +2,8 @@
 
 from qdrant_client import models
 
-from artsearch.src.constants import WORK_TYPES_DICT, SUPPORTED_MUSEUMS
+from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
+from artsearch.src.utils.work_type_utils import get_standardized_work_type
 from artsearch.src.services.museum_clients.utils import get_museum_page_url
 from etl.services.bucket_service import get_bucket_image_url
 
@@ -17,16 +18,6 @@ def get_full_museum_name(museum_slug: str) -> str:
     return museum_slug
 
 
-def get_work_type_translation(work_type: str) -> str:
-    """
-    Get work type in English singular form.
-    """
-    try:
-        return WORK_TYPES_DICT[work_type]["eng_sing"]
-    except KeyError:
-        return work_type
-
-
 def format_payload(payload: models.Payload | None) -> dict:
     """
     Make payload ready for display in the frontend.
@@ -37,7 +28,7 @@ def format_payload(payload: models.Payload | None) -> dict:
     production_date = payload.get("production_date", "")
 
     work_types = [
-        get_work_type_translation(name).capitalize() for name in payload["work_types"]
+        get_standardized_work_type(name).capitalize() for name in payload["work_types"]
     ]
 
     thumbnail_url = get_bucket_image_url(

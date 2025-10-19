@@ -2,15 +2,15 @@ from typing import Optional
 from etl.pipeline.transform.utils import safe_int_from_date
 from etl.pipeline.transform.base_transformer import BaseTransformer
 
-
-# MET classification mapping (from the API client)
-MET_CLASSIFICATION_TO_WORK_TYPE = {
-    "paintings": "painting",
-    "miniatures": "miniature",
-    "pastels": "pastel",
-    "oil sketches on paper": "oil sketch on paper",
-    "drawings": "drawing",
-    "prints": "print",
+# Review this if we rerun MET extraction later
+# Seems like I could avoid this filtering and handle it in get_searchable_work_types instead
+WANTED_MET_CLASSIFICATIONS = {
+    "paintings",
+    "miniatures",
+    "pastels",
+    "oil sketches on paper",
+    "drawings",
+    "prints",
 }
 
 
@@ -39,8 +39,8 @@ class MetTransformer(BaseTransformer):
             # Handle multiple classifications separated by &
             classification_parts = [part.strip() for part in classification.split("&")]
             for part in classification_parts:
-                if part in MET_CLASSIFICATION_TO_WORK_TYPE:
-                    work_types.append(MET_CLASSIFICATION_TO_WORK_TYPE[part])
+                if part in WANTED_MET_CLASSIFICATIONS:
+                    work_types.append(part)
         elif object_name:
             # Use object name directly if no classification
             work_types = [object_name]
@@ -72,7 +72,9 @@ class MetTransformer(BaseTransformer):
 
         return artist
 
-    def extract_production_dates(self, raw_json: dict) -> tuple[Optional[int], Optional[int]]:
+    def extract_production_dates(
+        self, raw_json: dict
+    ) -> tuple[Optional[int], Optional[int]]:
         """Extract production dates from MET objectBeginDate and objectEndDate."""
         production_date_start = None
         production_date_end = None
@@ -97,5 +99,3 @@ class MetTransformer(BaseTransformer):
     def extract_image_url(self, raw_json: dict) -> Optional[str]:
         """Extract full resolution image URL from MET primaryImage field."""
         return raw_json.get("primaryImage")
-
-
