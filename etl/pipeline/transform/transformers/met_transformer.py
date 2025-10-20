@@ -1,5 +1,5 @@
 from typing import Optional
-from etl.pipeline.transform.utils import safe_int_from_date
+from etl.pipeline.transform.utils import safe_int_from_date, get_searchable_work_types
 from etl.pipeline.transform.base_transformer import BaseTransformer
 
 
@@ -42,6 +42,13 @@ class MetTransformer(BaseTransformer):
             work_types.update(object_name_parts)
 
         return list(work_types)
+
+    def extract_searchable_work_types(self, raw_json: dict) -> list[str]:
+        """Extract searchable work types using current helper function."""
+        # Default implementation using extracted work type and helper function.
+        # We could make a version that is both museum specific and independent of the extracted work types, if needed.
+        work_types = self.extract_work_types(raw_json)
+        return get_searchable_work_types(work_types)
 
     def extract_title(self, raw_json: dict) -> Optional[str]:
         """Extract title from MET title field."""

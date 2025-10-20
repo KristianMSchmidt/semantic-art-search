@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Optional
 import logging
 
-from etl.pipeline.transform.utils import get_searchable_work_types
 from etl.pipeline.transform.models import TransformedArtworkData, TransformerArgs
 
 logger = logging.getLogger(__name__)
@@ -70,7 +69,9 @@ class BaseTransformer(ABC):
 
             # Extract work types and validate
             work_types = self.extract_work_types(transformer_args.raw_json)
-            searchable_work_types = get_searchable_work_types(work_types)
+            searchable_work_types = self.extract_searchable_work_types(
+                transformer_args.raw_json
+            )
 
             if not searchable_work_types:
                 logger.debug(
@@ -146,6 +147,17 @@ class BaseTransformer(ABC):
     @abstractmethod
     def extract_image_url(self, raw_json: dict) -> Optional[str]:
         """Extract full resolution image URL from raw JSON data."""
+        pass
+
+    @abstractmethod
+    def extract_searchable_work_types(self, raw_json: dict) -> list[str]:
+        """
+        Extract searchable work types from raw JSON data.
+
+        These are the standardized work types that users can filter by in search.
+        Each museum can implement this using their own logic, or delegate to
+        the generic get_searchable_work_types() helper function.
+        """
         pass
 
     @abstractmethod
