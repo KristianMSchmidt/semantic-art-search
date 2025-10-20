@@ -2,8 +2,8 @@
 
 set -e
 
-echo "${0}: running migrations."
-python manage.py migrate
+#echo "${0}: running migrations."
+#python manage.py migrate
 
 echo "${0}: Installing development dependencies..."
 pip install -r requirements.dev.txt
