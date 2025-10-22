@@ -1,8 +1,6 @@
-# CLAUDE.private.md
+# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-**PRIVATE FILE**: This is gitignored and won't be committed to the repository.
 
 ## Project Overview
 
@@ -341,6 +339,29 @@ DATABASES = {
 }
 ```
 
+### Updating Test Database After Migrations
+
+**Important**: The test suite uses `--nomigrations` which creates the test database from model introspection. When you add a new migration, you need to recreate the test database:
+
+```bash
+# Recreate test database with new model fields
+pytest etl/tests --create-db
+
+# Or for specific test file
+pytest etl/tests/test_load_embeddings_integration.py --create-db
+```
+
+**Why this is needed:**
+- `--reuse-db` flag reuses the existing test database for speed
+- `--nomigrations` creates schema from models, not migrations
+- After adding a field to a model, the reused test DB won't have that field
+- `--create-db` drops and recreates the test database with current model structure
+
+**When to use:**
+- After creating new migrations (`python manage.py makemigrations`)
+- When tests fail with "column does not exist" errors
+- After pulling changes that include new migrations
+
 ## Search Features
 
 ### Query Types
@@ -419,7 +440,7 @@ These are the current dependencies between ETL and artsearch app:
 
 - Prefer editing existing files rather than creating new ones.
 - Only create new files when it's necessary for the requested change.
-- Update claude.private.md when there are significant architectural or design changes.
+- Update CLAUDE.md when there are significant architectural or design changes.
 - Don't commit, stage, or push any changes to the repository unless explicitly instructed to do so.
 - **Refactor before testing**: If code is designed in a way that makes it difficult to test (e.g., global instances initialized at module level, tight coupling to external services), refactor it first to make it testable. Prefer simple patterns like:
   - Call functions directly instead of storing global instances

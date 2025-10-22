@@ -271,8 +271,8 @@ def main():
     parser.add_argument(
         "--region",
         type=str,
-        default=config.aws_region_etl,
-        help=f"Linode region (default: {config.aws_region_etl})",
+        default=config.aws_bucket_region,
+        help=f"Linode region (default: {config.aws_bucket_region})",
     )
 
     parser.add_argument(

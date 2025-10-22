@@ -3,6 +3,7 @@ from etl.pipeline.transform.transformers.smk_transformer import SmkTransformer
 from etl.pipeline.transform.transformers.cma_transformer import CmaTransformer
 from etl.pipeline.transform.transformers.met_transformer import MetTransformer
 from etl.pipeline.transform.transformers.rma_transformer import RmaTransformer
+from etl.pipeline.transform.transformers.aic_transformer import AicTransformer
 from etl.pipeline.transform.base_transformer import BaseTransformer
 
 TRANSFORMERS: dict[str, BaseTransformer] = {
@@ -10,6 +11,7 @@ TRANSFORMERS: dict[str, BaseTransformer] = {
     "cma": CmaTransformer(),
     "rma": RmaTransformer(),
     "met": MetTransformer(),
+    "aic": AicTransformer(),
 }
 
 

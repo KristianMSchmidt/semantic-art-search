@@ -21,8 +21,7 @@ class Config(BaseModel):
     debug: bool = False
     clip_model_name: ClipSelection
 
-    aws_region_etl: str
-    aws_region_app: str
+    aws_bucket_region: str
     bucket_name_etl: str
     bucket_name_app: str
     aws_access_key_id: str
@@ -57,8 +56,7 @@ def create_config():
     allowed_hosts = os.getenv("ALLOWED_HOSTS", "").split(",")
 
     # AWS S3 / Linode Object Storage configuration
-    aws_region_etl = os.getenv("AWS_REGION_ETL")
-    aws_region_app = os.getenv("AWS_REGION_APP")
+    aws_bucket_region = os.getenv("AWS_BUCKET_REGION")
     bucket_name_etl = os.getenv("BUCKET_NAME_ETL")
     bucket_name_app = os.getenv("BUCKET_NAME_APP")
     aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
@@ -85,10 +83,8 @@ def create_config():
         raise ValueError("DJANGO_SECRET_KEY is not set")
     if not allowed_hosts:
         raise ValueError("ALLOWED_HOSTS is not set")
-    if not aws_region_etl:
-        raise ValueError("AWS_REGION_ETL is not set")
-    if not aws_region_app:
-        raise ValueError("AWS_REGION_APP is not set")
+    if not aws_bucket_region:
+        raise ValueError("AWS_BUCKET_REGION is not set")
     if not bucket_name_etl:
         raise ValueError("BUCKET_NAME_ETL is not set")
     if not bucket_name_app:
@@ -118,8 +114,7 @@ def create_config():
         allowed_hosts=allowed_hosts,
         debug=debug,
         clip_model_name="ViT-L/14",
-        aws_region_etl=aws_region_etl,
-        aws_region_app=aws_region_app,
+        aws_bucket_region=aws_bucket_region,
         bucket_name_etl=bucket_name_etl,
         bucket_name_app=bucket_name_app,
         aws_access_key_id=aws_access_key_id,

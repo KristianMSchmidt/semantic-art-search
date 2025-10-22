@@ -42,7 +42,9 @@ class MetaDataRaw(models.Model):
 
     def get_museum_page_link_html(self):
         """HTML link for admin list display."""
-        url = get_museum_page_url(self.museum_slug, self.object_number, self.museum_db_id)
+        url = get_museum_page_url(
+            self.museum_slug, self.object_number, self.museum_db_id
+        )
         if url:
             return format_html('<a href="{}" target="_blank">🔗</a>', url)
         return "–"
@@ -51,7 +53,9 @@ class MetaDataRaw(models.Model):
 
     def get_museum_api_link_html(self):
         """HTML API link for admin list display."""
-        url = get_museum_api_url(self.museum_slug, self.object_number, self.museum_db_id)
+        url = get_museum_api_url(
+            self.museum_slug, self.object_number, self.museum_db_id
+        )
         if url:
             return format_html('<a href="{}" target="_blank">🔗</a>', url)
         return "–"
@@ -92,6 +96,7 @@ class TransformedData(models.Model):
     # Processing status fields
     image_loaded = models.BooleanField(default=False)
     image_load_failed = models.BooleanField(default=False)
+    embedding_load_failed = models.BooleanField(default=False)
 
     # Vector storage tracking (for multiple embedding models)
     text_vector_clip = models.BooleanField(default=False)
@@ -147,7 +152,9 @@ class TransformedData(models.Model):
 
     def get_museum_page_link_html(self):
         """HTML link for admin list display."""
-        url = get_museum_page_url(self.museum_slug, self.object_number, self.museum_db_id)
+        url = get_museum_page_url(
+            self.museum_slug, self.object_number, self.museum_db_id
+        )
         if url:
             return format_html('<a href="{}" target="_blank">🔗</a>', url)
         return "–"
@@ -156,7 +163,9 @@ class TransformedData(models.Model):
 
     def get_museum_api_link_html(self):
         """HTML API link for admin list display."""
-        url = get_museum_api_url(self.museum_slug, self.object_number, self.museum_db_id)
+        url = get_museum_api_url(
+            self.museum_slug, self.object_number, self.museum_db_id
+        )
         if url:
             return format_html('<a href="{}" target="_blank">🔗</a>', url)
         return "–"
