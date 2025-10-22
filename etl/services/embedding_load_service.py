@@ -4,6 +4,7 @@ from typing import Literal, Optional, Dict, List
 from django.db import models, transaction
 from django.db.models import Q
 from qdrant_client.http.models import PointStruct, VectorParams, Distance
+import requests
 
 from etl.models import TransformedData
 from etl.services.bucket_service import get_bucket_image_url
@@ -13,6 +14,79 @@ from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.src.config import config
 
 logger = logging.getLogger(__name__)
+
+
+def is_retryable_error(error: Exception) -> bool:
+    """
+    Determine if an error is transient and should be retried.
+
+    Retryable errors (transient):
+    - Timeout errors
+    - Connection errors
+    - 5xx server errors (500, 502, 503, 504)
+    - 429 Too Many Requests
+    - Qdrant connection/timeout errors
+
+    Non-retryable errors (permanent):
+    - 404 Not Found (image missing from bucket)
+    - 403 Forbidden
+    - 410 Gone
+    - Other 4xx errors (bad request, etc.)
+    - Invalid image format/corrupted image
+    - CLIP model errors (e.g., invalid tensor size)
+
+    Args:
+        error: The exception raised during embedding generation
+
+    Returns:
+        True if error should be retried, False otherwise
+    """
+    # Timeout and connection errors - always retry
+    if isinstance(error, (requests.Timeout, requests.ConnectionError)):
+        return True
+
+    # Check for HTTP errors embedded in RuntimeError or ValueError
+    if isinstance(error, (RuntimeError, ValueError)):
+        error_msg = str(error).lower()
+
+        # 5xx errors - retry
+        if any(code in error_msg for code in ["500", "502", "503", "504"]):
+            return True
+
+        # 429 Rate limiting - retry
+        if "429" in error_msg:
+            return True
+
+        # 4xx errors (except 429) - don't retry
+        if any(code in error_msg for code in ["400", "401", "403", "404", "410"]):
+            return False
+
+        # Image/CLIP-specific errors - don't retry
+        if any(
+            phrase in error_msg
+            for phrase in [
+                "invalid image",
+                "corrupted",
+                "cannot identify image",
+                "truncated",
+                "tensor",
+            ]
+        ):
+            return False
+
+        # Qdrant connection errors - retry
+        if any(phrase in error_msg for phrase in ["qdrant", "connection", "timeout"]):
+            return True
+
+        # Other errors - don't retry by default
+        return False
+
+    # PIL/Image errors - don't retry
+    if error.__class__.__name__ in ["UnidentifiedImageError", "OSError", "IOError"]:
+        return False
+
+    # Other errors - don't retry
+    return False
 
 # Active vector types configuration - easy to expand later
 ACTIVE_VECTOR_TYPES = ["image_clip"]
@@ -85,6 +159,34 @@ class EmbeddingLoadService:
         )
         return count
 
+    def reset_embedding_load_failed_field(
+        self, museum_filter: Optional[str] = None
+    ) -> int:
+        """
+        Reset embedding_load_failed field to False for all records.
+        Used to retry previously failed embedding generations.
+
+        Args:
+            museum_filter: Optional museum slug to filter by
+
+        Returns:
+            Number of records updated
+        """
+        query = Q()
+
+        if museum_filter:
+            query &= Q(museum_slug=museum_filter)
+
+        count = TransformedData.objects.filter(query).update(
+            embedding_load_failed=False
+        )
+        logger.info(
+            "Reset %d records' embedding_load_failed field to False (museum_filter=%s)",
+            count,
+            museum_filter,
+        )
+        return count
+
     def _ensure_collection_exists(self):
         """Create Qdrant collection with 4 named vectors if it doesn't exist."""
         try:
@@ -128,11 +230,12 @@ class EmbeddingLoadService:
 
         Returns records where:
         - image_loaded=True (prerequisite - images must be in bucket)
+        - embedding_load_failed=False (skip previously failed records)
         - At least ONE active vector is missing (False)
         - if museum_filter is set, only that museum
         """
-        # Prerequisite: image must be loaded to bucket
-        query = Q(image_loaded=True)
+        # Prerequisite: image must be loaded to bucket and not previously failed
+        query = Q(image_loaded=True, embedding_load_failed=False)
 
         # Only get records where at least one active vector is missing
         vector_query = Q()
@@ -241,85 +344,118 @@ class EmbeddingLoadService:
         self,
         record: TransformedData,
         delay_seconds: float = 0.0,
+        max_retries: int = 3,
     ) -> Literal["success", "error"]:
         """
-        Process a single TransformedData record for embedding generation.
+        Process a single TransformedData record for embedding generation with retry logic.
 
         Args:
             record: The TransformedData record to process
             delay_seconds: Delay in seconds after processing to rate limit
+            max_retries: Maximum number of retry attempts for transient errors
 
         Returns status of the operation.
         """
-        try:
-            logger.info("Processing %s:%s", record.museum_slug, record.object_number)
+        logger.info("Processing %s:%s", record.museum_slug, record.object_number)
 
-            # Determine which active vectors need to be calculated
-            vectors_to_calculate = []
-            for vector_type in ACTIVE_VECTOR_TYPES:
-                field_name = VECTOR_TYPE_TO_FIELD[vector_type]
-                already_calculated = getattr(record, field_name)
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                # Determine which active vectors need to be calculated
+                vectors_to_calculate = []
+                for vector_type in ACTIVE_VECTOR_TYPES:
+                    field_name = VECTOR_TYPE_TO_FIELD[vector_type]
+                    already_calculated = getattr(record, field_name)
 
-                if not already_calculated:
-                    vectors_to_calculate.append(vector_type)
+                    if not already_calculated:
+                        vectors_to_calculate.append(vector_type)
 
-            # If nothing to calculate, skip this record
-            if not vectors_to_calculate:
-                logger.debug(
-                    "Skipping %s:%s - all active vectors already calculated",
+                # If nothing to calculate, skip this record
+                if not vectors_to_calculate:
+                    logger.debug(
+                        "Skipping %s:%s - all active vectors already calculated",
+                        record.museum_slug,
+                        record.object_number,
+                    )
+                    return "success"
+
+                logger.info(
+                    "Calculating vectors for %s:%s: %s",
                     record.museum_slug,
                     record.object_number,
+                    vectors_to_calculate,
                 )
+
+                # Calculate needed vectors
+                calculated_vectors: Dict[str, List[float]] = {}
+                for vector_type in vectors_to_calculate:
+                    calculated_vectors[vector_type] = self._calculate_vector(
+                        vector_type, record
+                    )
+
+                # Create Qdrant point with calculated vectors
+                point = self._create_qdrant_point(record, calculated_vectors)
+
+                # Upload to Qdrant
+                self.qdrant_service.upload_points([point], self.collection_name)
+
+                # Update record status for calculated vector types
+                with transaction.atomic():
+                    update_fields = []
+                    for vector_type in vectors_to_calculate:
+                        field_name = VECTOR_TYPE_TO_FIELD[vector_type]
+                        setattr(record, field_name, True)
+                        update_fields.append(field_name)
+
+                    record.save(update_fields=update_fields)
+
+                logger.info(
+                    "Successfully processed %s:%s", record.museum_slug, record.object_number
+                )
+
+                # Optional delay for controlled processing rate
+                if delay_seconds > 0:
+                    time.sleep(delay_seconds)
+
                 return "success"
 
-            logger.info(
-                "Calculating vectors for %s:%s: %s",
-                record.museum_slug,
-                record.object_number,
-                vectors_to_calculate,
-            )
+            except Exception as e:
+                last_error = e
 
-            # Calculate needed vectors
-            calculated_vectors: Dict[str, List[float]] = {}
-            for vector_type in vectors_to_calculate:
-                calculated_vectors[vector_type] = self._calculate_vector(
-                    vector_type, record
-                )
+                # Check if error is retryable
+                if not is_retryable_error(e):
+                    # Permanent error - don't retry
+                    logger.error(
+                        f"Permanent error processing {record.museum_slug}:{record.object_number}: {e}"
+                    )
+                    break
 
-            # Create Qdrant point with calculated vectors
-            point = self._create_qdrant_point(record, calculated_vectors)
+                # Transient error - retry with exponential backoff
+                if attempt < max_retries - 1:
+                    retry_delay = 2**attempt  # 1s, 2s, 4s
+                    logger.warning(
+                        f"Transient error processing {record.museum_slug}:{record.object_number} "
+                        f"(attempt {attempt + 1}/{max_retries}): {e}. "
+                        f"Retrying in {retry_delay}s..."
+                    )
+                    time.sleep(retry_delay)
+                else:
+                    # All retries exhausted
+                    logger.error(
+                        f"All {max_retries} retries exhausted for {record.museum_slug}:{record.object_number}: {e}"
+                    )
 
-            # Upload to Qdrant
-            self.qdrant_service.upload_points([point], self.collection_name)
+        # If we get here, all attempts failed
+        logger.exception(
+            f"Failed to process {record.museum_slug}:{record.object_number}: {last_error}"
+        )
 
-            # Update record status for calculated vector types
-            with transaction.atomic():
-                update_fields = []
-                for vector_type in vectors_to_calculate:
-                    field_name = VECTOR_TYPE_TO_FIELD[vector_type]
-                    setattr(record, field_name, True)
-                    update_fields.append(field_name)
+        # Mark as failed to prevent infinite retry loops
+        with transaction.atomic():
+            record.embedding_load_failed = True
+            record.save(update_fields=["embedding_load_failed"])
 
-                record.save(update_fields=update_fields)
-
-            logger.info(
-                "Successfully processed %s:%s", record.museum_slug, record.object_number
-            )
-
-            # Optional delay for controlled processing rate
-            if delay_seconds > 0:
-                time.sleep(delay_seconds)
-
-            return "success"
-
-        except Exception as e:
-            logger.exception(
-                "Error processing %s:%s: %s",
-                record.museum_slug,
-                record.object_number,
-                e,
-            )
-            return "error"
+        return "error"
 
     def run_batch_processing(
         self,

@@ -7,7 +7,7 @@ not HOW it does it (implementation details).
 
 import pytest
 import requests
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 from etl.models import MetaDataRaw, TransformedData
 from etl.pipeline.extract.extractors.smk_extractor import (
@@ -165,7 +165,7 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
     # Verify UUID5 is deterministic
     expected_id = generate_uuid5(transformed.museum_slug, transformed.object_number)
     assert point.id == expected_id, (
-        f"Point ID should be UUID5 based on museum+object_number"
+        "Point ID should be UUID5 based on museum+object_number"
     )
 
     # Verify named vectors structure
@@ -251,3 +251,200 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
     )
     our_records = [r for r in records if r.object_number == object_number]
     assert len(our_records) == 1, "After reset, record should need processing again"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_failed_embeddings_are_marked_and_skipped():
+    """
+    Test that permanent errors (invalid image, CLIP errors) fail immediately without retries.
+
+    This test verifies the fix for the infinite loop bug where embedding generation
+    errors would cause the same records to be retried indefinitely.
+
+    Tests:
+    - Permanent errors fail immediately (no retries)
+    - Failed embeddings set embedding_load_failed=True
+    - Failed records are excluded from get_records_needing_processing
+    - reset_embedding_load_failed_field allows retrying failed embeddings
+    """
+
+    # Step 1: Create a test record with image_loaded=True
+    transformed = TransformedData.objects.create(
+        museum_slug="test",
+        object_number="TEST_EMBED_001",
+        museum_db_id="test-embed-id-001",
+        thumbnail_url="https://example.com/test.jpg",
+        searchable_work_types=["painting"],
+        image_loaded=True,  # Prerequisite met
+        image_load_failed=False,
+        embedding_load_failed=False,
+        image_vector_clip=False,
+    )
+
+    # Step 2: Process with mocked CLIP embedder that raises permanent error
+    mock_clip_embedder = Mock()
+    # Simulate corrupted image error (permanent error - should not retry)
+    mock_clip_embedder.generate_thumbnail_embedding.side_effect = ValueError(
+        "Cannot identify image file - corrupted or invalid format"
+    )
+
+    mock_qdrant_service = Mock()
+    mock_qdrant_client = MagicMock()
+    mock_qdrant_client.collection_exists.return_value = True
+    mock_qdrant_service.qdrant_client = mock_qdrant_client
+
+    service = EmbeddingLoadService(
+        collection_name="test_collection",
+        clip_embedder=mock_clip_embedder,
+        qdrant_service=mock_qdrant_service,
+    )
+
+    # Process - should fail immediately without retries
+    status = service.process_single_record(transformed, delay_seconds=0.0)
+    assert status == "error", "Processing should return error status"
+
+    # Verify generate_thumbnail_embedding was called exactly once (no retries)
+    assert mock_clip_embedder.generate_thumbnail_embedding.call_count == 1, (
+        "Permanent errors should fail immediately without retries"
+    )
+
+    # Verify embedding_load_failed was set
+    transformed.refresh_from_db()
+    assert transformed.image_vector_clip is False, "image_vector_clip should still be False"
+    assert transformed.embedding_load_failed is True, (
+        "embedding_load_failed should be True after error"
+    )
+
+    # Step 3: Verify record is excluded from future queries
+    records = service.get_records_needing_processing(
+        batch_size=100, museum_filter="test"
+    )
+    our_records = [r for r in records if r.object_number == "TEST_EMBED_001"]
+
+    assert len(our_records) == 0, (
+        "Failed record should be excluded from get_records_needing_processing"
+    )
+
+    # Step 4: Test reset_embedding_load_failed_field
+    count = service.reset_embedding_load_failed_field(museum_filter="test")
+    assert count >= 1, "Should reset at least our test record"
+
+    transformed.refresh_from_db()
+    assert transformed.embedding_load_failed is False, (
+        "reset_embedding_load_failed_field should set flag to False"
+    )
+
+    # Step 5: Verify record is included again after reset
+    records = service.get_records_needing_processing(
+        batch_size=100, museum_filter="test"
+    )
+    our_records = [r for r in records if r.object_number == "TEST_EMBED_001"]
+    assert len(our_records) == 1, "After reset, failed record should be retryable"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_transient_embedding_errors_are_retried():
+    """
+    Test that transient errors (Qdrant connection, network timeouts) are retried.
+
+    Tests:
+    - Transient errors trigger retries (up to max_retries)
+    - Exponential backoff is used between retries
+    - Success after retry marks image_vector_clip=True
+    - Exhausted retries mark embedding_load_failed=True
+    """
+
+    # Test Case 1: Success on second retry
+    transformed1 = TransformedData.objects.create(
+        museum_slug="test",
+        object_number="TEST_EMBED_002",
+        museum_db_id="test-embed-id-002",
+        thumbnail_url="https://example.com/test2.jpg",
+        searchable_work_types=["painting"],
+        image_loaded=True,
+        image_load_failed=False,
+        embedding_load_failed=False,
+        image_vector_clip=False,
+    )
+
+    # Mock CLIP embedder to succeed after one transient error
+    mock_clip_embedder = Mock()
+    fake_embedding = [0.1] * 768
+
+    # First call raises Qdrant connection error, second succeeds
+    mock_clip_embedder.generate_thumbnail_embedding.side_effect = [
+        RuntimeError("Qdrant connection timeout - please retry"),
+        fake_embedding,  # Success on second attempt
+    ]
+
+    mock_qdrant_service = Mock()
+    mock_qdrant_client = MagicMock()
+    mock_qdrant_client.collection_exists.return_value = True
+    mock_qdrant_service.qdrant_client = mock_qdrant_client
+
+    service = EmbeddingLoadService(
+        collection_name="test_collection",
+        clip_embedder=mock_clip_embedder,
+        qdrant_service=mock_qdrant_service,
+    )
+
+    # Process - should succeed after retry
+    with patch("time.sleep"):  # Mock sleep to speed up test
+        status = service.process_single_record(transformed1, delay_seconds=0.0)
+
+    assert status == "success", "Should succeed after retry"
+    assert mock_clip_embedder.generate_thumbnail_embedding.call_count == 2, (
+        "Should have retried once (2 total calls)"
+    )
+
+    # Verify success state
+    transformed1.refresh_from_db()
+    assert transformed1.image_vector_clip is True, "image_vector_clip should be True"
+    assert transformed1.embedding_load_failed is False, (
+        "embedding_load_failed should be False"
+    )
+
+    # Test Case 2: All retries exhausted
+    transformed2 = TransformedData.objects.create(
+        museum_slug="test",
+        object_number="TEST_EMBED_003",
+        museum_db_id="test-embed-id-003",
+        thumbnail_url="https://example.com/test3.jpg",
+        searchable_work_types=["painting"],
+        image_loaded=True,
+        image_load_failed=False,
+        embedding_load_failed=False,
+        image_vector_clip=False,
+    )
+
+    # Mock CLIP embedder to always fail with transient error
+    mock_clip_embedder2 = Mock()
+    mock_clip_embedder2.generate_thumbnail_embedding.side_effect = RuntimeError(
+        "Qdrant connection timeout - please retry"
+    )
+
+    service2 = EmbeddingLoadService(
+        collection_name="test_collection",
+        clip_embedder=mock_clip_embedder2,
+        qdrant_service=mock_qdrant_service,
+    )
+
+    # Process - should fail after all retries
+    with patch("time.sleep"):  # Mock sleep to speed up test
+        status = service2.process_single_record(
+            transformed2, delay_seconds=0.0, max_retries=3
+        )
+
+    assert status == "error", "Should fail after exhausting retries"
+    assert mock_clip_embedder2.generate_thumbnail_embedding.call_count == 3, (
+        "Should have tried 3 times (max_retries=3)"
+    )
+
+    # Verify failed state
+    transformed2.refresh_from_db()
+    assert transformed2.image_vector_clip is False, "image_vector_clip should be False"
+    assert transformed2.embedding_load_failed is True, (
+        "embedding_load_failed should be True after exhausting retries"
+    )

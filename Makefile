@@ -207,3 +207,7 @@ load-embeddings-aic-force:  ## Force regenerate embeddings for AIC museum
 
 load-embeddings-all-force:  ## Force regenerate embeddings for all museums
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --force --batch-size 100 --delay 0.1 --batch-delay 2
+
+# ETL Load Embeddings - Retry Failed
+load-embeddings-retry-failed:  ## Retry previously failed embeddings for all museums
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --retry-failed --batch-size 50 --delay 0.1 --batch-delay 2
