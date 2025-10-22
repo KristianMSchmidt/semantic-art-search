@@ -1,6 +1,7 @@
 from typing import Optional, Any
 import re
 from etl.pipeline.transform.base_transformer import BaseTransformer
+from etl.pipeline.transform.utils import get_searchable_work_types
 from etl.pipeline.shared.rma_utils import extract_provided_cho, extract_object_number
 
 
@@ -41,12 +42,12 @@ class RmaTransformer(BaseTransformer):
         metadata = raw_json.get("metadata", {})
         rdf = metadata.get("rdf:RDF", {})
 
-        image_url = extract_image_url(rdf)
+        image_url = extract_image_url_from_rdf(rdf)
         if not image_url or not is_valid_image_url(image_url):
             return None
 
         # Adjust thumbnail size for faster loading
-        return adjust_thumbnail_size(image_url)
+        return resize_image_to_thumbnail(image_url)
 
     def extract_work_types(self, raw_json: dict) -> list[str]:
         """Extract work types from RMA RDF data."""
@@ -55,6 +56,13 @@ class RmaTransformer(BaseTransformer):
 
         work_types = extract_worktypes(rdf)
         return work_types or []
+
+    def extract_searchable_work_types(self, raw_json: dict) -> list[str]:
+        """Extract searchable work types using current helper function."""
+        # Default implementation using extracted work type and helper function.
+        # We could make a version that is both museum specific and independent of the extracted work types, if needed.
+        work_types = self.extract_work_types(raw_json)
+        return get_searchable_work_types(work_types)
 
     def extract_title(self, raw_json: dict) -> Optional[str]:
         """Extract title from RMA provided CHO."""
@@ -73,7 +81,9 @@ class RmaTransformer(BaseTransformer):
 
         return extract_artist_names(rdf)
 
-    def extract_production_dates(self, raw_json: dict) -> tuple[Optional[int], Optional[int]]:
+    def extract_production_dates(
+        self, raw_json: dict
+    ) -> tuple[Optional[int], Optional[int]]:
         """Extract production dates from RMA creation date."""
         metadata = raw_json.get("metadata", {})
         rdf = metadata.get("rdf:RDF", {})
@@ -92,25 +102,22 @@ class RmaTransformer(BaseTransformer):
         return None
 
     def extract_image_url(self, raw_json: dict) -> Optional[str]:
-        """Extract full resolution image URL from RMA data."""
+        """Extract original resolution image URL from RMA data."""
         metadata = raw_json.get("metadata", {})
         rdf = metadata.get("rdf:RDF", {})
 
-        image_url = extract_image_url(rdf)
+        image_url = extract_image_url_from_rdf(rdf)
         if image_url and is_valid_image_url(image_url):
             return image_url
         return None
 
 
-
-
 #### RMA helpers and utility functions #####
 
 
-def adjust_thumbnail_size(image_url: str, width=800) -> str:
+def resize_image_to_thumbnail(image_url: str, width=800) -> str:
     """
-    Adjusts IIIF image thumbnail URLs to use optimal width for UI and CLIP embeddings.
-    800px provides crisp retina display (384px × 2) and excellent CLIP quality (3.5× oversampling).
+    Adjusts IIIF image URLs to thumbnail size.
     """
     if image_url.startswith("https://iiif.micr.io/") and "/full/max/" in image_url:
         return image_url.replace("/full/max/", f"/full/{width},/")
@@ -118,7 +125,7 @@ def adjust_thumbnail_size(image_url: str, width=800) -> str:
     return image_url
 
 
-def extract_image_url(rdf_data: dict) -> str | None:
+def extract_image_url_from_rdf(rdf_data: dict) -> str | None:
     # Check if ".jpg" is in str(rdf_data):
     if ".jpg" not in str(rdf_data):
         return None

@@ -5,6 +5,7 @@ from etl.pipeline.extract.extractors.smk_extractor import store_raw_data_smk
 from etl.pipeline.extract.extractors.cma_extractor import store_raw_data_cma
 from etl.pipeline.extract.extractors.met_extractor import store_raw_data_met
 from etl.pipeline.extract.extractors.rma_extractor import store_raw_data_rma
+from etl.pipeline.extract.extractors.aic_extractor import store_raw_data_aic
 
 
 EXTRACTORS = {
@@ -12,6 +13,7 @@ EXTRACTORS = {
     "cma": store_raw_data_cma,
     "met": store_raw_data_met,
     "rma": store_raw_data_rma,
+    "aic": store_raw_data_aic,
 }
 
 

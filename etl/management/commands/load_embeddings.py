@@ -16,13 +16,18 @@ class Command(BaseCommand):
         parser.add_argument(
             "--museum",
             type=str,
-            choices=["smk", "cma", "rma", "met"],
-            help="Filter by specific museum (e.g. smk, cma, rma, met). Default: all museums",
+            choices=["smk", "cma", "rma", "met", "aic"],
+            help="Filter by specific museum (e.g. smk, cma, rma, met, aic). Default: all museums",
         )
         parser.add_argument(
             "--force",
             action="store_true",
             help="Force reload all embeddings regardless of current vector status",
+        )
+        parser.add_argument(
+            "--retry-failed",
+            action="store_true",
+            help="Retry previously failed embeddings by resetting embedding_load_failed flag",
         )
         parser.add_argument(
             "--delay",
@@ -48,6 +53,7 @@ class Command(BaseCommand):
         museum_filter = options["museum"]
         collection_name = options["collection_name"]
         force_reload = options["force"]
+        retry_failed = options["retry_failed"]
         delay_seconds = options["delay"]
         batch_delay_seconds = options["batch_delay"]
 
@@ -55,10 +61,11 @@ class Command(BaseCommand):
             f" for {museum_filter.upper()}" if museum_filter else " for all museums"
         )
         force_text = " (force reload enabled)" if force_reload else ""
+        retry_text = " (retry failed enabled)" if retry_failed else ""
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Starting embedding processing pipeline{museum_text}{force_text} "
+                f"Starting embedding processing pipeline{museum_text}{force_text}{retry_text} "
                 f"(batch_size={batch_size}, collection={collection_name}, "
                 f"delay={delay_seconds}s, batch_delay={batch_delay_seconds}s)..."
             )
@@ -89,6 +96,25 @@ class Command(BaseCommand):
                 self.stdout.write("Resetting vector fields...")
                 reset_count = service.reset_vector_fields(museum_filter)
                 self.stdout.write(self.style.SUCCESS(f"Reset {reset_count} records\n"))
+
+            # If retry failed, reset embedding_load_failed field to False
+            if retry_failed:
+                museum_text = (
+                    f"for {museum_filter.upper()}"
+                    if museum_filter
+                    else "for all museums"
+                )
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"\nRetrying previously failed embeddings {museum_text}..."
+                    )
+                )
+                reset_count = service.reset_embedding_load_failed_field(museum_filter)
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f"Reset embedding_load_failed flag for {reset_count} records\n"
+                    )
+                )
 
             # Run continuous batch processing
             total_stats = {"success": 0, "error": 0, "total": 0}

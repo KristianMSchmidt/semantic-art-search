@@ -2,6 +2,7 @@ from artsearch.src.services.museum_clients.smk_api_client import SMKAPIClient
 from artsearch.src.services.museum_clients.cma_api_client import CMAAPIClient
 from artsearch.src.services.museum_clients.rma_api_client import RMAAPIClient
 from artsearch.src.services.museum_clients.met_api_client import METAPIClient
+from artsearch.src.services.museum_clients.aic_api_client import AICAPIClient
 from artsearch.src.services.museum_clients.base_client import MuseumAPIClient
 
 CLIENTS = {
@@ -9,6 +10,7 @@ CLIENTS = {
     "cma": CMAAPIClient,
     "rma": RMAAPIClient,
     "met": METAPIClient,
+    "aic": AICAPIClient,
 }
 
 

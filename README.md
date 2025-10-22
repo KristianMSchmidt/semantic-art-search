@@ -12,6 +12,7 @@ Currently, the system includes selected artworks from these renowned institution
 - The Cleveland Museum of Art
 - Rijksmuseum Amsterdam
 - The Metropolitan Museum of Art
+- Art Institute of Chicago
 ---
 
 ## 🔎 How It Works
@@ -64,10 +65,10 @@ Not all types of artworks are yet included - focus for now is on visual art like
 This project is made possible by the excellent **open data initiatives** of:
 
 - [Statens Museum for Kunst](https://open.smk.dk)
-- [Cleveland Museum of Art](https://www.clevelandart.org)
-- [Rijksmuseum](https://www.rijksmuseum.nl/en/collection)
-- [The Metropolitan Museum of Art](https://www.metmuseum.org/art/collection)
-
+- [Cleveland Museum of Art](https://www.clevelandart.org/open-access)
+- [Rijksmuseum](https://data.rijksmuseum.nl/)
+- [The Metropolitan Museum of Art](https://www.metmuseum.org/about-the-met/policies-and-documents/open-access)
+- [Art Institute of Chicago](https://www.artic.edu/open-access)
 ---
 
 ## 📬 Get in Touch

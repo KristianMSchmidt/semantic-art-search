@@ -100,6 +100,9 @@ extract-rma: ## Extract raw data from RMA
 extract-met: ## Extract raw data from MET
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract -m met
 
+extract-aic: ## Extract raw data from AIC
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract -m aic
+
 extract-all: ## Extract raw data from ALL museums
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract --all
 
@@ -121,6 +124,9 @@ transform-rma:  ## Transform all records for RMA museum only
 transform-met:  ## Transform all records for MET museum only
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py transform --museum met --batch-size 100
 
+transform-aic:  ## Transform all records for AIC museum only
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py transform --museum aic --batch-size 100
+
 
 # ETL Load Images
 load-images-smk:  ## Load thumbnail images for SMK museum
@@ -134,6 +140,9 @@ load-images-rma:  ## Load thumbnail images for RMA museum
 
 load-images-met:  ## Load thumbnail images for MET museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum met --batch-size 50 --delay 0.2 --batch-delay 5
+
+load-images-aic:  ## Load thumbnail images for AIC museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum aic --batch-size 50 --delay 0.2 --batch-delay 5
 
 load-images-all:  ## Load thumbnail images for all museums
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --batch-size 100 --delay 0.2 --batch-delay 5
@@ -150,6 +159,9 @@ load-images-rma-force:  ## Force reload all thumbnail images for RMA museum
 
 load-images-met-force:  ## Force reload all thumbnail images for MET museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum met --force --batch-size 50 --delay 0.2 --batch-delay 5
+
+load-images-aic-force:  ## Force reload all thumbnail images for AIC museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum aic --force --batch-size 50 --delay 0.2 --batch-delay 5
 
 load-images-all-force:  ## Force reload all thumbnail images for all museums
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --force --batch-size 100 --delay 0.2 --batch-delay 5
@@ -171,6 +183,9 @@ load-embeddings-rma:  ## Generate CLIP embeddings for RMA museum
 load-embeddings-met:  ## Generate CLIP embeddings for MET museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum met --batch-size 50 --delay 0.1 --batch-delay 2
 
+load-embeddings-aic:  ## Generate CLIP embeddings for AIC museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum aic --batch-size 50 --delay 0.1 --batch-delay 2
+
 load-embeddings-all:  ## Generate CLIP embeddings for all museums
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --batch-size 100 --delay 0.1 --batch-delay 2
 
@@ -187,5 +202,12 @@ load-embeddings-rma-force:  ## Force regenerate embeddings for RMA museum
 load-embeddings-met-force:  ## Force regenerate embeddings for MET museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum met --force --batch-size 50 --delay 0.1 --batch-delay 2
 
+load-embeddings-aic-force:  ## Force regenerate embeddings for AIC museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum aic --force --batch-size 50 --delay 0.1 --batch-delay 2
+
 load-embeddings-all-force:  ## Force regenerate embeddings for all museums
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --force --batch-size 100 --delay 0.1 --batch-delay 2
+
+# ETL Load Embeddings - Retry Failed
+load-embeddings-retry-failed:  ## Retry previously failed embeddings for all museums
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --retry-failed --batch-size 50 --delay 0.1 --batch-delay 2

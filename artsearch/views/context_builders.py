@@ -14,7 +14,8 @@ from artsearch.src.services.museum_stats_service import (
 )
 from artsearch.src.services.search_service import handle_search
 from artsearch.src.utils.get_museums import get_museum_slugs
-from artsearch.src.constants import EXAMPLE_QUERIES, SUPPORTED_MUSEUMS, WORK_TYPES_DICT
+from artsearch.src.constants.ui import EXAMPLE_QUERIES
+from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
 
 
 RESULTS_PER_PAGE = 20
@@ -100,19 +101,15 @@ def prepare_work_types_for_dropdown(
     work_types_count: dict[str, int],
 ) -> list[dict[str, Any]]:
     """
-    Prepare work types for the dropdown menu.
+    Prepare (searchable) work types for the dropdown menu.
     """
     work_types_for_dropdown = []
 
-    for work_type, count in work_types_count.items():
-        try:
-            eng_plural = WORK_TYPES_DICT[work_type]["eng_plural"]
-        except KeyError:
-            eng_plural = work_type + "s"  # Fallback to a simple pluralization
-
+    for searchable_work_type, count in work_types_count.items():
+        eng_plural = searchable_work_type + "s"
         work_types_for_dropdown.append(
             {
-                "value": work_type,
+                "value": searchable_work_type,
                 "label": eng_plural,
                 "count": count,
             }
@@ -126,11 +123,15 @@ def prepare_museums_for_dropdown(
 ) -> list[dict[str, Any]]:
     """
     Prepare museums for the dropdown menu.
+    Museums are sorted alphabetically by full_name.
     If museum_counts is provided, include count for each museum.
     """
     museums_for_dropdown = []
 
-    for museum in supported_museums:
+    # Sort museums alphabetically by full_name
+    sorted_museums = sorted(supported_museums, key=lambda m: m["full_name"])
+
+    for museum in sorted_museums:
         museum_slug = museum["slug"]
         museum_item: dict[str, Any] = {
             "value": museum_slug,

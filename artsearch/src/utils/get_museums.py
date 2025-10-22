@@ -1,4 +1,4 @@
-from artsearch.src.constants import SUPPORTED_MUSEUMS
+from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
 
 
 def get_museum_slugs() -> list[str]:

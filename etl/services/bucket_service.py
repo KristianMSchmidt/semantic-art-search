@@ -67,9 +67,9 @@ def get_bucket_config(use_etl_bucket: bool) -> tuple[str, str]:
         Tuple of (bucket_name, region)
     """
     if use_etl_bucket:
-        return config.bucket_name_etl, config.aws_region_etl
+        return config.bucket_name_etl, config.aws_bucket_region
     else:
-        return config.bucket_name_app, config.aws_region_app
+        return config.bucket_name_app, config.aws_bucket_region
 
 
 class BucketService:
