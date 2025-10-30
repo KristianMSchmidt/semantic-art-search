@@ -14,10 +14,10 @@ logging.basicConfig(level=logging.INFO)
 
 
 MuseumWorkTypeCount = dict[str, dict[str, int]]
-MuseumTotalCount = dict[str, int]
+MuseumTotals = dict[str, int]
 MuseumArtworkWorkTypes = dict[
     str, dict[int | str, set[str]]
-]  # museum -> {artwork_id: {work_types}}
+]  # {museum:{artwork_id:{work_types}}}
 
 
 @dataclass
@@ -30,14 +30,14 @@ class MuseumWorkTypeSummary:
 def aggregate_work_type_counts(
     collection_name: str = config.qdrant_collection_name_app,
     work_type_key: str = "searchable_work_types",
-) -> tuple[MuseumWorkTypeCount, MuseumTotalCount, MuseumArtworkWorkTypes]:
+) -> tuple[MuseumWorkTypeCount, MuseumTotals, MuseumArtworkWorkTypes]:
     logging.info("Counting work types")
     start_time = time.time()
     qdrant_service = get_qdrant_service()
 
     # Step 1: Scroll through all points to get museum and work_types
     work_counts: MuseumWorkTypeCount = defaultdict(lambda: defaultdict(int))
-    total_counts: MuseumTotalCount = defaultdict(int)
+    museum_totals: MuseumTotals = defaultdict(int)
     artwork_work_types: MuseumArtworkWorkTypes = defaultdict(dict)
 
     next_page_token = None
@@ -68,7 +68,7 @@ def aggregate_work_type_counts(
 
             for work_type in work_types:
                 work_counts[museum][work_type] += 1
-            total_counts[museum] += 1
+            museum_totals[museum] += 1
 
         if next_page_token is None:
             break
@@ -79,7 +79,7 @@ def aggregate_work_type_counts(
             sorted(museum_count.items(), key=lambda x: x[1], reverse=True)
         )
     logging.info(f"Counted work types in {time.time() - start_time:.2f} seconds")
-    return work_counts, total_counts, artwork_work_types
+    return work_counts, museum_totals, artwork_work_types
 
 
 def aggregate_work_type_count_for_selected_museums(
@@ -90,7 +90,7 @@ def aggregate_work_type_count_for_selected_museums(
     Aggregates work type counts and total work count for the given museums.
     """
     # Fetch per‐museum breakdowns
-    work_counts, total_counts, _ = aggregate_work_type_counts(
+    work_counts, museum_totals, _ = aggregate_work_type_counts(
         work_type_key=work_type_key
     )
 
@@ -100,7 +100,7 @@ def aggregate_work_type_count_for_selected_museums(
     for museum in selected_museums:
         for work_type, count in work_counts[museum].items():
             combined_work_types[work_type] += count
-        combined_total += total_counts[museum]
+        combined_total += museum_totals[museum]
 
     # Ensure all work types are included, even if count is zero
     for work_type in get_work_type_names():
@@ -124,16 +124,16 @@ def aggregate_museum_count_for_selected_work_types(
     Correctly counts unique artworks (avoids double-counting artworks with multiple work types).
     """
     # Fetch per‐museum breakdowns (uses cached data)
-    _, total_counts, artwork_work_types = aggregate_work_type_counts(
+    _, museum_totals, artwork_work_types = aggregate_work_type_counts(
         work_type_key=work_type_key
     )
 
-    # Optimization: if all work types are selected, use total_counts directly
+    # Optimization: if all work types are selected, use museum_totals directly
     all_work_types = get_work_type_names()
     if set(selected_work_types) == set(all_work_types):
-        combined_total = sum(total_counts.values())
+        combined_total = sum(museum_totals.values())
         return MuseumWorkTypeSummary(
-            work_types=dict(total_counts), total=combined_total
+            work_types=dict(museum_totals), total=combined_total
         )
 
     museum_counts: dict[str, int] = defaultdict(int)
@@ -165,7 +165,7 @@ def get_total_works_for_filters(
     Returns the total count of unique artworks that match BOTH museum AND work type filters.
     Uses cached data for fast computation.
     """
-    _, total_counts, artwork_work_types = aggregate_work_type_counts(
+    _, museum_totals, artwork_work_types = aggregate_work_type_counts(
         work_type_key=work_type_key
     )
 
@@ -175,9 +175,9 @@ def get_total_works_for_filters(
     # Optimization: All work types selected (no work type filtering needed)
     if set(selected_work_types) == set(all_work_types):
         if set(selected_museums) == set(all_museums):
-            total_count = sum(total_counts.values())
+            total_count = sum(museum_totals.values())
         else:
-            total_count = sum(total_counts[museum] for museum in selected_museums)
+            total_count = sum(museum_totals[museum] for museum in selected_museums)
         return total_count
 
     # Original logic: iterate through artworks for partial work type selection
