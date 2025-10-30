@@ -106,7 +106,8 @@ title="View on GitHub"
         </div>
 
         <!-- Mobile View: show a few examples and a "More"/"Less" toggle -->
-        <div class="sm:hidden" x-data="{ showAll: false }">
+        <div class="sm:hidden" x-data="{ showAll: false }"
+             @htmx:after-swap.window="if ($event.detail.target.id === 'search-results') showAll = false">
             <!-- collapsed state -->
             <div class="flex flex-wrap gap-2" x-show="!showAll">
                 {% for example in example_queries|slice:":5" %}
