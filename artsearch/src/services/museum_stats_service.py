@@ -4,6 +4,7 @@ from functools import lru_cache
 from collections import defaultdict
 from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.src.config import config
+from artsearch.src.utils.get_museums import get_museum_slugs
 from dataclasses import dataclass
 
 
@@ -164,8 +165,22 @@ def get_total_works_for_filters(
     Returns the total count of unique artworks that match BOTH museum AND work type filters.
     Uses cached data for fast computation.
     """
-    _, _, artwork_work_types = aggregate_work_type_counts(work_type_key=work_type_key)
+    _, total_counts, artwork_work_types = aggregate_work_type_counts(
+        work_type_key=work_type_key
+    )
 
+    all_museums = get_museum_slugs()
+    all_work_types = get_work_type_names()
+
+    # Optimization: All work types selected (no work type filtering needed)
+    if set(selected_work_types) == set(all_work_types):
+        if set(selected_museums) == set(all_museums):
+            total_count = sum(total_counts.values())
+        else:
+            total_count = sum(total_counts[museum] for museum in selected_museums)
+        return total_count
+
+    # Original logic: iterate through artworks for partial work type selection
     total_count = 0
     selected_work_types_set = set(selected_work_types)
 
