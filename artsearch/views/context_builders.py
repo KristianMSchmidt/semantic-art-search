@@ -206,19 +206,6 @@ def make_urls_with_params(
     }
 
 
-def works_matching_filters(params: SearchParams) -> bool:
-    """Check if there are any works matching the selected filters."""
-
-    work_type_count = aggregate_work_type_count_for_selected_museums(
-        params.selected_museums
-    ).work_types
-
-    for work_type in params.selected_work_types:
-        if work_type_count.get(work_type, 0) > 0:
-            return True
-    return False
-
-
 def build_search_context(params: SearchParams) -> dict[str, Any]:
     """
     Build the main context for the search view.
@@ -256,7 +243,7 @@ def build_search_context(params: SearchParams) -> dict[str, Any]:
         **search_results,
         "query": params.query,
         "is_first_batch": offset == 0,
-        "works_matching_filters": works_matching_filters(params),
+        "total_works": total_works,
         "urls": urls,
     }
 

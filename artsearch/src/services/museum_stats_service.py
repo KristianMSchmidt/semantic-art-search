@@ -174,7 +174,6 @@ def get_total_works_for_filters(
         for artwork_work_type_set in artworks.values():
             if artwork_work_type_set.intersection(selected_work_types_set):
                 total_count += 1
-
     return total_count
 
 

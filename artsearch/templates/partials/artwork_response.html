@@ -18,13 +18,13 @@
 </div>
 
 {% if not error_message %}
-    {% if is_first_batch and works_matching_filters %}
+    {% if is_first_batch and total_works > 0 %}
         <p class="text-sm text-gray-500 mb-2">
             {{ text_above_results }}
         </p>
     {% endif %}
 
-    {% if not works_matching_filters %}
+    {% if total_works == 0 %}
         <div class="text-center mt-8">
             <p class="text-lg text-gray-600">
             No artworks match your selected filters.
@@ -46,5 +46,5 @@
             hx-swap="outerHTML"
             class="py-4 text-center text-gray-500"
           ></div>
-      {% endif %} <!-- End of works_matching_filters check -->
+      {% endif %} <!-- End of total_works check -->
 {% endif %} <!-- End of not_error_message check -->
