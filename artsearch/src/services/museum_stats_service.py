@@ -13,8 +13,8 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 
-MuseumWorkTypeCount = dict[str, dict[str, int]]
-MuseumTotals = dict[str, int]
+MuseumWorkTypeCount = dict[str, dict[str, int]]  # {museum:{work_type:count}}
+MuseumTotals = dict[str, int]  # {museum:total_count}
 MuseumArtworkWorkTypes = dict[
     str, dict[int | str, set[str]]
 ]  # {museum:{artwork_id:{work_types}}}
