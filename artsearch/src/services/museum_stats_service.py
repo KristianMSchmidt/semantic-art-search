@@ -1,3 +1,8 @@
+"""
+Service to aggregate art work statistics per museum and work type.
+Remember: An artwork can have multiple work types, so work type counting must avoid double-counting.
+"""
+
 import time
 from typing import Sequence
 from functools import lru_cache
@@ -88,8 +93,10 @@ def aggregate_work_type_count_for_selected_museums(
 ) -> MuseumWorkTypeSummary:
     """
     Aggregates work type counts and total work count for the given museums.
+    Used every time the filter dropdowns are updated. Has to be fast (and is).
     """
-    # Fetch per‐museum breakdowns
+
+    # Fetch per‐museum breakdowns (uses cached data)
     work_counts, museum_totals, _ = aggregate_work_type_counts(
         work_type_key=work_type_key
     )
@@ -114,14 +121,17 @@ def aggregate_work_type_count_for_selected_museums(
     return MuseumWorkTypeSummary(work_types=sorted_work_types, total=combined_total)
 
 
+@lru_cache(maxsize=256)
 def aggregate_museum_count_for_selected_work_types(
-    selected_work_types: Sequence[str],
+    selected_work_types: tuple[str],
     work_type_key: str = "searchable_work_types",
 ) -> MuseumWorkTypeSummary:
     """
     Aggregates museum counts and total work count for the given work types.
     Returns counts per museum based on selected work types.
     Correctly counts unique artworks (avoids double-counting artworks with multiple work types).
+    Used every time the filter dropdowns are updated. Has to be fast (isn't really, but we
+    compensate with caching).
     """
     # Fetch per‐museum breakdowns (uses cached data)
     _, museum_totals, artwork_work_types = aggregate_work_type_counts(
@@ -132,9 +142,7 @@ def aggregate_museum_count_for_selected_work_types(
     all_work_types = get_work_type_names()
     if set(selected_work_types) == set(all_work_types):
         combined_total = sum(museum_totals.values())
-        return MuseumWorkTypeSummary(
-            work_types=dict(museum_totals), total=combined_total
-        )
+        return MuseumWorkTypeSummary(work_types=museum_totals, total=combined_total)
 
     museum_counts: dict[str, int] = defaultdict(int)
     combined_total = 0
@@ -156,14 +164,17 @@ def aggregate_museum_count_for_selected_work_types(
     return MuseumWorkTypeSummary(work_types=sorted_museums, total=combined_total)
 
 
+@lru_cache(maxsize=256)
 def get_total_works_for_filters(
-    selected_museums: Sequence[str],
-    selected_work_types: Sequence[str],
+    selected_museums: tuple[str],
+    selected_work_types: tuple[str],
     work_type_key: str = "searchable_work_types",
 ) -> int:
     """
     Returns the total count of unique artworks that match BOTH museum AND work type filters.
     Uses cached data for fast computation.
+    Used on every search, so must be fast. Isn't really, but we compensate with caching to cache
+    most common combinations (there are many possible combinations, so not optimal).
     """
     _, museum_totals, artwork_work_types = aggregate_work_type_counts(
         work_type_key=work_type_key
@@ -180,7 +191,7 @@ def get_total_works_for_filters(
             total_count = sum(museum_totals[museum] for museum in selected_museums)
         return total_count
 
-    # Original logic: iterate through artworks for partial work type selection
+    # Iterate through artworks for partial work type selection
     total_count = 0
     selected_work_types_set = set(selected_work_types)
 

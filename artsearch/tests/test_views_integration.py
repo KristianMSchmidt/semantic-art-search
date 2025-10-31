@@ -181,7 +181,6 @@ def test_update_work_types_htmx_endpoint(mock_qdrant_service):
     - Endpoint returns 200 OK
     - Correct template rendered (dropdown partial)
     - Filter context present
-    - Total works count present
 
     Potential bugs this could catch:
     - HTMX endpoint routing broken
@@ -195,11 +194,10 @@ def test_update_work_types_htmx_endpoint(mock_qdrant_service):
 
     # Basic response checks
     assert response.status_code == 200
-    assert "partials/dropdown_with_count.html" in [t.name for t in response.templates]
+    assert "partials/dropdown.html" in [t.name for t in response.templates]
 
     # Verify context structure
     assert "filter_ctx" in response.context
-    assert "total_works" in response.context
 
     filter_ctx = response.context["filter_ctx"]
     assert filter_ctx.dropdown_name == "work_types"
@@ -215,7 +213,6 @@ def test_update_museums_htmx_endpoint(mock_qdrant_service):
     - Endpoint returns 200 OK
     - Correct template rendered (dropdown partial)
     - Filter context present
-    - Total works count present
 
     Potential bugs this could catch:
     - HTMX endpoint routing broken
@@ -229,11 +226,10 @@ def test_update_museums_htmx_endpoint(mock_qdrant_service):
 
     # Basic response checks
     assert response.status_code == 200
-    assert "partials/dropdown_with_count.html" in [t.name for t in response.templates]
+    assert "partials/dropdown.html" in [t.name for t in response.templates]
 
     # Verify context structure
     assert "filter_ctx" in response.context
-    assert "total_works" in response.context
 
     filter_ctx = response.context["filter_ctx"]
     assert filter_ctx.dropdown_name == "museums"
