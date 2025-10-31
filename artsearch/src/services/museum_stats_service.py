@@ -9,7 +9,6 @@ from functools import lru_cache
 from collections import defaultdict
 from artsearch.src.services.qdrant_service import get_qdrant_service
 from artsearch.src.config import config
-from artsearch.src.utils.get_museums import get_museum_slugs
 from dataclasses import dataclass
 
 
@@ -31,12 +30,12 @@ class MuseumWorkTypeSummary:
     total: int
 
 
-@lru_cache(maxsize=1)
+@lru_cache(maxsize=2)
 def aggregate_work_type_counts(
+    work_type_key: str,
     collection_name: str = config.qdrant_collection_name_app,
-    work_type_key: str = "searchable_work_types",
 ) -> tuple[MuseumWorkTypeCount, MuseumTotals, MuseumArtworkWorkTypes]:
-    logging.info("Counting work types")
+    # NB: We keep work_type_key as a required parameter to simplify caching.
     start_time = time.time()
     qdrant_service = get_qdrant_service()
 
@@ -83,7 +82,6 @@ def aggregate_work_type_counts(
         work_counts[museum] = dict(
             sorted(museum_count.items(), key=lambda x: x[1], reverse=True)
         )
-    logging.info(f"Counted work types in {time.time() - start_time:.2f} seconds")
     return work_counts, museum_totals, artwork_work_types
 
 
@@ -124,7 +122,6 @@ def aggregate_work_type_count_for_selected_museums(
 @lru_cache(maxsize=256)
 def aggregate_museum_count_for_selected_work_types(
     selected_work_types: tuple[str],
-    work_type_key: str = "searchable_work_types",
 ) -> MuseumWorkTypeSummary:
     """
     Aggregates museum counts and total work count for the given work types.
@@ -135,7 +132,7 @@ def aggregate_museum_count_for_selected_work_types(
     """
     # Fetch per‐museum breakdowns (uses cached data)
     _, museum_totals, artwork_work_types = aggregate_work_type_counts(
-        work_type_key=work_type_key
+        work_type_key="searchable_work_types"
     )
 
     # Optimization: if all work types are selected, use museum_totals directly
@@ -164,43 +161,20 @@ def aggregate_museum_count_for_selected_work_types(
     return MuseumWorkTypeSummary(work_types=sorted_museums, total=combined_total)
 
 
-@lru_cache(maxsize=256)
 def get_total_works_for_filters(
-    selected_museums: tuple[str],
-    selected_work_types: tuple[str],
-    work_type_key: str = "searchable_work_types",
+    selected_museums: Sequence[str], selected_work_types: Sequence[str]
 ) -> int:
     """
     Returns the total count of unique artworks that match BOTH museum AND work type filters.
-    Uses cached data for fast computation.
-    Used on every search, so must be fast. Isn't really, but we compensate with caching to cache
-    most common combinations (there are many possible combinations, so not optimal).
+    Used on every search, so must be fast.
     """
-    _, museum_totals, artwork_work_types = aggregate_work_type_counts(
-        work_type_key=work_type_key
+    museum_work_type_summary = aggregate_museum_count_for_selected_work_types(
+        selected_work_types=tuple(selected_work_types),
     )
-
-    all_museums = get_museum_slugs()
-    all_work_types = get_work_type_names()
-
-    # Optimization: All work types selected (no work type filtering needed)
-    if set(selected_work_types) == set(all_work_types):
-        if set(selected_museums) == set(all_museums):
-            total_count = sum(museum_totals.values())
-        else:
-            total_count = sum(museum_totals[museum] for museum in selected_museums)
-        return total_count
-
-    # Iterate through artworks for partial work type selection
-    total_count = 0
-    selected_work_types_set = set(selected_work_types)
-
-    for museum in selected_museums:
-        artworks = artwork_work_types.get(museum, {})
-        for artwork_work_type_set in artworks.values():
-            if artwork_work_type_set.intersection(selected_work_types_set):
-                total_count += 1
-    return total_count
+    return sum(
+        museum_work_type_summary.work_types.get(museum, 0)
+        for museum in selected_museums
+    )
 
 
 @lru_cache(maxsize=1)
@@ -208,7 +182,9 @@ def get_work_type_names() -> list[str]:
     """
     Returns all work types across all museums.
     """
-    work_counts, _, _ = aggregate_work_type_counts()
+    work_counts, _, _ = aggregate_work_type_counts(
+        work_type_key="searchable_work_types"
+    )
     all_work_types = set()
     for museum_work_types in work_counts.values():
         all_work_types.update(museum_work_types.keys())

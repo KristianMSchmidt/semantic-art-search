@@ -219,10 +219,9 @@ def build_search_context(params: SearchParams) -> dict[str, Any]:
     )
 
     total_works = get_total_works_for_filters(
-        tuple(params.selected_museums),
-        tuple(params.selected_work_types),
+        params.selected_museums,
+        params.selected_work_types,
     )
-
     search_results = handle_search(
         query=params.query,
         offset=offset,
