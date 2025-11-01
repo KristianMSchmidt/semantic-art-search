@@ -247,56 +247,68 @@ def build_search_context(params: SearchParams) -> dict[str, Any]:
     }
 
 
-def build_filter_contexts(params: SearchParams) -> dict[str, FilterContext]:
+def build_work_type_filter_context(params: SearchParams) -> FilterContext:
     """
-    Build the template context for search and dropdown templates
-    The 'initial labels' are only used for the search template, the rest is used for both.
+    Build the work type filter context.
     """
-    museum_names = get_museum_slugs()
     work_type_names = get_work_type_names()
-
     selected_museums = params.selected_museums
     selected_work_types = params.selected_work_types
 
     work_type_summary = aggregate_work_type_count_for_selected_museums(selected_museums)
-    work_type_total = work_type_summary.total
+    prepared_work_types = prepare_work_types_for_dropdown(work_type_summary.work_types)
+    initial_work_types_label = prepare_initial_label(
+        selected_work_types, work_type_names, "work_types"
+    )
+
+    return FilterContext(
+        dropdown_name="work_types",
+        initial_button_label=initial_work_types_label,
+        dropdown_items=prepared_work_types,
+        selected_items=selected_work_types,
+        total_work_count=work_type_summary.total,
+        all_items_json=json.dumps(work_type_names),
+        selected_items_json=json.dumps(selected_work_types),
+        label_name="Work Type",
+    )
+
+
+def build_museum_filter_context(params: SearchParams) -> FilterContext:
+    """
+    Build only the museum filter context.
+    Optimized for HTMX endpoint that updates museums based on selected work types.
+    """
+    museum_names = get_museum_slugs()
+    selected_museums = params.selected_museums
+    selected_work_types = params.selected_work_types
 
     museum_summary = aggregate_museum_count_for_selected_work_types(
         tuple(selected_work_types)
     )
-    museum_total = museum_summary.total
-
-    prepared_work_types = prepare_work_types_for_dropdown(work_type_summary.work_types)
     prepared_museums = prepare_museums_for_dropdown(museum_summary.work_types)
-
-    initial_work_types_label = prepare_initial_label(
-        selected_work_types, work_type_names, "work_types"
-    )
     initial_museums_label = prepare_initial_label(
         selected_museums, museum_names, "museums"
     )
 
+    return FilterContext(
+        dropdown_name="museums",
+        initial_button_label=initial_museums_label,
+        dropdown_items=prepared_museums,
+        selected_items=selected_museums,
+        total_work_count=museum_summary.total,
+        all_items_json=json.dumps(museum_names),
+        selected_items_json=json.dumps(selected_museums),
+        label_name="Museum",
+    )
+
+
+def build_filter_contexts(params: SearchParams) -> dict[str, FilterContext]:
+    """
+    Build the template context for search and dropdown templates.
+    """
     return {
-        "work_type_filter_context": FilterContext(
-            dropdown_name="work_types",
-            initial_button_label=initial_work_types_label,
-            dropdown_items=prepared_work_types,
-            selected_items=selected_work_types,
-            total_work_count=work_type_total,
-            all_items_json=json.dumps(work_type_names),
-            selected_items_json=json.dumps(selected_work_types),
-            label_name="Work Type",
-        ),
-        "museum_filter_context": FilterContext(
-            dropdown_name="museums",
-            initial_button_label=initial_museums_label,
-            dropdown_items=prepared_museums,
-            selected_items=selected_museums,
-            total_work_count=museum_total,
-            all_items_json=json.dumps(museum_names),
-            selected_items_json=json.dumps(selected_museums),
-            label_name="Museum",
-        ),
+        "work_type_filter_context": build_work_type_filter_context(params),
+        "museum_filter_context": build_museum_filter_context(params),
     }
 
 
