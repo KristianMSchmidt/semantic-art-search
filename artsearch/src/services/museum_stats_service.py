@@ -3,7 +3,6 @@ Service to aggregate art work statistics per museum and work type.
 Remember: An artwork can have multiple work types, so work type counting must avoid double-counting.
 """
 
-import time
 from typing import Sequence
 from functools import lru_cache
 from collections import defaultdict
@@ -36,7 +35,6 @@ def aggregate_work_type_counts(
     collection_name: str = config.qdrant_collection_name_app,
 ) -> tuple[MuseumWorkTypeCount, MuseumTotals, MuseumArtworkWorkTypes]:
     # NB: We keep work_type_key as a required parameter to simplify caching.
-    start_time = time.time()
     qdrant_service = get_qdrant_service()
 
     # Step 1: Scroll through all points to get museum and work_types
