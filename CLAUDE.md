@@ -65,19 +65,58 @@ This principle drives the duplicate detection logic in MET and RMA extractors. W
 - Django: `DJANGO_SECRET_KEY`, `ALLOWED_HOSTS`, `DEBUG`
 
 ### Docker Deployment
-- **Development**: `docker-compose.dev.yml` - single container with hot reload
-- **Production**: `docker-compose.prod.yml` - includes nginx reverse proxy
-- Production commands use `make production_*` prefix
+- **Development**: `docker-compose.dev.yml` - includes local PostgreSQL database and web container
+- **Production**: `docker-compose.prod.yml` - web container only (uses cloud PostgreSQL), includes nginx reverse proxy
+- Production commands use `make prod_*` prefix
+
+### Makefile Organization
+
+The project uses a split Makefile structure for better organization:
+
+**Main Makefile:**
+- Web/app commands (development and production)
+- Testing commands
+- Utility commands
+
+**Makefile.etl:**
+- All ETL pipeline commands (extract, transform, load)
+- Automatically included by main Makefile via `include Makefile.etl`
+
+**Command Naming Convention:**
+- **Development commands**: `make <command>` (e.g., `make extract-smk`, `make build`)
+- **Production commands**: `make prod_<command>` (e.g., `make prod_extract-smk`, `make prod_start`)
+- **[PROD] prefix**: Added to help text for all production commands
+
+**Environment File Management:**
+- **Local development**: Only `.env.dev` should exist (connects to local Docker PostgreSQL)
+- **Production server**: Only `.env.prod` should exist (connects to cloud PostgreSQL)
+- Both files are gitignored - never commit environment files
+
+**Database Cleanup:**
+- `make db-stop`: Stops and removes local PostgreSQL container (useful on server if accidentally started)
 
 ### Essential Commands
 
 **All development operations use the project Makefile** - run `make help` to see available commands.
 
 ```bash
-make build      # Build development environment
-make develop    # Start development server
-make test       # Run all tests
-make shell      # Open container shell
+make build          # Build development environment
+make develop        # Start development server
+make test           # Run all tests
+make shell          # Open container shell
+
+# ETL commands (local development)
+make extract-smk    # Extract data from SMK museum
+make transform      # Transform all museum data
+make load-images    # Load images to S3
+
+# Production ETL commands (on server)
+make prod_extract-smk   # Extract data using production database
+make prod_transform     # Transform using production database
+make prod_load-images   # Load images using production database
+
+# Database cleanup (on server)
+make db-stop        # Stop/remove accidentally started local db container
 ```
 
 ## ETL Pipeline Architecture

@@ -1,0 +1,275 @@
+## ----------------------------------------------------------------------
+## ETL Pipeline Commands
+## Note: ETL commands use 'docker compose run --rm' to create one-time containers
+## ----------------------------------------------------------------------
+
+# ---------- ETL Maintenance ---------- #
+
+update-payloads: ## Update Qdrant collection payload (ad-hoc ETL maintenance)
+	docker compose -f docker-compose.dev.yml exec web python -m etl.scripts.update_payload
+
+# ---------- ETL Extract ---------- #
+
+extract-smk: ## Extract raw data from SMK
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract -m smk
+
+extract-cma: ## Extract raw data from CMA
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract -m cma
+
+extract-rma: ## Extract raw data from RMA
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract -m rma
+
+extract-met: ## Extract raw data from MET
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract -m met
+
+extract-aic: ## Extract raw data from AIC
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract -m aic
+
+extract-all: ## Extract raw data from ALL museums
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract --all
+
+extract-met-force: ## Force refetch raw data from MET (ignores existing data)
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract -m met --force-refetch
+
+# ---------- ETL Extract [PROD] ---------- #
+
+prod_extract-smk: ## [PROD] Extract raw data from SMK
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py extract -m smk
+
+prod_extract-cma: ## [PROD] Extract raw data from CMA
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py extract -m cma
+
+prod_extract-rma: ## [PROD] Extract raw data from RMA
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py extract -m rma
+
+prod_extract-met: ## [PROD] Extract raw data from MET
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py extract -m met
+
+prod_extract-aic: ## [PROD] Extract raw data from AIC
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py extract -m aic
+
+prod_extract-all: ## [PROD] Extract raw data from ALL museums
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py extract --all
+
+prod_extract-met-force: ## [PROD] Force refetch raw data from MET (ignores existing data)
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py extract -m met --force-refetch
+
+# ---------- ETL Transform ---------- #
+
+transform:  ## Transform all records for all museums
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py transform --batch-size 100
+
+transform-smk:  ## Transform all records for SMK museum only
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py transform --museum smk --batch-size 100
+
+transform-cma:  ## Transform all records for CMA museum only
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py transform --museum cma --batch-size 100
+
+transform-rma:  ## Transform all records for RMA museum only
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py transform --museum rma --batch-size 100
+
+transform-met:  ## Transform all records for MET museum only
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py transform --museum met --batch-size 100
+
+transform-aic:  ## Transform all records for AIC museum only
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py transform --museum aic --batch-size 100
+
+# ---------- ETL Transform [PROD] ---------- #
+
+prod_transform:  ## [PROD] Transform all records for all museums
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py transform --batch-size 100
+
+prod_transform-smk:  ## [PROD] Transform all records for SMK museum only
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py transform --museum smk --batch-size 100
+
+prod_transform-cma:  ## [PROD] Transform all records for CMA museum only
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py transform --museum cma --batch-size 100
+
+prod_transform-rma:  ## [PROD] Transform all records for RMA museum only
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py transform --museum rma --batch-size 100
+
+prod_transform-met:  ## [PROD] Transform all records for MET museum only
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py transform --museum met --batch-size 100
+
+prod_transform-aic:  ## [PROD] Transform all records for AIC museum only
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py transform --museum aic --batch-size 100
+
+# ---------- ETL Load Images ---------- #
+
+load-images-smk:  ## Load thumbnail images for SMK museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum smk --batch-size 50 --delay 0.2 --batch-delay 5
+
+load-images-cma:  ## Load thumbnail images for CMA museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum cma --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-images-rma:  ## Load thumbnail images for RMA museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum rma --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-images-met:  ## Load thumbnail images for MET museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum met --batch-size 50 --delay 0.2 --batch-delay 5
+
+load-images-aic:  ## Load thumbnail images for AIC museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum aic --batch-size 50 --delay 0.2 --batch-delay 5
+
+load-images-all:  ## Load thumbnail images for all museums
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --batch-size 100 --delay 0.2 --batch-delay 5
+
+# ---------- ETL Load Images - Force Reload ---------- #
+
+load-images-smk-force:  ## Force reload all thumbnail images for SMK museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum smk --force --batch-size 50 --delay 0.2 --batch-delay 5
+
+load-images-cma-force:  ## Force reload all thumbnail images for CMA museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum cma --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-images-rma-force:  ## Force reload all thumbnail images for RMA museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum rma --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-images-met-force:  ## Force reload all thumbnail images for MET museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum met --force --batch-size 50 --delay 0.2 --batch-delay 5
+
+load-images-aic-force:  ## Force reload all thumbnail images for AIC museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum aic --force --batch-size 50 --delay 0.2 --batch-delay 5
+
+load-images-all-force:  ## Force reload all thumbnail images for all museums
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --force --batch-size 100 --delay 0.2 --batch-delay 5
+
+# ---------- ETL Load Images - Retry Failed ---------- #
+
+load-images-retry-failed:  ## Retry previously failed images for specified museum (use --museum flag)
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --retry-failed --batch-size 50 --delay 0.2 --batch-delay 5
+
+# ---------- ETL Load Images [PROD] ---------- #
+
+prod_load-images-smk:  ## [PROD] Load thumbnail images for SMK museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --museum smk --batch-size 50 --delay 0.2 --batch-delay 5
+
+prod_load-images-cma:  ## [PROD] Load thumbnail images for CMA museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --museum cma --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-images-rma:  ## [PROD] Load thumbnail images for RMA museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --museum rma --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-images-met:  ## [PROD] Load thumbnail images for MET museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --museum met --batch-size 50 --delay 0.2 --batch-delay 5
+
+prod_load-images-aic:  ## [PROD] Load thumbnail images for AIC museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --museum aic --batch-size 50 --delay 0.2 --batch-delay 5
+
+prod_load-images-all:  ## [PROD] Load thumbnail images for all museums
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --batch-size 100 --delay 0.2 --batch-delay 5
+
+# ---------- ETL Load Images - Force Reload [PROD] ---------- #
+
+prod_load-images-smk-force:  ## [PROD] Force reload all thumbnail images for SMK museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --museum smk --force --batch-size 50 --delay 0.2 --batch-delay 5
+
+prod_load-images-cma-force:  ## [PROD] Force reload all thumbnail images for CMA museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --museum cma --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-images-rma-force:  ## [PROD] Force reload all thumbnail images for RMA museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --museum rma --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-images-met-force:  ## [PROD] Force reload all thumbnail images for MET museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --museum met --force --batch-size 50 --delay 0.2 --batch-delay 5
+
+prod_load-images-aic-force:  ## [PROD] Force reload all thumbnail images for AIC museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --museum aic --force --batch-size 50 --delay 0.2 --batch-delay 5
+
+prod_load-images-all-force:  ## [PROD] Force reload all thumbnail images for all museums
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --force --batch-size 100 --delay 0.2 --batch-delay 5
+
+# ---------- ETL Load Images - Retry Failed [PROD] ---------- #
+
+prod_load-images-retry-failed:  ## [PROD] Retry previously failed images for specified museum (use --museum flag)
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --retry-failed --batch-size 50 --delay 0.2 --batch-delay 5
+
+# ---------- ETL Load Embeddings ---------- #
+
+load-embeddings-smk:  ## Generate CLIP embeddings for SMK museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum smk --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-cma:  ## Generate CLIP embeddings for CMA museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum cma --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-rma:  ## Generate CLIP embeddings for RMA museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum rma --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-met:  ## Generate CLIP embeddings for MET museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum met --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-aic:  ## Generate CLIP embeddings for AIC museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum aic --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-all:  ## Generate CLIP embeddings for all museums
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --batch-size 100 --delay 0.1 --batch-delay 2
+
+# ---------- ETL Load Embeddings - Force Reload ---------- #
+
+load-embeddings-smk-force:  ## Force regenerate embeddings for SMK museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum smk --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-cma-force:  ## Force regenerate embeddings for CMA museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum cma --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-rma-force:  ## Force regenerate embeddings for RMA museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum rma --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-met-force:  ## Force regenerate embeddings for MET museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum met --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-aic-force:  ## Force regenerate embeddings for AIC museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum aic --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-all-force:  ## Force regenerate embeddings for all museums
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --force --batch-size 100 --delay 0.1 --batch-delay 2
+
+# ---------- ETL Load Embeddings - Retry Failed ---------- #
+
+load-embeddings-retry-failed:  ## Retry previously failed embeddings for all museums
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --retry-failed --batch-size 50 --delay 0.1 --batch-delay 2
+
+# ---------- ETL Load Embeddings [PROD] ---------- #
+
+prod_load-embeddings-smk:  ## [PROD] Generate CLIP embeddings for SMK museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum smk --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-cma:  ## [PROD] Generate CLIP embeddings for CMA museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum cma --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-rma:  ## [PROD] Generate CLIP embeddings for RMA museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum rma --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-met:  ## [PROD] Generate CLIP embeddings for MET museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum met --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-aic:  ## [PROD] Generate CLIP embeddings for AIC museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum aic --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-all:  ## [PROD] Generate CLIP embeddings for all museums
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --batch-size 100 --delay 0.1 --batch-delay 2
+
+# ---------- ETL Load Embeddings - Force Reload [PROD] ---------- #
+
+prod_load-embeddings-smk-force:  ## [PROD] Force regenerate embeddings for SMK museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum smk --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-cma-force:  ## [PROD] Force regenerate embeddings for CMA museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum cma --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-rma-force:  ## [PROD] Force regenerate embeddings for RMA museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum rma --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-met-force:  ## [PROD] Force regenerate embeddings for MET museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum met --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-aic-force:  ## [PROD] Force regenerate embeddings for AIC museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum aic --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-all-force:  ## [PROD] Force regenerate embeddings for all museums
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --force --batch-size 100 --delay 0.1 --batch-delay 2
+
+# ---------- ETL Load Embeddings - Retry Failed [PROD] ---------- #
+
+prod_load-embeddings-retry-failed:  ## [PROD] Retry previously failed embeddings for all museums
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --retry-failed --batch-size 50 --delay 0.1 --batch-delay 2
