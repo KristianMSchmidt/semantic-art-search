@@ -15,6 +15,11 @@
     "files.trimTrailingWhitespace": true,
     "files.insertFinalNewline": true,
 
+    // ✅ File associations
+    "files.associations": {
+        "Makefile.etl": "makefile"
+    },
+
     // ✅ Ensure Pylance is active
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.autoImportCompletions": false,
