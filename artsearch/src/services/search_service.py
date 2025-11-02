@@ -92,7 +92,7 @@ def handle_search(
     """
     qdrant_service = get_qdrant_service()
 
-    text_above_results = ""
+    header_text = None
     results = []
     error_message = None
     error_type = None
@@ -100,10 +100,10 @@ def handle_search(
     if query is None or query == "":
         if query is None:
             # Initial page load
-            text_above_results = "A glimpse into the archive"
+            header_text = "A glimpse into the archive"
         else:
             # Search with no query (currently disabled by FE)
-            text_above_results = "Works matching your filters"
+            header_text = "Works matching your filters"
         try:
             results = qdrant_service.get_random_sample(
                 limit=limit,
@@ -131,8 +131,11 @@ def handle_search(
                 results = qdrant_service.search_similar_images(search_arguments)
             else:
                 results = qdrant_service.search_text(search_arguments)
-            works_text = f"({total_works} works)" if total_works is not None else ""
-            text_above_results = f"Search results {works_text}".strip()
+            assert total_works is not None
+            works_text = f"({total_works} works)"
+            header_text = (
+                f"Search results {works_text}".strip() if total_works > 0 else None
+            )
         except QueryParsingError as e:
             error_message = str(e)
             error_type = "warning"
@@ -143,7 +146,7 @@ def handle_search(
 
     return {
         "results": results,
-        "text_above_results": text_above_results,
+        "header_text": header_text,
         "error_message": error_message,
         "error_type": error_type,
     }

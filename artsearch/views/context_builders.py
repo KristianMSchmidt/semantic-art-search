@@ -218,10 +218,13 @@ def build_search_context(params: SearchParams) -> dict[str, Any]:
         get_work_type_names(), params.selected_work_types
     )
 
-    total_works = get_total_works_for_filters(
-        params.selected_museums,
-        params.selected_work_types,
-    )
+    if params.query is None:
+        total_works = None
+    else:
+        total_works = get_total_works_for_filters(
+            params.selected_museums,
+            params.selected_work_types,
+        )
     search_results = handle_search(
         query=params.query,
         offset=offset,

@@ -18,9 +18,9 @@
 </div>
 
 {% if not error_message %}
-    {% if is_first_batch and total_works > 0 %}
+    {% if is_first_batch and header_text %}
         <p class="text-sm text-gray-500 mb-2">
-            {{ text_above_results }}
+            {{ header_text }}
         </p>
     {% endif %}
 

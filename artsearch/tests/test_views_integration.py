@@ -135,40 +135,78 @@ def test_get_artworks_view_with_empty_query(mock_qdrant_service):
 
     # Verify context has expected structure
     assert "results" in response.context
-    assert "text_above_results" in response.context
-    assert response.context["text_above_results"] == "A glimpse into the archive"
+    assert "header_text" in response.context
+    assert response.context["header_text"] == "A glimpse into the archive"
     assert response.context["results"] == []  # Mock returns empty list
 
 
 @pytest.mark.integration
 @pytest.mark.django_db
-def test_get_artworks_view_with_text_query(mock_qdrant_service):
+def test_get_artworks_view_with_text_query_and_results(mock_qdrant_service):
     """
-    Test that /artworks/?query=landscape performs text search.
+    Test search with query and results (total_works > 0).
 
     This test verifies:
-    - Endpoint returns 200 OK
+    - Header text shows "Search results (X works)" when there are results
     - Correct template rendered
-    - "Search results" text present
     - Text search is performed
 
     Potential bugs this could catch:
-    - Query parameter parsing broken
-    - Search routing broken
-    - Text search logic broken
+    - Header text not shown when it should be
+    - Incorrect header text format
+    - total_works not correctly displayed
     """
     client = Client()
     url = reverse("get-artworks") + "?query=landscape"
 
-    response = client.get(url)
+    # Mock that there are 42 total works matching the filters
+    with patch(
+        "artsearch.views.context_builders.get_total_works_for_filters",
+        return_value=42,
+    ):
+        response = client.get(url)
 
     # Basic response checks
     assert response.status_code == 200
     assert "partials/artwork_response.html" in [t.name for t in response.templates]
 
-    # Verify search was triggered
-    assert "text_above_results" in response.context
-    assert "Search results" in response.context["text_above_results"]
+    # Verify header text is set correctly when there are results
+    assert "header_text" in response.context
+    assert response.context["header_text"] == "Search results (42 works)"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_get_artworks_view_with_text_query_no_results(mock_qdrant_service):
+    """
+    Test search with query but no results (total_works = 0).
+
+    This test verifies:
+    - Header text is None when total_works = 0
+    - Template still renders correctly
+    - Search is performed but yields no results
+
+    Potential bugs this could catch:
+    - Header text shown when it shouldn't be (total_works = 0)
+    - Template breaks when header_text is None
+    """
+    client = Client()
+    url = reverse("get-artworks") + "?query=nonexistent"
+
+    # Mock that there are 0 total works matching the filters
+    with patch(
+        "artsearch.views.context_builders.get_total_works_for_filters",
+        return_value=0,
+    ):
+        response = client.get(url)
+
+    # Basic response checks
+    assert response.status_code == 200
+    assert "partials/artwork_response.html" in [t.name for t in response.templates]
+
+    # Verify header text is None when there are no results
+    assert "header_text" in response.context
+    assert response.context["header_text"] is None
 
 
 @pytest.mark.integration
