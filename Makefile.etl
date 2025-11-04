@@ -273,3 +273,19 @@ prod_load-embeddings-all-force:  ## [PROD] Force regenerate embeddings for all m
 
 prod_load-embeddings-retry-failed:  ## [PROD] Retry previously failed embeddings for all museums
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --retry-failed --batch-size 50 --delay 0.1 --batch-delay 2
+
+# ---------- ETL Load Artwork Stats ---------- #
+
+load-artwork-stats:  ## [DEV] Load ArtworkStats table from Qdrant collection
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_artwork_stats
+
+load-artwork-stats-drop:  ## [DEV] Load ArtworkStats table (drop existing records first)
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_artwork_stats --drop-existing
+
+# ---------- ETL Load Artwork Stats [PROD] ---------- #
+
+prod_load-artwork-stats:  ## [PROD] Load ArtworkStats table from Qdrant collection
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_artwork_stats
+
+prod_load-artwork-stats-drop:  ## [PROD] Load ArtworkStats table (drop existing records first)
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_artwork_stats --drop-existing

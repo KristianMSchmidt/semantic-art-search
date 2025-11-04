@@ -4,6 +4,8 @@
 ## Used for both development and production. See targets below.
 ## ----------------------------------------------------------------------
 
+.DEFAULT_GOAL := help
+
 include Makefile.etl
 
 help:   # Show this help.

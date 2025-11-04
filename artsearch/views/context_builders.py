@@ -222,8 +222,8 @@ def build_search_context(params: SearchParams) -> dict[str, Any]:
         total_works = None
     else:
         total_works = get_total_works_for_filters(
-            params.selected_museums,
-            params.selected_work_types,
+            tuple(params.selected_museums),
+            tuple(params.selected_work_types),
         )
     search_results = handle_search(
         query=params.query,
@@ -258,7 +258,7 @@ def build_work_type_filter_context(params: SearchParams) -> FilterContext:
     selected_museums = params.selected_museums
     selected_work_types = params.selected_work_types
 
-    work_type_summary = aggregate_work_type_count_for_selected_museums(selected_museums)
+    work_type_summary = aggregate_work_type_count_for_selected_museums(tuple(selected_museums))
     prepared_work_types = prepare_work_types_for_dropdown(work_type_summary.work_types)
     initial_work_types_label = prepare_initial_label(
         selected_work_types, work_type_names, "work_types"

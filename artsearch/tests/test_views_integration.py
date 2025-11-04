@@ -21,25 +21,16 @@ def mock_qdrant_service():
     """Mock Qdrant service for all tests."""
     mock_service = MagicMock()
 
-    # Mock methods used by museum_stats_service
-    mock_service.fetch_points.return_value = ([], None)
-
     # Mock methods used by search_service
     mock_service.get_random_sample.return_value = []
     mock_service.search_text.return_value = []
     mock_service.search_similar_images.return_value = []
     mock_service.get_items_by_object_number.return_value = []
 
-    # Patch get_qdrant_service in BOTH modules where it's called
-    with (
-        patch(
-            "artsearch.src.services.qdrant_service.get_qdrant_service",
-            return_value=mock_service,
-        ),
-        patch(
-            "artsearch.src.services.museum_stats_service.get_qdrant_service",
-            return_value=mock_service,
-        ),
+    # Patch get_qdrant_service (only used by search_service now, not museum_stats_service)
+    with patch(
+        "artsearch.src.services.qdrant_service.get_qdrant_service",
+        return_value=mock_service,
     ):
         yield mock_service
 
@@ -49,9 +40,19 @@ def clear_lru_caches():
     """Clear LRU caches before each test to ensure clean state."""
     import artsearch.src.services.museum_stats_service as stats_service
 
-    stats_service.aggregate_work_type_counts.cache_clear()
+    # Clear all cached functions
+    stats_service.get_work_type_names.cache_clear()
+    stats_service.aggregate_work_type_count_for_selected_museums.cache_clear()
+    stats_service.aggregate_museum_count_for_selected_work_types.cache_clear()
+    stats_service.get_total_works_for_filters.cache_clear()
+
     yield
-    stats_service.aggregate_work_type_counts.cache_clear()
+
+    # Clear caches after test
+    stats_service.get_work_type_names.cache_clear()
+    stats_service.aggregate_work_type_count_for_selected_museums.cache_clear()
+    stats_service.aggregate_museum_count_for_selected_work_types.cache_clear()
+    stats_service.get_total_works_for_filters.cache_clear()
 
 
 @pytest.mark.integration
@@ -271,3 +272,93 @@ def test_update_museums_htmx_endpoint(mock_qdrant_service):
 
     filter_ctx = response.context["filter_ctx"]
     assert filter_ctx.dropdown_name == "museums"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_clear_cache_endpoint_requires_auth(mock_qdrant_service):
+    """
+    Test that /clear-cache endpoint requires admin authentication.
+
+    This test verifies:
+    - Endpoint redirects to login when not authenticated
+    - Anonymous users cannot clear cache
+
+    Potential bugs this could catch:
+    - Missing authentication decorator
+    - Cache cleared by non-admin users
+    """
+    client = Client()
+    url = reverse("clear-cache")
+
+    response = client.get(url)
+
+    # Should redirect to login page (302) since user is not authenticated
+    assert response.status_code == 302
+    assert "/admin/login/" in response.url
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_clear_cache_endpoint_clears_caches(mock_qdrant_service):
+    """
+    Test that /clear-cache endpoint successfully clears all LRU caches.
+
+    This test verifies:
+    - Endpoint returns 200 OK for admin user
+    - Success message displayed
+    - Caches are actually cleared
+
+    Potential bugs this could catch:
+    - Cache not actually cleared
+    - Missing cache_clear() calls
+    - Wrong response returned
+    """
+    from django.contrib.auth.models import User
+    from artsearch.src.services import museum_stats_service
+
+    # Create admin user
+    admin_user = User.objects.create_superuser(
+        username="admin", email="admin@test.com", password="testpass"
+    )
+
+    client = Client()
+    client.force_login(admin_user)
+
+    # Populate caches by calling cached functions
+    museum_stats_service.get_work_type_names()
+    museum_stats_service.aggregate_work_type_count_for_selected_museums(("smk",))
+    museum_stats_service.aggregate_museum_count_for_selected_work_types(("painting",))
+    museum_stats_service.get_total_works_for_filters(("smk",), ("painting",))
+
+    # Verify caches have entries
+    assert museum_stats_service.get_work_type_names.cache_info().currsize > 0
+    assert (
+        museum_stats_service.aggregate_work_type_count_for_selected_museums.cache_info().currsize
+        > 0
+    )
+    assert (
+        museum_stats_service.aggregate_museum_count_for_selected_work_types.cache_info().currsize
+        > 0
+    )
+    assert museum_stats_service.get_total_works_for_filters.cache_info().currsize > 0
+
+    # Clear cache via endpoint
+    url = reverse("clear-cache")
+    response = client.get(url)
+
+    # Verify response
+    assert response.status_code == 200
+    assert response.content == b"Cache cleared successfully"
+
+    # Verify all caches are cleared
+    assert museum_stats_service.get_work_type_names.cache_info().currsize == 0
+    assert (
+        museum_stats_service.aggregate_work_type_count_for_selected_museums.cache_info().currsize
+        == 0
+    )
+    assert (
+        museum_stats_service.aggregate_museum_count_for_selected_work_types.cache_info().currsize
+        == 0
+    )
+    assert museum_stats_service.get_total_works_for_filters.cache_info().currsize == 0

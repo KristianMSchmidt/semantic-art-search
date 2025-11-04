@@ -1,5 +1,6 @@
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
+from django.contrib.admin.views.decorators import staff_member_required
 from artsearch.views.context_builders import (
     build_search_context,
     build_home_context,
@@ -8,6 +9,7 @@ from artsearch.views.context_builders import (
     SearchParams,
 )
 from artsearch.views.log_utils import log_search_query
+from artsearch.src.services import museum_stats_service
 
 
 def home_view(request: HttpRequest) -> HttpResponse:
@@ -59,3 +61,19 @@ def update_museums(request):
         "filter_ctx": build_museum_filter_context(params),
     }
     return render(request, "partials/dropdown.html", context)
+
+
+@staff_member_required
+def clear_cache(request):
+    """
+    Admin-only endpoint to clear all LRU caches in museum_stats_service.
+
+    Useful after running load_artwork_stats to refresh stats without restarting the app.
+    """
+    # Clear all cached functions
+    museum_stats_service.get_work_type_names.cache_clear()
+    museum_stats_service.aggregate_work_type_count_for_selected_museums.cache_clear()
+    museum_stats_service.aggregate_museum_count_for_selected_work_types.cache_clear()
+    museum_stats_service.get_total_works_for_filters.cache_clear()
+
+    return HttpResponse("Cache cleared successfully", content_type="text/plain")
