@@ -111,7 +111,7 @@ def aggregate_museum_count_for_selected_work_types(
     Returns counts per museum based on selected work types.
     Correctly counts unique artworks (avoids double-counting artworks with multiple work types).
 
-    Used every time the filter dropdowns are updated.
+    Used every time the museum filter dropdown is created or updated.
 
     Args:
         selected_work_types: Tuple of work type names to filter by (must be tuple for caching)
@@ -125,30 +125,6 @@ def aggregate_museum_count_for_selected_work_types(
     )
 
     selected_work_types_list = list(selected_work_types)
-
-    # Optimization: if all work types are selected, just count per museum
-    get_names_start = time.time()
-    all_work_types = get_work_type_names()
-    logger.info(
-        f"[TIMING] aggregate_museum_count - get_work_type_names: {(time.time() - get_names_start) * 1000:.2f}ms"
-    )
-
-    if set(selected_work_types_list) == set(all_work_types):
-        query_start = time.time()
-        museum_counts = (
-            ArtworkStats.objects.values("museum_slug")
-            .annotate(count=Count("id"))
-            .order_by("-count")
-        )
-        museums = {item["museum_slug"]: item["count"] for item in museum_counts}
-        total = sum(museums.values())
-        logger.info(
-            f"[TIMING] aggregate_museum_count - Fast path query: {(time.time() - query_start) * 1000:.2f}ms"
-        )
-        logger.info(
-            f"[TIMING] aggregate_museum_count_for_selected_work_types - TOTAL: {(time.time() - start_time) * 1000:.2f}ms"
-        )
-        return MuseumWorkTypeSummary(work_types=museums, total=total)
 
     # Filter artworks that have at least one of the selected work types
     # Use PostgreSQL's ?| operator for efficient array overlap check (single index lookup)
@@ -210,7 +186,9 @@ def get_total_works_for_filters(
     count_start = time.time()
     result = (
         ArtworkStats.objects.filter(museum_slug__in=selected_museums)
-        .extra(where=["searchable_work_types ?| %s"], params=[list(selected_work_types)])
+        .extra(
+            where=["searchable_work_types ?| %s"], params=[list(selected_work_types)]
+        )
         .count()
     )
     logger.info(
