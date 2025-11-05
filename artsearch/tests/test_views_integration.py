@@ -99,7 +99,9 @@ def test_home_view_loads_successfully(mock_qdrant_service):
     assert len(museum_ctx.dropdown_items) == 5  # SMK, CMA, RMA, MET, AIC
     # Verify museums are sorted alphabetically by full name
     museum_names = [item["label"] for item in museum_ctx.dropdown_items]
-    assert museum_names == sorted(museum_names), "Museums should be alphabetically sorted"
+    assert museum_names == sorted(museum_names), (
+        "Museums should be alphabetically sorted"
+    )
 
     # Verify example queries are provided (from constants, not Qdrant)
     example_queries = response.context["example_queries"]
@@ -295,7 +297,7 @@ def test_clear_cache_endpoint_requires_auth(mock_qdrant_service):
 
     # Should redirect to login page (302) since user is not authenticated
     assert response.status_code == 302
-    assert "/admin/login/" in response.url
+    assert "/admin/login/" in response.url  # type: ignore
 
 
 @pytest.mark.integration

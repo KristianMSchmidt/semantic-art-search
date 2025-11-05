@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import cast, Any
 from functools import lru_cache
+import time
+import logging
 from qdrant_client import QdrantClient, models
 from qdrant_client.conversions.common_types import PointId
 from artsearch.src.utils.qdrant_formatting import (
@@ -10,6 +12,8 @@ from artsearch.src.utils.qdrant_formatting import (
 from artsearch.src.services.clip_embedder import get_clip_embedder
 from artsearch.src.utils.get_qdrant_client import get_qdrant_client
 from artsearch.src.config import config
+
+logger = logging.getLogger(__name__)
 
 
 # Type aliases
@@ -39,42 +43,26 @@ class QdrantService:
         self.qdrant_client = qdrant_client
         self.collection_name = collection_name
 
-    @lru_cache(maxsize=10)
     def get_items_by_object_number(
         self,
         object_number: str,
         object_museum: str | None = None,
         with_vector: bool = False,
-        with_payload: bool | list[str] = False,
+        with_payload: bool = False,
         limit: int = 1,
     ) -> list[models.ScoredPoint]:
         """
         Get items by object number.
         If museum is provided, it will filter by museum as well.
         """
-        conditions = []
-
-        conditions.append(
-            models.FieldCondition(
-                key="object_number", match=models.MatchValue(value=object_number)
-            )
-        )
-
-        if object_museum is not None:
-            conditions.append(
-                models.FieldCondition(
-                    key="museum", match=models.MatchValue(value=object_museum)
-                )
-            )
-
-        result = self.qdrant_client.query_points(
-            collection_name=self.collection_name,
-            query_filter=models.Filter(must=conditions),
+        return _get_items_by_object_number_cached(
+            object_number=object_number,
+            object_museum=object_museum,
+            with_vector=with_vector,
             with_payload=with_payload,
-            with_vectors=with_vector,
             limit=limit,
+            collection_name=self.collection_name,
         )
-        return result.points
 
     def _search(
         self,
@@ -90,6 +78,8 @@ class QdrantService:
         If object_number is provided, it will be included in the results regardless of the other filters.
         Note that in qdrant 'should' means 'or' & 'must' means 'and'.
         """
+        start_time = time.time()
+
         standard_conditions = []
         if museums is not None:
             standard_conditions.append(
@@ -135,6 +125,7 @@ class QdrantService:
         # but seems not to be needed yet.
         search_params = models.SearchParams(exact=True)
 
+        qdrant_start = time.time()
         response = self.qdrant_client.query_points(
             collection_name=self.collection_name,
             query=query_vector,
@@ -144,21 +135,51 @@ class QdrantService:
             search_params=search_params,
             using="image_clip",
         )
+        qdrant_time = (time.time() - qdrant_start) * 1000
 
-        return format_hits(response.points)
+        logger.info(
+            f"[TIMING] Qdrant vector search - "
+            f"limit={limit}, offset={offset}, "
+            f"museums={museums}, work_types={work_types}, "
+            f"object_number={object_number}, "
+            f"exact_search=True: {qdrant_time:.2f}ms"
+        )
+
+        format_start = time.time()
+        formatted = format_hits(response.points)
+        format_time = (time.time() - format_start) * 1000
+
+        total_time = (time.time() - start_time) * 1000
+        logger.info(
+            f"[TIMING] _search total: {total_time:.2f}ms "
+            f"(qdrant: {qdrant_time:.2f}ms, format: {format_time:.2f}ms)"
+        )
+
+        return formatted
 
     def search_text(self, search_function_args: SearchFunctionArguments) -> list[dict]:
         """Search for related artworks based on a text query."""
+
         # Unpack the search function arguments
         query: TextQuery = search_function_args.query
         limit = search_function_args.limit
         offset = search_function_args.offset
         work_types = search_function_args.work_type_prefilter
         museums = search_function_args.museum_prefilter
+
+        embedding_start = time.time()
         query_vector = get_clip_embedder().generate_text_embedding(query)
-        return self._search(
+        embedding_time = (time.time() - embedding_start) * 1000
+
+        logger.info(
+            f"[TIMING] search_text - CLIP text embedding: {embedding_time:.2f}ms"
+        )
+
+        results = self._search(
             query_vector, limit, offset, work_types, museums, object_number=None
         )
+
+        return results
 
     def search_similar_images(
         self,
@@ -167,6 +188,7 @@ class QdrantService:
         """
         Search for artworks similar to the given target object based on vector embedding similarity.
         """
+
         # Unpack the search function arguments
         limit = search_function_args.limit
         offset = search_function_args.offset
@@ -177,15 +199,25 @@ class QdrantService:
         object_museum = search_function_args.object_museum
 
         # Fetch vector target object from Qdrant collection
+        start_time = time.time()
+        assert object_number is not None, (
+            "object_number must be provided for similarity search."
+        )
         items = self.get_items_by_object_number(
             object_number=object_number,
             object_museum=object_museum,
             with_vector=True,
             limit=1,
         )
+        logger.info(
+            f"[TIMING] search_similar_images - fetch target object from Qdrant: "
+            f"{(time.time() - start_time) * 1000:.2f}ms"
+        )
+
         if not items or items[0].vector is None:
             raise ValueError("No vector found for the given object number and museum.")
         vec = items[0].vector
+
         # Qdrant may return either a single vector (list[float]) or a dict of named vectors.
         if isinstance(vec, dict):
             named_vecs = cast(dict[str, list[float]], vec)
@@ -198,9 +230,11 @@ class QdrantService:
         else:
             query_vector = cast(list[float], vec)
 
-        return self._search(
+        results = self._search(
             query_vector, limit, offset, work_types, museums, object_number
         )
+
+        return results
 
     def get_random_sample(
         self, limit: int, work_types: list[str] | None, museums: list[str] | None
@@ -319,3 +353,47 @@ def get_qdrant_service() -> QdrantService:
         qdrant_client=get_qdrant_client(),
         collection_name=config.qdrant_collection_name_app,
     )
+
+
+@lru_cache(maxsize=128)
+def _get_items_by_object_number_cached(
+    object_number: str,
+    object_museum: str | None = None,
+    with_vector: bool = False,
+    with_payload: bool = False,
+    limit: int = 1,
+    collection_name: str = config.qdrant_collection_name_app,
+) -> list[models.ScoredPoint]:
+    """
+    Private cached function to fetch items by object number from Qdrant.
+
+    Returns list of ScoredPoint objects matching the object_number filter.
+    If object_museum is provided, also filters by museum.
+
+    Results are cached based on all parameters.
+    Called by QdrantService.get_items_by_object_number() instance method.
+    """
+    qdrant_client = get_qdrant_client()
+    conditions = []
+
+    conditions.append(
+        models.FieldCondition(
+            key="object_number", match=models.MatchValue(value=object_number)
+        )
+    )
+
+    if object_museum is not None:
+        conditions.append(
+            models.FieldCondition(
+                key="museum", match=models.MatchValue(value=object_museum)
+            )
+        )
+
+    result = qdrant_client.query_points(
+        collection_name=collection_name,
+        query_filter=models.Filter(must=conditions),
+        with_payload=with_payload,
+        with_vectors=with_vector,
+        limit=limit,
+    )
+    return list(result.points)

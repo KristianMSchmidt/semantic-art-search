@@ -45,7 +45,9 @@ def analyze_query(
             raise QueryParsingError("Inventory number must not be empty.")
 
         items = qdrant_service.get_items_by_object_number(
-            object_number=object_number, object_museum=object_museum, limit=2
+            object_number=object_number,
+            object_museum=object_museum,
+            limit=2,
         )
         if not items:
             raise QueryParsingError(
@@ -59,7 +61,9 @@ def analyze_query(
         )
     else:
         items = qdrant_service.get_items_by_object_number(
-            object_number=query, limit=5, with_payload=True
+            object_number=query,
+            limit=5,
+            with_payload=True,
         )
         if not items:
             return QueryAnalysisResult(is_find_similar_query=False)
