@@ -108,22 +108,40 @@ class CLIPEmbedder:
             print(f"Error generating embedding for object {object_number}: {e}")
             return None
 
-    # Maxsize is set to 50 to cache the most common queries
-    # Should be atleast 1 to cache the item in question on infinite scroll
-    @lru_cache(maxsize=50)
     def generate_text_embedding(self, query: str) -> list[float]:
         """
         Generate a text embedding from a given query string.
 
         Args:
-            text (str): The input text to encode.
+            query (str): The input text to encode.
 
         Returns:
             list[float]: The text embedding as a list.
         """
-        text = clip.tokenize([query]).to(self.device)
-        with torch.no_grad():
-            return self.model.encode_text(text).cpu().numpy().flatten().tolist()
+        return _generate_text_embedding_cached(self.model, self.device, query)
+
+
+# Maxsize is set to 50 to cache the most common queries
+# Should be at least 1 to cache the item in question on infinite scroll
+@lru_cache(maxsize=50)
+def _generate_text_embedding_cached(model: Any, device: str, query: str) -> list[float]:
+    """
+    Pure function for generating text embeddings with LRU caching.
+
+    This function is separated from the class method to enable proper caching
+    without relying on the singleton pattern.
+
+    Args:
+        model: The CLIP model instance.
+        device (str): Device to run the model on ("cuda" or "cpu").
+        query (str): The input text to encode.
+
+    Returns:
+        list[float]: The text embedding as a list.
+    """
+    text = clip.tokenize([query]).to(device)
+    with torch.no_grad():
+        return model.encode_text(text).cpu().numpy().flatten().tolist()
 
 
 @lru_cache(maxsize=1)
