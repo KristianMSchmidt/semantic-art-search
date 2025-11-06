@@ -3,7 +3,7 @@ from qdrant_client import QdrantClient
 from artsearch.src.config import config
 
 
-@lru_cache(maxsize=1)
+@lru_cache(maxsize=1)  # Keep!
 def get_qdrant_client():
     """
     Get Qdrant client (cached singleton).

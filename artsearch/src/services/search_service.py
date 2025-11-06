@@ -9,9 +9,6 @@ from artsearch.src.utils.get_museums import get_museum_full_name, get_museum_slu
 from artsearch.src.config import config
 
 
-RESULTS_PER_PAGE = 20
-
-
 class QueryParsingError(Exception):
     """Custom exception for errors in query parsing."""
 
@@ -32,9 +29,7 @@ def analyze_query(
     """
     Checks if the query has the form {museum_slug}:{object_number}.
     """
-    qdrant_service = QdrantService(
-        collection_name=config.qdrant_collection_name_app
-    )
+    qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
 
     if ":" in query:
         object_museum, object_number = query.split(":", 1)
@@ -97,9 +92,7 @@ def handle_search(
     """
     Handle the search logic based on the provided query and filters.
     """
-    qdrant_service = QdrantService(
-        collection_name=config.qdrant_collection_name_app
-    )
+    qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
 
     header_text = None
     results = []

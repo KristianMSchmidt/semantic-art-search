@@ -18,7 +18,7 @@ from artsearch.src.constants.ui import EXAMPLE_QUERIES
 from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
 
 
-RESULTS_PER_PAGE = 20
+RESULTS_PER_PAGE = 25
 
 
 @dataclass
@@ -258,7 +258,9 @@ def build_work_type_filter_context(params: SearchParams) -> FilterContext:
     selected_museums = params.selected_museums
     selected_work_types = params.selected_work_types
 
-    work_type_summary = aggregate_work_type_count_for_selected_museums(tuple(selected_museums))
+    work_type_summary = aggregate_work_type_count_for_selected_museums(
+        tuple(selected_museums)
+    )
     prepared_work_types = prepare_work_types_for_dropdown(work_type_summary.work_types)
     initial_work_types_label = prepare_initial_label(
         selected_work_types, work_type_names, "work_types"
