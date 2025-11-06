@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import cast, Any
+from typing import cast
 from functools import lru_cache
 import time
 import logging
@@ -37,10 +37,10 @@ class SearchFunctionArguments:
 class QdrantService:
     def __init__(
         self,
-        qdrant_client: QdrantClient,
         collection_name: str,
+        qdrant_client: QdrantClient | None = None,
     ):
-        self.qdrant_client = qdrant_client
+        self.qdrant_client = qdrant_client or get_qdrant_client()
         self.collection_name = collection_name
 
     def get_items_by_object_number(
@@ -267,24 +267,12 @@ class QdrantService:
         payloads = [point.payload for point in sampled.points]
         return format_payloads(payloads)
 
-    def create_qdrant_collection(self, collection_name: str, dimensions: int) -> None:
-        """Create Qdrant collection (if it doesn't exist)."""
-        exists = self.qdrant_client.collection_exists(collection_name=collection_name)
-        if not exists:
-            self.qdrant_client.create_collection(
-                collection_name=collection_name,
-                vectors_config=models.VectorParams(
-                    size=dimensions, distance=models.Distance.COSINE
-                ),
-            )
-
-    def upload_points(self, points: list[models.PointStruct], collection_name) -> None:
+    def upload_points(self, points: list[models.PointStruct]) -> None:
         """Upload points to a Qdrant collection."""
-        self.qdrant_client.upsert(collection_name=collection_name, points=points)
+        self.qdrant_client.upsert(collection_name=self.collection_name, points=points)
 
     def fetch_points(
         self,
-        collection_name: str,
         next_page_token: PointId | None,
         limit: int = 1000,
         with_vectors: bool = False,
@@ -293,7 +281,7 @@ class QdrantService:
         """Fetch points from a Qdrant collection with pagination."""
 
         points, next_page_token = self.qdrant_client.scroll(
-            collection_name=collection_name,
+            collection_name=self.collection_name,
             scroll_filter=None,
             with_payload=with_payload,
             with_vectors=with_vectors,
@@ -302,57 +290,6 @@ class QdrantService:
         )
 
         return points, next_page_token
-
-    def get_existing_values(
-        self,
-        values: list[Any],
-        museum: str,
-        id_key: str = "object_number",
-        collection_name: str = config.qdrant_collection_name_etl,
-    ) -> set[str]:
-        """
-        Given a qdrant collection key, a museum name and list of values,
-        returns the subset of these values that already exist in the collection for the given museum.
-        """
-        if not values:
-            return set()
-
-        query_filter = models.Filter(
-            must=[
-                models.FieldCondition(
-                    key=id_key,
-                    match=models.MatchAny(any=values),
-                ),
-                models.FieldCondition(
-                    key="museum",
-                    match=models.MatchValue(value=museum),
-                ),
-            ]
-        )
-
-        result = self.qdrant_client.query_points(
-            collection_name=collection_name,
-            query_filter=query_filter,
-            with_payload=True,
-            with_vectors=False,
-            limit=len(values),  # We want to fetch all points that match the values
-        )
-        existing_object_numbers = set()
-        for point in result.points:
-            if not point.payload or id_key not in point.payload:
-                raise ValueError(
-                    f"Point {point.id} has an invalid or missing payload: {point.payload}"
-                )
-            existing_object_numbers.add(point.payload[id_key])
-
-        return existing_object_numbers
-
-
-def get_qdrant_service() -> QdrantService:
-    return QdrantService(
-        qdrant_client=get_qdrant_client(),
-        collection_name=config.qdrant_collection_name_app,
-    )
 
 
 @lru_cache(maxsize=128)

@@ -50,7 +50,7 @@ SAFETY:
 """
 
 import logging
-from artsearch.src.services.qdrant_service import get_qdrant_service
+from artsearch.src.services.qdrant_service import QdrantService
 from artsearch.src.config import config
 
 
@@ -111,7 +111,7 @@ def main(
         batch_size: Number of points to process per batch
         dry_run: If True, only shows what would be updated (no actual changes)
     """
-    qdrant_service = get_qdrant_service()
+    qdrant_service = QdrantService(collection_name=collection_name)
     next_page_token = None
     num_points = 0
 
@@ -122,7 +122,6 @@ def main(
     while True:
         # Fetch points (no vectors needed - more efficient!)
         points, next_page_token = qdrant_service.fetch_points(
-            collection_name,
             next_page_token,
             limit=batch_size,
             with_vectors=False,

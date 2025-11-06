@@ -10,7 +10,7 @@ from etl.models import TransformedData
 from etl.services.bucket_service import get_bucket_image_url
 from etl.utils import generate_uuid5
 from artsearch.src.services.clip_embedder import get_clip_embedder
-from artsearch.src.services.qdrant_service import get_qdrant_service
+from artsearch.src.services.qdrant_service import QdrantService
 from artsearch.src.config import config
 
 logger = logging.getLogger(__name__)
@@ -126,7 +126,9 @@ class EmbeddingLoadService:
     ):
         self.collection_name = collection_name or config.qdrant_collection_name_etl
         self.clip_embedder = clip_embedder or get_clip_embedder()
-        self.qdrant_service = qdrant_service or get_qdrant_service()
+        self.qdrant_service = qdrant_service or QdrantService(
+            collection_name=self.collection_name
+        )
         self._ensure_collection_exists()
 
     def reset_vector_fields(self, museum_filter: Optional[str] = None) -> int:
@@ -397,7 +399,7 @@ class EmbeddingLoadService:
                 point = self._create_qdrant_point(record, calculated_vectors)
 
                 # Upload to Qdrant
-                self.qdrant_service.upload_points([point], self.collection_name)
+                self.qdrant_service.upload_points([point])
 
                 # Update record status for calculated vector types
                 with transaction.atomic():

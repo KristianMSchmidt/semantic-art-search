@@ -71,9 +71,9 @@ def test_load_artwork_stats_from_qdrant():
         None,  # No next page token (single page)
     )
 
-    # Patch get_qdrant_service to return our mock
+    # Patch QdrantService constructor to return our mock
     with patch(
-        "etl.management.commands.load_artwork_stats.get_qdrant_service",
+        "etl.management.commands.load_artwork_stats.QdrantService",
         return_value=mock_qdrant_service,
     ):
         # Run the management command
@@ -122,7 +122,7 @@ def test_load_artwork_stats_idempotency():
     mock_qdrant_service.fetch_points.return_value = ([mock_point], None)
 
     with patch(
-        "etl.management.commands.load_artwork_stats.get_qdrant_service",
+        "etl.management.commands.load_artwork_stats.QdrantService",
         return_value=mock_qdrant_service,
     ):
         # Run command first time
@@ -165,7 +165,7 @@ def test_load_artwork_stats_drop_existing():
     mock_qdrant_service.fetch_points.return_value = ([mock_point], None)
 
     with patch(
-        "etl.management.commands.load_artwork_stats.get_qdrant_service",
+        "etl.management.commands.load_artwork_stats.QdrantService",
         return_value=mock_qdrant_service,
     ):
         # Run command with --drop-existing
@@ -240,7 +240,7 @@ def test_load_artwork_stats_skips_invalid_points():
     )
 
     with patch(
-        "etl.management.commands.load_artwork_stats.get_qdrant_service",
+        "etl.management.commands.load_artwork_stats.QdrantService",
         return_value=mock_qdrant_service,
     ):
         call_command("load_artwork_stats", stdout=StringIO())
@@ -284,7 +284,7 @@ def test_load_artwork_stats_handles_pagination():
     ]
 
     with patch(
-        "etl.management.commands.load_artwork_stats.get_qdrant_service",
+        "etl.management.commands.load_artwork_stats.QdrantService",
         return_value=mock_qdrant_service,
     ):
         call_command("load_artwork_stats", stdout=StringIO())

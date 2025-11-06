@@ -11,7 +11,7 @@ Usage:
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from artsearch.models import ArtworkStats
-from artsearch.src.services.qdrant_service import get_qdrant_service
+from artsearch.src.services.qdrant_service import QdrantService
 from artsearch.src.config import config
 import logging
 
@@ -48,8 +48,8 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Starting ArtworkStats load..."))
 
         # Get Qdrant service
-        qdrant_service = get_qdrant_service()
         collection_name = config.qdrant_collection_name_app
+        qdrant_service = QdrantService(collection_name=collection_name)
 
         # Step 1: Fetch all artwork data from Qdrant
         self.stdout.write(
@@ -90,7 +90,6 @@ class Command(BaseCommand):
 
         while True:
             points, next_page_token = qdrant_service.fetch_points(
-                collection_name,
                 next_page_token,
                 limit=batch_size,
                 with_payload=["museum", "object_number", "searchable_work_types"],
