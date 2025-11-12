@@ -6,7 +6,17 @@
     src="{{ result.thumbnail_url }}"
        alt="{{ result.title }}"
        class="w-full h-auto max-h-96 object-contain cursor-pointer hover:opacity-80 transition"
-       onclick="openModal('{{ result.thumbnail_url }}')">
+       onclick="openModal({
+         url: '{{ result.thumbnail_url|escapejs }}',
+         title: '{{ result.title|escapejs }}',
+         artist: '{{ result.artist|escapejs }}',
+         productionDate: '{{ result.production_date|escapejs }}',
+         workTypes: [{% for work_type in result.work_types %}'{{ work_type|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+         museum: '{{ result.museum|escapejs }}',
+         sourceUrl: '{{ result.source_url|escapejs }}',
+         findSimilarQuery: '{{ result.find_similar_query|escapejs }}',
+         showFindSimilar: {% if result.score and result.score < 1 %}true{% else %}false{% endif %}
+       })">
 
   <!-- Text content -->
   <div class="pl-6 pr-4 py-4 sm:pl-4 sm:pr-4 flex flex-col h-full mb-2">
