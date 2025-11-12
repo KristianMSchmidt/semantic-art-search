@@ -1517,6 +1517,10 @@ select {
   padding-top: 1rem;
 }
 
+.pb-\[calc\(1\.5rem\+env\(safe-area-inset-bottom\)\)\] {
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+}
+
 .text-center {
   text-align: center;
 }
@@ -1988,6 +1992,10 @@ select {
 
   .lg\:mr-96 {
     margin-right: 24rem;
+  }
+
+  .lg\:inline {
+    display: inline;
   }
 
   .lg\:max-h-none {
