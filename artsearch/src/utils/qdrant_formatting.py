@@ -4,7 +4,10 @@ from qdrant_client import models
 
 from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
 from artsearch.src.utils.work_type_utils import get_standardized_work_type
-from artsearch.src.services.museum_clients.utils import get_museum_page_url
+from artsearch.src.services.museum_clients.utils import (
+    get_museum_page_url,
+    get_museum_api_url,
+)
 from etl.services.bucket_service import get_bucket_image_url
 
 
@@ -38,6 +41,9 @@ def format_payload(payload: models.Payload | None) -> dict:
     source_url = get_museum_page_url(
         payload["museum"], payload["object_number"], payload["museum_db_id"]
     )
+    api_url = get_museum_api_url(
+        payload["museum"], payload["object_number"], payload["museum_db_id"]
+    )
     return {
         "title": payload["title"],
         "artist": payload["artist"],
@@ -46,7 +52,10 @@ def format_payload(payload: models.Payload | None) -> dict:
         "production_date": production_date,
         "object_number": payload["object_number"],
         "museum": get_full_museum_name(payload["museum"]),
+        "museum_slug": payload["museum"],
+        "museum_db_id": payload["museum_db_id"],
         "source_url": source_url,
+        "api_url": api_url,
         "find_similar_query": f"{payload['museum']}:{payload['object_number']}",
     }
 

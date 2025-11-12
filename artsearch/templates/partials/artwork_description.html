@@ -1,0 +1,19 @@
+{% if description|slice:":6" == "Error:" %}
+  <div class="bg-red-50 border-l-4 border-red-400 p-3 rounded mt-2">
+    <p class="text-sm text-red-700">
+      {{ description|slice:"7:" }}
+    </p>
+  </div>
+{% else %}
+  <p class="text-sm text-gray-600 leading-relaxed mt-2">
+    {{ description }}
+  </p>
+  <p class="text-xs text-gray-400 mt-3 italic">
+    AI-generated description based on artwork image and available <a
+      :href="apiUrl"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="text-gray-500 underline hover:text-blue-500"
+      :title="'View API metadata from ' + museum">museum metadata</a>
+  </p>
+{% endif %}
