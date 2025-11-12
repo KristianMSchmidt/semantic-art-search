@@ -15,7 +15,7 @@
          museum: '{{ result.museum|escapejs }}',
          sourceUrl: '{{ result.source_url|escapejs }}',
          findSimilarQuery: '{{ result.find_similar_query|escapejs }}',
-         showFindSimilar: {% if result.score and result.score < 1 %}true{% else %}false{% endif %}
+         showFindSimilar: {% if not result.score or result.score < 1 %}true{% else %}false{% endif %}
        })">
 
   <!-- Text content -->

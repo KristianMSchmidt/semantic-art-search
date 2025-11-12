@@ -984,6 +984,10 @@ select {
   height: 1.5rem;
 }
 
+.h-\[70vh\] {
+  height: 70vh;
+}
+
 .h-auto {
   height: auto;
 }
@@ -994,10 +998,6 @@ select {
 
 .h-screen {
   height: 100vh;
-}
-
-.h-\[70vh\] {
-  height: 70vh;
 }
 
 .h-3\.5 {
@@ -1068,10 +1068,6 @@ select {
   width: 1.5rem;
 }
 
-.w-auto {
-  width: auto;
-}
-
 .w-full {
   width: 100%;
 }
@@ -1084,6 +1080,10 @@ select {
   width: 2rem;
 }
 
+.w-auto {
+  width: auto;
+}
+
 .w-screen {
   width: 100vw;
 }
@@ -1092,16 +1092,16 @@ select {
   max-width: 72rem;
 }
 
-.max-w-full {
-  max-width: 100%;
-}
-
 .max-w-none {
   max-width: none;
 }
 
 .max-w-\[90vw\] {
   max-width: 90vw;
+}
+
+.max-w-full {
+  max-width: 100%;
 }
 
 .max-w-3xl {
@@ -1410,6 +1410,10 @@ select {
      object-fit: contain;
 }
 
+.p-0 {
+  padding: 0px;
+}
+
 .p-1\.5 {
   padding: 0.375rem;
 }
@@ -1424,10 +1428,6 @@ select {
 
 .p-4 {
   padding: 1rem;
-}
-
-.p-0 {
-  padding: 0px;
 }
 
 .p-6 {
@@ -1966,10 +1966,6 @@ select {
 
   .md\:grid-cols-\[minmax\(0\2c 2fr\)_minmax\(260px\2c 1fr\)\] {
     grid-template-columns: minmax(0,2fr) minmax(260px,1fr);
-  }
-
-  .md\:p-4 {
-    padding: 1rem;
   }
 
   .md\:p-5 {
