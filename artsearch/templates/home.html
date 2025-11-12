@@ -179,6 +179,7 @@ title="View on GitHub"
   open: false,
   url: '',
   showInfo: false,
+  scrollY: 0,
   title: '',
   artist: '',
   productionDate: '',
@@ -199,17 +200,30 @@ title="View on GitHub"
     this.showFindSimilar = data.showFindSimilar || false;
     this.open = true;
     this.showInfo = false;
-    document.body.style.overflow = 'hidden';
+
+    // iOS Safari scroll lock: position fixed approach
+    this.scrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${this.scrollY}px`;
+    document.body.style.width = '100%';
+    document.body.style.overflowY = 'scroll';
   },
   close() {
     this.open = false;
     this.showInfo = false;
-    document.body.style.overflow = '';
+
+    // iOS Safari scroll lock: restore scroll position
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    document.body.style.overflowY = '';
+    window.scrollTo(0, this.scrollY);
   }
 }"
      x-show="open"
      x-cloak
-     class="fixed inset-0 z-50 bg-black/95"
+     class="fixed inset-0 z-50 bg-black/95 h-screen supports-[height:100svh]:h-svh w-screen"
+     style="touch-action: none;"
      @keydown.escape.window="if (open) close()"
      @open-viewer.window="openWith($event.detail)">
 
