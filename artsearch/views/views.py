@@ -63,6 +63,37 @@ def update_museums(request):
     return render(request, "partials/dropdown.html", context)
 
 
+def get_artwork_description_view(request: HttpRequest) -> HttpResponse:
+    """
+    HTMX endpoint for fetching AI-generated artwork description.
+
+    Query params:
+    - museum: museum slug (e.g., 'smk')
+    - object_number: artwork object number (e.g., 'KMS1')
+    - museum_db_id: museum's internal database ID
+    - force: if 'true', bypass cache and regenerate description
+    """
+    from artsearch.src.services.artwork_description_service import generate_description
+
+    museum_slug = request.GET.get("museum", "")
+    object_number = request.GET.get("object_number", "")
+    museum_db_id = request.GET.get("museum_db_id", "")
+    force_regenerate = request.GET.get("force", "").lower() == "true"
+
+    # Generate AI description
+    description = generate_description(
+        museum_slug, object_number, museum_db_id, force_regenerate=force_regenerate
+    )
+
+    context = {
+        "description": description,
+        "museum_slug": museum_slug,
+        "object_number": object_number,
+    }
+
+    return render(request, "partials/artwork_description.html", context)
+
+
 @staff_member_required
 def clear_cache(request):
     """

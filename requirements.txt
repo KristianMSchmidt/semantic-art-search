@@ -18,6 +18,7 @@ psycopg2-binary==2.9.10
 
 # HTTP/API
 requests==2.32.4
+openai==1.59.7
 
 # Utilities
 python-dotenv==1.1.1

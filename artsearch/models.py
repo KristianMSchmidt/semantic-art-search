@@ -55,3 +55,33 @@ class ArtworkStats(models.Model):
 
     def __str__(self):
         return f"{self.museum_slug}:{self.object_number}"
+
+
+class ArtworkDescription(models.Model):
+    """
+    Cached AI-generated artwork descriptions.
+    Stores OpenAI GPT-4o vision descriptions to avoid redundant API calls.
+
+    Design: One row per artwork. Uses same composite key as ArtworkStats.
+    The unique constraint automatically creates a composite index on
+    (museum_slug, object_number) which optimizes lookups.
+    """
+
+    museum_slug = models.CharField(max_length=10)
+    object_number = models.CharField(
+        max_length=100, help_text="Stable and unique public artwork identifier"
+    )
+    description = models.TextField(help_text="AI-generated artwork description")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["museum_slug", "object_number"],
+                name="uniq_description_museum_object",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.museum_slug}:{self.object_number}"
