@@ -10,6 +10,7 @@ from artsearch.views.context_builders import (
 )
 from artsearch.views.log_utils import log_search_query
 from artsearch.src.services import museum_stats_service
+from artsearch.src.services.artwork_description.service import generate_description
 
 
 def home_view(request: HttpRequest) -> HttpResponse:
@@ -73,8 +74,6 @@ def get_artwork_description_view(request: HttpRequest) -> HttpResponse:
     - museum_db_id: museum's internal database ID
     - force: if 'true', bypass cache and regenerate description
     """
-    from artsearch.src.services.artwork_description_service import generate_description
-
     museum_slug = request.GET.get("museum", "")
     object_number = request.GET.get("object_number", "")
     museum_db_id = request.GET.get("museum_db_id", "")
