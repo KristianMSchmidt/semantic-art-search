@@ -1,6 +1,7 @@
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
+from django_ratelimit.decorators import ratelimit
 from artsearch.views.context_builders import (
     build_search_context,
     build_home_context,
@@ -64,9 +65,12 @@ def update_museums(request):
     return render(request, "partials/dropdown.html", context)
 
 
+@ratelimit(key="ip", rate="15/15m", method="GET")
 def get_artwork_description_view(request: HttpRequest) -> HttpResponse:
     """
     HTMX endpoint for fetching AI-generated artwork description.
+
+    Rate limited to 15 requests per 15 minutes per IP address to prevent OpenAI API abuse.
 
     Query params:
     - museum: museum slug (e.g., 'smk')
@@ -74,6 +78,16 @@ def get_artwork_description_view(request: HttpRequest) -> HttpResponse:
     - museum_db_id: museum's internal database ID
     - force: if 'true', bypass cache and regenerate description
     """
+    # Check if rate limited
+    if getattr(request, "limited", False):
+        context = {
+            "description": None,
+            "rate_limited": True,
+            "museum_slug": request.GET.get("museum", ""),
+            "object_number": request.GET.get("object_number", ""),
+        }
+        return render(request, "partials/artwork_description.html", context)
+
     museum_slug = request.GET.get("museum", "")
     object_number = request.GET.get("object_number", "")
     museum_db_id = request.GET.get("museum_db_id", "")
@@ -86,6 +100,7 @@ def get_artwork_description_view(request: HttpRequest) -> HttpResponse:
 
     context = {
         "description": description,
+        "rate_limited": False,
         "museum_slug": museum_slug,
         "object_number": object_number,
     }

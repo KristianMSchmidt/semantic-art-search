@@ -6,6 +6,7 @@ clip @ git+https://github.com/openai/CLIP.git@dcba3cb2e2827b402d2701e7e1c7d9fed8
 # Django
 Django==5.1.14
 django-tailwind==4.2.0
+django-ratelimit==4.1.0
 
 # Vector Database
 qdrant-client==1.14.2
