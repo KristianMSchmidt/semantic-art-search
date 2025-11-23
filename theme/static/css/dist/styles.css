@@ -992,6 +992,10 @@ select {
   height: 1.5rem;
 }
 
+.h-\[70vh\] {
+  height: 70vh;
+}
+
 .h-auto {
   height: auto;
 }
