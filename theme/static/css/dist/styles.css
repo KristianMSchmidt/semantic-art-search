@@ -940,6 +940,10 @@ select {
   margin-right: 24rem;
 }
 
+.mt-0\.5 {
+  margin-top: 0.125rem;
+}
+
 .block {
   display: block;
 }
@@ -1002,6 +1006,10 @@ select {
 
 .h-screen {
   height: 100vh;
+}
+
+.h-\[70vh\] {
+  height: 70vh;
 }
 
 .h-3\.5 {
@@ -1072,6 +1080,10 @@ select {
   width: 1.5rem;
 }
 
+.w-auto {
+  width: auto;
+}
+
 .w-full {
   width: 100%;
 }
@@ -1084,10 +1096,6 @@ select {
   width: 2rem;
 }
 
-.w-auto {
-  width: auto;
-}
-
 .w-screen {
   width: 100vw;
 }
@@ -1096,16 +1104,16 @@ select {
   max-width: 72rem;
 }
 
+.max-w-full {
+  max-width: 100%;
+}
+
 .max-w-none {
   max-width: none;
 }
 
 .max-w-\[90vw\] {
   max-width: 90vw;
-}
-
-.max-w-full {
-  max-width: 100%;
 }
 
 .max-w-3xl {
@@ -1232,6 +1240,12 @@ select {
   --tw-space-y-reverse: 0;
   margin-top: calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));
   margin-bottom: calc(0.5rem * var(--tw-space-y-reverse));
+}
+
+.space-y-0\.5 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.125rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.125rem * var(--tw-space-y-reverse));
 }
 
 .overflow-hidden {
@@ -1387,6 +1401,14 @@ select {
   background-color: rgb(255 255 255 / 0.1);
 }
 
+.bg-black\/85 {
+  background-color: rgb(0 0 0 / 0.85);
+}
+
+.bg-black\/90 {
+  background-color: rgb(0 0 0 / 0.9);
+}
+
 .bg-opacity-75 {
   --tw-bg-opacity: 0.75;
 }
@@ -1414,10 +1436,6 @@ select {
      object-fit: contain;
 }
 
-.p-0 {
-  padding: 0px;
-}
-
 .p-1\.5 {
   padding: 0.375rem;
 }
@@ -1432,6 +1450,10 @@ select {
 
 .p-4 {
   padding: 1rem;
+}
+
+.p-0 {
+  padding: 0px;
 }
 
 .p-6 {
@@ -1493,6 +1515,26 @@ select {
   padding-bottom: 2rem;
 }
 
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.px-1\.5 {
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
+}
+
+.py-6 {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.px-2\.5 {
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+}
+
 .pb-3 {
   padding-bottom: 0.75rem;
 }
@@ -1523,6 +1565,18 @@ select {
 
 .pb-\[calc\(1\.5rem\+env\(safe-area-inset-bottom\)\)\] {
   padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+}
+
+.pb-\[calc\(1rem\+env\(safe-area-inset-bottom\)\)\] {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+.pb-4 {
+  padding-bottom: 1rem;
+}
+
+.pt-3 {
+  padding-top: 0.75rem;
 }
 
 .text-center {
@@ -1912,6 +1966,22 @@ select {
     margin-bottom: 1.25rem;
   }
 
+  .sm\:mt-6 {
+    margin-top: 1.5rem;
+  }
+
+  .sm\:mt-1 {
+    margin-top: 0.25rem;
+  }
+
+  .sm\:mt-4 {
+    margin-top: 1rem;
+  }
+
+  .sm\:mb-3 {
+    margin-bottom: 0.75rem;
+  }
+
   .sm\:inline {
     display: inline;
   }
@@ -1940,6 +2010,10 @@ select {
     flex-direction: row;
   }
 
+  .sm\:gap-2 {
+    gap: 0.5rem;
+  }
+
   .sm\:space-x-2 > :not([hidden]) ~ :not([hidden]) {
     --tw-space-x-reverse: 0;
     margin-right: calc(0.5rem * var(--tw-space-x-reverse));
@@ -1952,12 +2026,69 @@ select {
     margin-bottom: calc(0px * var(--tw-space-y-reverse));
   }
 
+  .sm\:space-y-1 > :not([hidden]) ~ :not([hidden]) {
+    --tw-space-y-reverse: 0;
+    margin-top: calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));
+    margin-bottom: calc(0.25rem * var(--tw-space-y-reverse));
+  }
+
+  .sm\:p-6 {
+    padding: 1.5rem;
+  }
+
+  .sm\:px-2 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .sm\:py-4 {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .sm\:px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .sm\:py-2 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .sm\:py-8 {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
+  .sm\:px-3 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .sm\:py-1\.5 {
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+  }
+
   .sm\:pl-4 {
     padding-left: 1rem;
   }
 
   .sm\:pr-4 {
     padding-right: 1rem;
+  }
+
+  .sm\:pb-\[calc\(1\.5rem\+env\(safe-area-inset-bottom\)\)\] {
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  }
+
+  .sm\:pb-5 {
+    padding-bottom: 1.25rem;
+  }
+
+  .sm\:pt-4 {
+    padding-top: 1rem;
   }
 }
 
@@ -1980,6 +2111,10 @@ select {
 
   .md\:grid-cols-\[minmax\(0\2c 2fr\)_minmax\(260px\2c 1fr\)\] {
     grid-template-columns: minmax(0,2fr) minmax(260px,1fr);
+  }
+
+  .md\:p-4 {
+    padding: 1rem;
   }
 
   .md\:p-5 {

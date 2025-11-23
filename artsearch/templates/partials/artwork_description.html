@@ -1,0 +1,26 @@
+{% if rate_limited %}
+  <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded mt-2">
+    <p class="text-sm text-gray-700 font-medium">Rate limit exceeded</p>
+    <p class="text-sm text-gray-600 mt-1">
+      Too many requests. Please try again in an hour.
+    </p>
+  </div>
+{% elif description %}
+  <p class="text-sm text-gray-600 leading-relaxed mt-2">
+    {{ description }}
+  </p>
+  <p class="text-xs text-gray-400 mt-3 italic">
+    AI-generated description based on artwork image and available <a
+      :href="apiUrl"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="text-gray-500 underline hover:text-blue-500"
+      :title="'View API metadata from ' + museum">museum metadata</a>
+  </p>
+{% else %}
+  <div class="bg-gray-50 border-l-4 border-gray-300 p-3 rounded mt-2">
+    <p class="text-sm text-gray-600">
+      Unable to generate description at this time. Please try again later.
+    </p>
+  </div>
+{% endif %}

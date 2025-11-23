@@ -186,8 +186,15 @@ title="View on GitHub"
   workTypes: [],
   museum: '',
   sourceUrl: '',
+  apiUrl: '',
   findSimilarQuery: '',
   showFindSimilar: true,
+  museumSlug: '',
+  objectNumber: '',
+  museumDbId: '',
+  descriptionGenerated: false,
+  descriptionLoaded: false,
+  forceRegenerate: false,
   openWith(data) {
     this.url = data.url;
     this.title = data.title || '';
@@ -196,11 +203,15 @@ title="View on GitHub"
     this.workTypes = data.workTypes || [];
     this.museum = data.museum || '';
     this.sourceUrl = data.sourceUrl || '';
+    this.apiUrl = data.apiUrl || '';
     this.findSimilarQuery = data.findSimilarQuery || '';
     this.showFindSimilar = data.showFindSimilar || false;
+    this.museumSlug = data.museumSlug || '';
+    this.objectNumber = data.objectNumber || '';
+    this.museumDbId = data.museumDbId || '';
     this.open = true;
     this.showInfo = false;
-
+    this.resetDescription();
     // iOS Safari scroll lock: position fixed approach
     this.scrollY = window.scrollY;
     document.body.style.position = 'fixed';
@@ -211,13 +222,30 @@ title="View on GitHub"
   close() {
     this.open = false;
     this.showInfo = false;
-
+    this.resetDescription();
     // iOS Safari scroll lock: restore scroll position
     document.body.style.position = '';
     document.body.style.top = '';
     document.body.style.width = '';
     document.body.style.overflowY = '';
     window.scrollTo(0, this.scrollY);
+  },
+  generateDescription(force = false) {
+    this.descriptionGenerated = true;
+    this.descriptionLoaded = false;
+    this.forceRegenerate = force;
+    this.$nextTick(() => {
+      htmx.trigger('#artwork-description-container', 'loadDescription');
+    });
+  },
+  resetDescription() {
+    this.descriptionGenerated = false;
+    this.descriptionLoaded = false;
+    this.forceRegenerate = false;
+    const container = document.getElementById('artwork-description-container');
+    if (container) {
+      container.innerHTML = '';
+    }
   }
 }"
      x-show="open"
@@ -283,38 +311,91 @@ title="View on GitHub"
       </div>
     </div>
 
-    <!-- Museum link -->
-    <p x-show="museum && sourceUrl" class="mt-4">
-      <a :href="sourceUrl"
-         target="_blank"
-         rel="noopener noreferrer"
-         class="text-sm text-gray-600 inline-flex items-center gap-1 underline hover:text-blue-500"
-         :title="'View this artwork on the ' + museum + ' website'">
-        <span x-text="museum"></span>
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
-             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6m5-5h5m0 0v5m0-5L10 14" />
-        </svg>
-      </a>
-    </p>
+    <!-- Museum link and Find similar button -->
+    <div class="flex flex-wrap gap-3 mt-4">
+      <!-- Museum link -->
+      <p x-show="museum && sourceUrl">
+        <a :href="sourceUrl"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="text-sm text-gray-600 inline-flex items-center gap-1 underline hover:text-blue-500"
+           :title="'View this artwork on the ' + museum + ' website'">
+          <span x-text="museum"></span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
+               viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6m5-5h5m0 0v5m0-5L10 14" />
+          </svg>
+        </a>
+      </p>
 
-    <!-- Find similar button -->
-    <div x-show="showFindSimilar" class="mt-3">
-      <button
-        type="button"
-        class="text-sm text-gray-600 hover:text-blue-500 underline"
-        @click="insertQuery(findSimilarQuery); close()"
-        hx-get="{% url 'get-artworks' %}"
-        hx-target="#search-results"
-        hx-swap="innerHTML"
-        hx-include="#search-form">
-        Find similar
-      </button>
+      <!-- Find similar button -->
+      <div x-show="showFindSimilar">
+        <button
+          type="button"
+          class="text-sm text-gray-600 hover:text-blue-500 underline"
+          @click="insertQuery(findSimilarQuery); close()"
+          hx-get="{% url 'get-artworks' %}"
+          hx-target="#search-results"
+          hx-swap="innerHTML"
+          hx-include="#search-form">
+          Find similar
+        </button>
+      </div>
+    </div>
+
+    <!-- Description section -->
+    <div class="mt-3 sm:mt-6">
+      <!-- State 1: Initial - Generate button -->
+      <div x-show="!descriptionGenerated" class="text-center py-4">
+        <button
+          @click="generateDescription()"
+          class="inline-flex items-center gap-2 px-4 py-2 text-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg shadow-md hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd" />
+          </svg>
+          <span>Tell me about this artwork</span>
+        </button>
+      </div>
+
+      <!-- State 2: Loading - Inline spinner -->
+      <div x-show="descriptionGenerated && !descriptionLoaded" class="flex items-center justify-center py-8">
+        <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="ml-3 text-sm text-gray-600 font-medium">Generating description...</p>
+      </div>
+
+      <!-- State 3: Loaded - Description content with regenerate option -->
+      <div x-show="descriptionLoaded">
+        <!-- Heading and regenerate button -->
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-semibold text-gray-700">About this artwork</h3>
+          <button
+            @click="generateDescription(true)"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-700 font-medium text-xs rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+            </svg>
+            <span>Regenerate</span>
+          </button>
+        </div>
+
+        <!-- Description container (HTMX target) -->
+        <div
+          id="artwork-description-container"
+          class="break-words"
+          hx-get="{% url 'get-artwork-description' %}"
+          hx-trigger="loadDescription"
+          x-bind:hx-vals="JSON.stringify(forceRegenerate ? {museum: museumSlug, object_number: objectNumber, museum_db_id: museumDbId, force: 'true'} : {museum: museumSlug, object_number: objectNumber, museum_db_id: museumDbId})"
+          hx-swap="innerHTML"
+          @htmx:after-swap="descriptionLoaded = true; forceRegenerate = false">
+        </div>
+      </div>
     </div>
   </div>
 </div>
-
 
 <!-- JavaScript Functions -->
 <script>
@@ -358,8 +439,24 @@ title="View on GitHub"
         };
     }
 
-  function openModal(data) {
-    window.dispatchEvent(new CustomEvent('open-viewer', { detail: data }));
+  function openModal(imageUrl, museumSlug, objectNumber, museumDbId, title, artist, productionDate, sourceUrl, apiUrl, museum, workTypes = []) {
+    window.dispatchEvent(new CustomEvent('open-viewer', {
+      detail: {
+        url: imageUrl,
+        title,
+        artist,
+        productionDate,
+        workTypes,
+        museum,
+        sourceUrl,
+        apiUrl,
+        findSimilarQuery: `${museumSlug}:${objectNumber}`,
+        showFindSimilar: true,
+        museumSlug,
+        objectNumber,
+        museumDbId
+      }
+    }));
   }
 </script>
 

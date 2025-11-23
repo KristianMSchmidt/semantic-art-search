@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import SearchLog, ArtworkStats
+from .models import SearchLog, ArtworkStats, ArtworkDescription
 
 
 @admin.register(SearchLog)
@@ -27,3 +27,18 @@ class ArtworkStatsAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         """Prevent adding new ArtworkStats entries via admin (should be populated via management command)."""
         return False
+
+
+@admin.register(ArtworkDescription)
+class ArtworkDescriptionAdmin(admin.ModelAdmin):
+    list_display = ("museum_slug", "object_number", "created_at", "updated_at", "get_description_preview")
+    list_filter = ("museum_slug", "created_at", "updated_at")
+    search_fields = ("object_number", "description")
+    ordering = ("-updated_at",)
+    readonly_fields = ("created_at", "updated_at")
+
+    def get_description_preview(self, obj):
+        """Display first 100 characters of description."""
+        return obj.description[:100] + "..." if len(obj.description) > 100 else obj.description
+
+    get_description_preview.short_description = "Description Preview"

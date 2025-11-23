@@ -27,9 +27,10 @@ def mock_qdrant_service():
     mock_service.search_similar_images.return_value = []
     mock_service.get_items_by_object_number.return_value = []
 
-    # Patch QdrantService constructor (used by search_service)
+    # Patch QdrantService where it's used (search_service), not where it's defined
+    # This is required because search_service uses: from qdrant_service import QdrantService
     with patch(
-        "artsearch.src.services.qdrant_service.QdrantService",
+        "artsearch.src.services.search_service.QdrantService",
         return_value=mock_service,
     ):
         yield mock_service

@@ -55,8 +55,12 @@ test-etl:  ## Run ETL tests only
 test-app:  ## Run artsearch app tests only
 	docker compose -f docker-compose.dev.yml exec web pytest artsearch/tests
 
+test-openai:  ## Test OpenAI API key with database artwork (default: KMS1 smk)
+	#docker compose -f docker-compose.dev.yml exec web python test_openai.py KMS8791 smk
+	docker compose -f docker-compose.dev.yml exec web python test_openai.py KMSsp340 smk
 
-
+test-openai-fast:  ## Test fast label generation (metadata-only, gpt-4o-mini)
+	docker compose -f docker-compose.dev.yml exec web python test_openai_fast.py
 
 # ---------- Production ---------- #
 prod_stop: ## [PROD] Stop production server
