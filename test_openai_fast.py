@@ -87,7 +87,7 @@ def test_openai_fast():
         print("Please add OPENAI_API_KEY to your .env.dev file")
         return False
 
-    print(f"\n✓ API key found: {api_key[:8]}...{api_key[-4:]}")
+    print("\n✓ API key found.")
 
     # Fetch metadata from museum API
     print("\n" + "-" * 80)
