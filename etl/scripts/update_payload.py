@@ -202,9 +202,9 @@ if __name__ == "__main__":
         exit(0)
 
     # Run with dry_run=True first to preview changes
-    main(collection_name=collection_name, batch_size=1000, dry_run=True)
+    # main(collection_name=collection_name, batch_size=1000, dry_run=True)
 
     # Once you're confident, set dry_run=False to apply changes
-    # main(collection_name=collection_name, batch_size=1000, dry_run=False)
+    main(collection_name=collection_name, batch_size=1000, dry_run=False)
 
     pass
