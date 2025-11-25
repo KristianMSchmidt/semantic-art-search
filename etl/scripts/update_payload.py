@@ -50,8 +50,16 @@ SAFETY:
 """
 
 import logging
+import os
+import django
+
+# Set up Django environment before importing models
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "djangoconfig.settings")
+django.setup()
+
 from artsearch.src.services.qdrant_service import QdrantService
 from artsearch.src.config import config
+from etl.models import TransformedData
 
 
 # Configure logging
@@ -84,13 +92,26 @@ def adhoc_update_payload(old_payload: dict) -> dict:
     new_payload = old_payload.copy()
 
     ##### MODIFY THIS SECTION WITH YOUR UPDATE LOGIC #####
-    # Example: Add a new field
-    # new_payload["credit_line"] = "Museum Purchase"
+    # Add new "artists" field (list) from TransformedData (source of truth)
+    # Keep old "artist" field for safety
+    museum_slug = old_payload.get("museum")
+    object_number = old_payload.get("object_number")
 
-    # Example: Update existing field
-    # old_thumbnail_url = new_payload["thumbnail_url"]
-    # new_thumbnail_url = adjust_thumbnail_size(old_thumbnail_url)
-    # new_payload["thumbnail_url"] = new_thumbnail_url
+    if not museum_slug or not object_number:
+        raise ValueError("Payload missing museum or object_number")
+
+    # Look up the TransformedData record (fail hard if not found)
+    try:
+        record = TransformedData.objects.get(
+            museum_slug=museum_slug, object_number=object_number
+        )
+        # Add new "artists" field with list from TransformedData
+        new_payload["artists"] = record.artist
+        # print(f"Updated {museum_slug}:{object_number} artists: {record.artist}")
+        print(record.artist)
+    except TransformedData.DoesNotExist:
+        print(f"TransformedData record not found for {museum_slug}:{object_number}")
+        return old_payload
     #######################################################
 
     return new_payload
@@ -163,7 +184,8 @@ def main(
 
 if __name__ == "__main__":
     # Choose your collection
-    collection_name = config.qdrant_collection_name_etl
+    # collection_name = config.qdrant_collection_name_etl
+    collection_name = config.qdrant_collection_name_app
 
     confirmation = input(
         f"Are you sure you want to update payloads in collection '{collection_name}'? (yes/no): "
@@ -173,7 +195,7 @@ if __name__ == "__main__":
         exit(0)
 
     # Run with dry_run=True first to preview changes
-    # main(collection_name=collection_name, batch_size=1000, dry_run=True)
+    main(collection_name=collection_name, batch_size=1000, dry_run=True)
 
     # Once you're confident, set dry_run=False to apply changes
     # main(collection_name=collection_name, batch_size=1000, dry_run=False)
