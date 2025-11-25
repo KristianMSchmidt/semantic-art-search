@@ -51,7 +51,14 @@ SAFETY:
 
 import logging
 import os
+import sys
 import django
+
+# Add project root to Python path
+project_root = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+sys.path.insert(0, project_root)
 
 # Set up Django environment before importing models
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "djangoconfig.settings")
@@ -111,7 +118,7 @@ def adhoc_update_payload(old_payload: dict) -> dict:
         print(record.artist)
     except TransformedData.DoesNotExist:
         print(f"TransformedData record not found for {museum_slug}:{object_number}")
-        return old_payload
+        raise
     #######################################################
 
     return new_payload
