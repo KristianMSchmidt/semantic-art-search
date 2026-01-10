@@ -34,6 +34,9 @@ def format_payload(payload: models.Payload | None) -> dict:
         get_standardized_work_type(name).capitalize() for name in payload["work_types"]
     ]
 
+    artists_list = payload.get("artists", [])
+    artist_display = ", ".join(filter(None, artists_list)) or "Unknown Artist"
+
     thumbnail_url = get_bucket_image_url(
         payload["museum"], payload["object_number"], use_etl_bucket=False
     )
@@ -46,7 +49,7 @@ def format_payload(payload: models.Payload | None) -> dict:
     )
     return {
         "title": payload["title"],
-        "artist": payload["artist"],
+        "artist": artist_display,
         "work_types": work_types,
         "thumbnail_url": thumbnail_url,
         "production_date": production_date,

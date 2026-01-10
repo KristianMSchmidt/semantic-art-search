@@ -31,7 +31,13 @@ class ArtworkStatsAdmin(admin.ModelAdmin):
 
 @admin.register(ArtworkDescription)
 class ArtworkDescriptionAdmin(admin.ModelAdmin):
-    list_display = ("museum_slug", "object_number", "created_at", "updated_at", "get_description_preview")
+    list_display = (
+        "museum_slug",
+        "object_number",
+        "created_at",
+        "updated_at",
+        "get_description_preview",
+    )
     list_filter = ("museum_slug", "created_at", "updated_at")
     search_fields = ("object_number", "description")
     ordering = ("-updated_at",)
@@ -39,6 +45,10 @@ class ArtworkDescriptionAdmin(admin.ModelAdmin):
 
     def get_description_preview(self, obj):
         """Display first 100 characters of description."""
-        return obj.description[:100] + "..." if len(obj.description) > 100 else obj.description
+        return (
+            obj.description[:100] + "..."
+            if len(obj.description) > 100
+            else obj.description
+        )
 
     get_description_preview.short_description = "Description Preview"

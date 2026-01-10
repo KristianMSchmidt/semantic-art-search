@@ -99,26 +99,12 @@ def adhoc_update_payload(old_payload: dict) -> dict:
     new_payload = old_payload.copy()
 
     ##### MODIFY THIS SECTION WITH YOUR UPDATE LOGIC #####
-    # Add new "artists" field (list) from TransformedData (source of truth)
-    # Keep old "artist" field for safety
-    museum_slug = old_payload.get("museum")
-    object_number = old_payload.get("object_number")
-
-    if not museum_slug or not object_number:
-        raise ValueError("Payload missing museum or object_number")
-
-    # Look up the TransformedData record (fail hard if not found)
-    try:
-        record = TransformedData.objects.get(
-            museum_slug=museum_slug, object_number=object_number
-        )
-        # Add new "artists" field with list from TransformedData
-        new_payload["artists"] = record.artist
-        # print(f"Updated {museum_slug}:{object_number} artists: {record.artist}")
-        print(record.artist)
-    except TransformedData.DoesNotExist:
-        print(f"TransformedData record not found for {museum_slug}:{object_number}")
-        raise
+    # Delete the old "artist" field (replaced by "artists" list)
+    if "artists" in new_payload:
+        if "artist" in new_payload:
+            del new_payload["artist"]
+    else:
+        breakpoint()
     #######################################################
 
     return new_payload
@@ -165,8 +151,15 @@ def main(
             new_payload = adhoc_update_payload(point.payload)
 
             if not dry_run:
-                # Use set_payload for efficient payload-only updates
-                qdrant_service.qdrant_client.set_payload(
+                # Old approach: set_payload merges with existing payload (doesn't delete missing fields)
+                # qdrant_service.qdrant_client.set_payload(
+                #     collection_name=collection_name,
+                #     payload=new_payload,
+                #     points=[point.id],  # type: ignore
+                # )
+
+                # Use overwrite_payload to completely replace payload (deletes fields not in new_payload)
+                qdrant_service.qdrant_client.overwrite_payload(
                     collection_name=collection_name,
                     payload=new_payload,
                     points=[point.id],  # type: ignore
@@ -197,6 +190,7 @@ if __name__ == "__main__":
     confirmation = input(
         f"Are you sure you want to update payloads in collection '{collection_name}'? (yes/no): "
     )
+
     if confirmation.lower() != "yes":
         logging.info("Operation cancelled by user.")
         exit(0)

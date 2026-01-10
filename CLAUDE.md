@@ -95,6 +95,8 @@ The project uses a split Makefile structure for better organization:
 **Database Cleanup:**
 - `make db-stop`: Stops and removes local PostgreSQL container (useful on server if accidentally started)
 
+**Task Management:** See `AGENTS.md` for Beads workflow and task tracking.
+
 ### Essential Commands
 
 **All development operations use the project Makefile** - run `make help` to see available commands.

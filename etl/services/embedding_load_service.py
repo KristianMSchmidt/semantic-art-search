@@ -88,6 +88,7 @@ def is_retryable_error(error: Exception) -> bool:
     # Other errors - don't retry
     return False
 
+
 # Active vector types configuration - easy to expand later
 ACTIVE_VECTOR_TYPES = ["image_clip"]
 
@@ -284,7 +285,7 @@ class EmbeddingLoadService:
             "object_number": record.object_number,
             "museum_db_id": record.museum_db_id,
             "title": record.get_primary_title(),
-            "artist": record.get_artists(),
+            "artists": record.artists,
             "production_date": record.get_period(),
             "work_types": record.work_types,
             "searchable_work_types": record.searchable_work_types,
@@ -412,7 +413,9 @@ class EmbeddingLoadService:
                     record.save(update_fields=update_fields)
 
                 logger.info(
-                    "Successfully processed %s:%s", record.museum_slug, record.object_number
+                    "Successfully processed %s:%s",
+                    record.museum_slug,
+                    record.object_number,
                 )
 
                 # Optional delay for controlled processing rate

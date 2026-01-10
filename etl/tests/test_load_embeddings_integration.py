@@ -196,7 +196,7 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
         "Payload museum_db_id should match record"
     )
     assert "title" in payload, "Payload should have title"
-    assert "artist" in payload, "Payload should have artist"
+    assert "artists" in payload, "Payload should have artists"
     assert "production_date" in payload, "Payload should have production_date"
     assert "work_types" in payload, "Payload should have work_types"
     assert "searchable_work_types" in payload, (
