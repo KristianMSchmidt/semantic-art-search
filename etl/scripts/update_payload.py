@@ -65,7 +65,6 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "djangoconfig.settings")
 django.setup()
 
 from artsearch.src.services.qdrant_service import QdrantService
-from artsearch.src.config import config
 from etl.models import TransformedData
 
 
@@ -110,82 +109,56 @@ def adhoc_update_payload(old_payload: dict) -> dict:
     return new_payload
 
 
-def main(
+def main_upsert_bulk(
     collection_name: str,
-    batch_size: int = 1000,
+    batch_size: int = 500,
     dry_run: bool = True,
-) -> None:
-    """
-    Update payload fields using Qdrant's efficient set_payload() method.
-
-    This method only transfers payload data (not vectors), making it fast and efficient.
-
-    Args:
-        collection_name: Name of the Qdrant collection
-        batch_size: Number of points to process per batch
-        dry_run: If True, only shows what would be updated (no actual changes)
-    """
-    qdrant_service = QdrantService(collection_name=collection_name)
-    next_page_token = None
-    num_points = 0
-
-    logging.info(
-        f"Starting payload update on collection '{collection_name}' - dry_run={dry_run}"
-    )
+):
+    qdrant = QdrantService(collection_name).qdrant_client
+    next_offset = None
+    total = 0
 
     while True:
-        # Fetch points (no vectors needed - more efficient!)
-        points, next_page_token = qdrant_service.fetch_points(
-            next_page_token,
+        points, next_offset = qdrant.scroll(
+            collection_name=collection_name,
             limit=batch_size,
-            with_vectors=False,
+            with_vectors=True,
             with_payload=True,
+            offset=next_offset,
         )
 
-        # Process each point
-        for point in points:
-            if not point.payload:
-                logging.warning(f"Point {point.id} has missing payload")
-                continue
-
-            new_payload = adhoc_update_payload(point.payload)
-
-            if not dry_run:
-                # Old approach: set_payload merges with existing payload (doesn't delete missing fields)
-                # qdrant_service.qdrant_client.set_payload(
-                #     collection_name=collection_name,
-                #     payload=new_payload,
-                #     points=[point.id],  # type: ignore
-                # )
-
-                # Use overwrite_payload to completely replace payload (deletes fields not in new_payload)
-                qdrant_service.qdrant_client.overwrite_payload(
-                    collection_name=collection_name,
-                    payload=new_payload,
-                    points=[point.id],  # type: ignore
-                )
-
-        num_points += len(points)
-        logging.info(f"Processed {num_points} points so far...")
-
-        if next_page_token is None:  # No more points left
+        if not points:
             break
 
-    if dry_run:
-        logging.info(
-            f"DRY RUN complete: Would have updated {num_points} points. "
-            f"Set dry_run=False to apply changes."
-        )
-    else:
-        logging.info(
-            f"Successfully updated {num_points} points in collection {collection_name}"
-        )
+        upserts = []
+
+        for p in points:
+            assert p.payload is not None
+            final_payload = adhoc_update_payload(p.payload)
+            assert final_payload
+            upserts.append(
+                {
+                    "id": p.id,
+                    "vector": p.vector,  # all 4 vectors, unchanged
+                    "payload": final_payload,
+                }
+            )
+
+        if not dry_run:
+            qdrant.upsert(
+                collection_name=collection_name,
+                points=upserts,
+            )
+
+        total += len(upserts)
+        logging.info(f"Processed {total} points")
+
+        if next_offset is None:
+            break
 
 
 if __name__ == "__main__":
-    # Choose your collection
-    # collection_name = config.qdrant_collection_name_etl
-    collection_name = config.qdrant_collection_name_app
+    collection_name = "artworks_prod_v1"
 
     confirmation = input(
         f"Are you sure you want to update payloads in collection '{collection_name}'? (yes/no): "
@@ -195,10 +168,5 @@ if __name__ == "__main__":
         logging.info("Operation cancelled by user.")
         exit(0)
 
-    # Run with dry_run=True first to preview changes
-    # main(collection_name=collection_name, batch_size=1000, dry_run=True)
-
-    # Once you're confident, set dry_run=False to apply changes
-    main(collection_name=collection_name, batch_size=1000, dry_run=False)
-
-    pass
+    # main_upsert_bulk(collection_name=collection_name, batch_size=500, dry_run=True)
+    main_upsert_bulk(collection_name=collection_name, batch_size=500, dry_run=False)
