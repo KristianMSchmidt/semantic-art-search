@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Task Management
+
+This project uses **Beads** (`bd`) for issue tracking and workflow management. See `AGENTS.md` for complete workflow instructions, including session completion requirements.
+
 ## Project Overview
 
 Semantic Art Search is a Django-based web application that uses CLIP (Contrastive Language-Image Pre-training) to enable semantic search of artwork collections from multiple museums. The system allows users to search artworks using natural language queries and find visually or thematically similar pieces.
