@@ -1,4 +1,13 @@
 services:
+  # Qdrant vector database
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: always
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - internal
+
   web:
     restart: always
     build: .
@@ -9,6 +18,7 @@ services:
       - 8017
     networks:
       - reverse-proxy_proxynet
+      - internal
 
   nginx:
     restart: always
@@ -47,7 +57,9 @@ services:
 
 volumes:
   static_volume: {}
+  qdrant_data: {}
 
 networks:
   reverse-proxy_proxynet:
     external: true
+  internal:
