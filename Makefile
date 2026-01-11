@@ -88,6 +88,63 @@ stats: ## Get work type stats
 	python -m artsearch.src.services.museum_stats_service
 
 
+# ---------- Qdrant Vector Database ---------- #
+
+qdrant-info: ## Show collection info (point count, vectors, indices)
+	docker compose -f docker-compose.dev.yml exec web curl -s http://qdrant:6333/collections/artworks_prod_v1 | python -m json.tool
+
+qdrant-health: ## Check Qdrant health status
+	docker compose -f docker-compose.dev.yml exec web curl -s http://qdrant:6333/health
+
+qdrant-collections: ## List all collections
+	docker compose -f docker-compose.dev.yml exec web curl -s http://qdrant:6333/collections | python -m json.tool
+
+qdrant-logs: ## Show Qdrant container logs
+	docker compose -f docker-compose.dev.yml logs qdrant --tail=50
+
+qdrant-ui: ## Instructions for accessing Qdrant Web UI
+	@echo "Qdrant Web UI is running at http://localhost:6333/dashboard"
+	@echo "Access it by opening http://localhost:6333/dashboard in your browser"
+
+qdrant-snapshot: ## Create a snapshot of the collection
+	docker compose -f docker-compose.dev.yml exec web curl -X POST http://qdrant:6333/collections/artworks_prod_v1/snapshots
+
+qdrant-stats: ## Show collection statistics (quick summary)
+	@echo "Collection: artworks_prod_v1"
+	@docker compose -f docker-compose.dev.yml exec web curl -s http://qdrant:6333/collections/artworks_prod_v1 | python -c "import sys, json; data=json.load(sys.stdin); print(f\"Points: {data['result']['points_count']:,}\"); print(f\"Status: {data['result']['status']}\"); print(f\"Vectors: {', '.join(data['result']['config']['params']['vectors'].keys())}\")"
+
+prod_qdrant-info: ## [PROD] Show production collection info
+	docker compose -f docker-compose.prod.yml exec web curl -s http://qdrant:6333/collections/artworks_prod_v1 | python -m json.tool
+
+prod_qdrant-health: ## [PROD] Check production Qdrant health
+	docker compose -f docker-compose.prod.yml exec web curl -s http://qdrant:6333/health
+
+prod_qdrant-collections: ## [PROD] List all production collections
+	docker compose -f docker-compose.prod.yml exec web curl -s http://qdrant:6333/collections | python -m json.tool
+
+prod_qdrant-logs: ## [PROD] Show production Qdrant logs
+	docker compose -f docker-compose.prod.yml logs qdrant --tail=50
+
+prod_qdrant-ui-tunnel: ## [PROD] Instructions for SSH tunnel to access Qdrant Web UI
+	@echo "==================================================================="
+	@echo "To access Qdrant Web UI on production server:"
+	@echo ""
+	@echo "1. Open SSH tunnel from your LOCAL machine:"
+	@echo "   ssh -L 6333:localhost:6333 your-server-address"
+	@echo ""
+	@echo "2. Open in browser: http://localhost:6333/dashboard"
+	@echo ""
+	@echo "The tunnel will forward the server's Qdrant UI to your local machine"
+	@echo "==================================================================="
+
+prod_qdrant-snapshot: ## [PROD] Create a snapshot of the production collection
+	docker compose -f docker-compose.prod.yml exec web curl -X POST http://qdrant:6333/collections/artworks_prod_v1/snapshots
+
+prod_qdrant-stats: ## [PROD] Show production collection statistics
+	@echo "Collection: artworks_prod_v1 (Production)"
+	@docker compose -f docker-compose.prod.yml exec web curl -s http://qdrant:6333/collections/artworks_prod_v1 | python -c "import sys, json; data=json.load(sys.stdin); print(f\"Points: {data['result']['points_count']:,}\"); print(f\"Status: {data['result']['status']}\"); print(f\"Vectors: {', '.join(data['result']['config']['params']['vectors'].keys())}\")"
+
+
 # ---------- Database Utilities ---------- #
 
 db-stop: ## Stop and remove local db container (cleanup for server)
