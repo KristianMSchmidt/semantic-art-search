@@ -116,7 +116,9 @@ def main_upsert_bulk(
 ):
     qdrant = QdrantService(collection_name).qdrant_client
     next_offset = None
-    total = 0
+    total_processed = 0
+    total_updated = 0
+    total_unchanged = 0
 
     while True:
         points, next_offset = qdrant.scroll(
@@ -131,30 +133,49 @@ def main_upsert_bulk(
             break
 
         upserts = []
+        batch_updated = 0
+        batch_unchanged = 0
 
         for p in points:
             assert p.payload is not None
             final_payload = adhoc_update_payload(p.payload)
             assert final_payload
-            upserts.append(
-                {
-                    "id": p.id,
-                    "vector": p.vector,  # all 4 vectors, unchanged
-                    "payload": final_payload,
-                }
-            )
 
-        if not dry_run:
+            # Only upsert if payload changed
+            if final_payload != p.payload:
+                upserts.append(
+                    {
+                        "id": p.id,
+                        "vector": p.vector,  # all 4 vectors, unchanged
+                        "payload": final_payload,
+                    }
+                )
+                batch_updated += 1
+            else:
+                batch_unchanged += 1
+
+        if not dry_run and upserts:
             qdrant.upsert(
                 collection_name=collection_name,
                 points=upserts,
             )
 
-        total += len(upserts)
-        logging.info(f"Processed {total} points")
+        total_processed += len(points)
+        total_updated += batch_updated
+        total_unchanged += batch_unchanged
+
+        logging.info(
+            f"Batch: {batch_unchanged} unchanged, {batch_updated} updated. "
+            f"Total: {total_processed} processed, {total_updated} updated"
+        )
 
         if next_offset is None:
             break
+
+    logging.info(
+        f"Summary: {total_processed} total processed, "
+        f"{total_updated} updated, {total_unchanged} unchanged"
+    )
 
 
 if __name__ == "__main__":
@@ -168,5 +189,5 @@ if __name__ == "__main__":
         logging.info("Operation cancelled by user.")
         exit(0)
 
-    # main_upsert_bulk(collection_name=collection_name, batch_size=500, dry_run=True)
-    main_upsert_bulk(collection_name=collection_name, batch_size=500, dry_run=False)
+    DRY_RUN = False
+    main_upsert_bulk(collection_name=collection_name, batch_size=50, dry_run=DRY_RUN)
