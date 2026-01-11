@@ -75,34 +75,127 @@ make prod_qdrant-ui-tunnel
 
 ### Option 1: Qdrant Snapshots (Recommended)
 
-**Create snapshot:**
+Snapshots are Qdrant's built-in backup mechanism. They create a point-in-time backup of your collection.
+
+#### How Snapshots Work
+
+**Where are snapshots stored?**
+- Snapshots are stored **inside the Docker volume** on your server: `/qdrant/storage/collections/artworks_prod_v1/snapshots/`
+- They persist as long as the Docker volume exists
+- They survive container restarts
+
+**Do I need to download them?**
+- **For disaster recovery: YES** - Download snapshots to your local machine for off-site backup
+- **For quick local restore: NO** - Snapshots on the server can be used directly
+- **Best practice:** Keep the latest 2-3 snapshots on the server, download monthly snapshots for long-term backup
+
+**What happens to old snapshots?**
+- Snapshots **do NOT expire automatically** - you must delete them manually
+- They take up disk space (~same size as your collection data)
+- Recommended: Keep only recent snapshots on server, delete old ones after downloading
+
+---
+
+#### Creating a Snapshot
+
 ```bash
 make prod_qdrant-snapshot
 ```
 
-**List available snapshots:**
+This creates a snapshot with timestamp: `artworks_prod_v1-YYYY-MM-DD-HH-MM-SS.snapshot`
+
+**Storage location on server:**
+```
+/var/lib/docker/volumes/live-app_qdrant_data/_data/collections/artworks_prod_v1/snapshots/
+```
+
+---
+
+#### Listing Snapshots
+
 ```bash
 docker compose -f docker-compose.prod.yml exec web curl -s \
   http://qdrant:6333/collections/artworks_prod_v1/snapshots
 ```
 
-**Download snapshot to local machine:**
-```bash
-# 1. Find snapshot name from list above (e.g., "artworks_prod_v1-2024-01-11-14-30-00.snapshot")
-# 2. Download it
-docker compose -f docker-compose.prod.yml exec web curl -s \
-  http://qdrant:6333/collections/artworks_prod_v1/snapshots/SNAPSHOT_NAME \
-  > backup-$(date +%Y%m%d).snapshot
+**Example output:**
+```json
+{
+  "result": {
+    "snapshots": [
+      {
+        "name": "artworks_prod_v1-2026-01-11-14-30-00.snapshot",
+        "creation_time": "2026-01-11T14:30:00Z",
+        "size": 1073741824
+      }
+    ]
+  }
+}
 ```
 
-**Restore from snapshot:**
+---
+
+#### Downloading Snapshot (Off-site Backup)
+
+**Step 1: List snapshots to find the name**
 ```bash
-# 1. Upload snapshot file to server
-# 2. Restore collection
-docker compose -f docker-compose.prod.yml exec web curl -X PUT \
-  http://qdrant:6333/collections/artworks_prod_v1/snapshots/upload \
-  --data-binary @backup.snapshot
+docker compose -f docker-compose.prod.yml exec web curl -s \
+  http://qdrant:6333/collections/artworks_prod_v1/snapshots
 ```
+
+**Step 2: Download to your local machine**
+```bash
+# Replace SNAPSHOT_NAME with actual name from step 1
+docker compose -f docker-compose.prod.yml exec web curl -s \
+  http://qdrant:6333/collections/artworks_prod_v1/snapshots/SNAPSHOT_NAME \
+  > qdrant-backup-$(date +%Y%m%d).snapshot
+```
+
+**File size:** ~1-2 GB for full collection (268,096 points)
+
+**Recommended frequency:** Monthly downloads, keep last 3 months locally
+
+---
+
+#### Restoring from Snapshot
+
+**Scenario 1: Restore from snapshot still on server**
+```bash
+# List snapshots
+docker compose -f docker-compose.prod.yml exec web curl -s \
+  http://qdrant:6333/collections/artworks_prod_v1/snapshots
+
+# Restore (Qdrant will use the snapshot file already on server)
+docker compose -f docker-compose.prod.yml exec web curl -X PUT \
+  "http://qdrant:6333/collections/artworks_prod_v1/snapshots/SNAPSHOT_NAME/recover"
+```
+
+**Scenario 2: Restore from downloaded snapshot**
+```bash
+# 1. Upload snapshot file back to server
+scp qdrant-backup-20260111.snapshot kristian@your-server:/tmp/
+
+# 2. On server, restore via upload
+cd /path/to/project
+docker compose -f docker-compose.prod.yml exec -T web curl -X POST \
+  "http://qdrant:6333/collections/artworks_prod_v1/snapshots/upload" \
+  --data-binary @/tmp/qdrant-backup-20260111.snapshot
+```
+
+---
+
+#### Deleting Old Snapshots
+
+```bash
+# Delete a specific snapshot (replace SNAPSHOT_NAME)
+docker compose -f docker-compose.prod.yml exec web curl -X DELETE \
+  http://qdrant:6333/collections/artworks_prod_v1/snapshots/SNAPSHOT_NAME
+```
+
+**When to delete:**
+- After downloading for off-site backup
+- When you have too many old snapshots consuming disk space
+- Keep at least 1-2 recent snapshots on server for quick recovery
 
 ### Option 2: Docker Volume Backup
 
