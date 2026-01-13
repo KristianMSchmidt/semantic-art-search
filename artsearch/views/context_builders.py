@@ -13,6 +13,7 @@ from artsearch.src.services.museum_stats_service import (
     get_total_works_for_filters,
 )
 from artsearch.src.services.search_service import handle_search
+from artsearch.src.services.translation_service import SUPPORTED_LANGUAGES
 from artsearch.src.utils.get_museums import get_museum_slugs
 from artsearch.src.constants.ui import EXAMPLE_QUERIES
 from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
@@ -43,6 +44,18 @@ class SearchParams:
     @property
     def offset(self) -> int:
         return retrieve_offset(self.request)
+
+    @property
+    def language(self) -> str:
+        """Extract and validate language from request.
+
+        Returns language code (e.g., 'en', 'da', 'nl') from request parameter.
+        Defaults to 'en' if not provided or invalid.
+        """
+        lang = self.request.GET.get("lang", "en")
+        if lang not in SUPPORTED_LANGUAGES:
+            return "en"
+        return lang
 
 
 @dataclass
@@ -232,6 +245,7 @@ def build_search_context(params: SearchParams) -> dict[str, Any]:
         museum_prefilter=museum_prefilter,
         work_type_prefilter=work_type_prefilter,
         total_works=total_works,
+        language=params.language,
     )
 
     urls = make_urls_with_params(

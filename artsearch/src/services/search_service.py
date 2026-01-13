@@ -5,6 +5,7 @@ from artsearch.src.services.qdrant_service import (
     QdrantService,
     SearchFunctionArguments,
 )
+from artsearch.src.services.translation_service import translate_to_english
 from artsearch.src.utils.get_museums import get_museum_full_name, get_museum_slugs
 from artsearch.src.config import config
 
@@ -88,9 +89,20 @@ def handle_search(
     work_type_prefilter: list[str] | None,
     total_works: int | None = None,
     museum_slugs: list[str] = get_museum_slugs(),
+    language: str = "en",
 ) -> dict[Any, Any]:
     """
     Handle the search logic based on the provided query and filters.
+
+    Args:
+        query: The search query text
+        offset: Pagination offset
+        limit: Number of results to return
+        museum_prefilter: List of museum slugs to filter by
+        work_type_prefilter: List of work types to filter by
+        total_works: Total number of works matching filters
+        museum_slugs: List of supported museum slugs
+        language: Language code for query translation (e.g., 'en', 'da', 'nl')
     """
     qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
 
@@ -118,14 +130,21 @@ def handle_search(
             error_type = "error"
     else:
         # The user submitted a query.
+        # Translate query if needed (for CLIP embedding)
+        # Keep original query for object number detection
+        translation_result = translate_to_english(query, language)
+        translated_query = translation_result.translated_text
+
         search_arguments = SearchFunctionArguments(
-            query=query,
+            query=translated_query,  # Use translated query for CLIP embedding
             limit=limit,
             offset=offset,
             work_type_prefilter=work_type_prefilter,
             museum_prefilter=museum_prefilter,
         )
         try:
+            # Use ORIGINAL query for object number detection
+            # (object numbers shouldn't be translated)
             query_analysis = analyze_query(query, museum_slugs)
             if query_analysis.is_find_similar_query:
                 search_arguments.object_number = query_analysis.object_number

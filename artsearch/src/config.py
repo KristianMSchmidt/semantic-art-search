@@ -39,6 +39,11 @@ class Config(BaseModel):
     # OpenAI configuration
     openai_api_key: str
 
+    # Translation configuration
+    libretranslate_url: str
+    translation_timeout: float = 2.0
+    translation_enabled: bool = True
+
 
 def create_config():
     env_files = [".env.dev", ".env.prod"]
@@ -75,6 +80,10 @@ def create_config():
     image_jpeg_quality = int(os.getenv("IMAGE_JPEG_QUALITY", "85"))
     # OpenAI configuration
     openai_api_key = os.getenv("OPENAI_API_KEY")
+    # Translation configuration
+    libretranslate_url = os.getenv("LIBRETRANSLATE_URL")
+    translation_timeout = float(os.getenv("TRANSLATION_TIMEOUT", "2.0"))
+    translation_enabled = os.getenv("TRANSLATION_ENABLED", "True").lower() == "true"
 
     if not qdrant_url:
         raise ValueError("QDRANT_URL is not set")
@@ -110,6 +119,8 @@ def create_config():
         raise ValueError("POSTGRES_PORT is not set")
     if not openai_api_key:
         raise ValueError("OPENAI_API_KEY is not set")
+    if translation_enabled and not libretranslate_url:
+        raise ValueError("LIBRETRANSLATE_URL is not set but TRANSLATION_ENABLED is True")
 
     return Config(
         qdrant_url=qdrant_url,
@@ -134,6 +145,9 @@ def create_config():
         image_max_dimension=image_max_dimension,
         image_jpeg_quality=image_jpeg_quality,
         openai_api_key=openai_api_key,
+        libretranslate_url=libretranslate_url,
+        translation_timeout=translation_timeout,
+        translation_enabled=translation_enabled,
     )
 
 

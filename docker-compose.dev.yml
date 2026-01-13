@@ -25,6 +25,20 @@ services:
       - "6333:6333"  # REST API
       - "6334:6334"  # gRPC
 
+  # LibreTranslate translation service
+  libretranslate:
+    image: libretranslate/libretranslate:latest
+    environment:
+      LT_LOAD_ONLY: en,da,nl
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/languages || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
   # Django web app
   web:
     build: .

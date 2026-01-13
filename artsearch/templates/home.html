@@ -2,6 +2,58 @@
 {% load static %}
 
 {% block nav_links %}
+<!-- Language Selector -->
+<div x-data="{
+    open: false,
+    selected: localStorage.getItem('searchLang') || 'en',
+    languages: [
+        { code: 'en', name: 'English' },
+        { code: 'da', name: 'Dansk' },
+        { code: 'nl', name: 'Nederlands' }
+    ],
+    selectLanguage(code) {
+        this.selected = code;
+        localStorage.setItem('searchLang', code);
+        this.open = false;
+    },
+    get selectedName() {
+        const lang = this.languages.find(l => l.code === this.selected);
+        return lang ? lang.name : 'English';
+    }
+}"
+     class="relative"
+     @click.away="open = false">
+    <button
+        @click="open = !open"
+        class="text-blue-100 hover:text-blue-50 px-3 py-1 rounded flex items-center gap-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.107 3.567 1 1 0 01-1.334-1.49 17.087 17.087 0 003.13-3.733 18.992 18.992 0 01-1.487-2.494 1 1 0 111.79-.89c.234.47.489.928.764 1.372.417-.934.752-1.913.997-2.927H3a1 1 0 110-2h3V3a1 1 0 011-1zm6 6a1 1 0 01.894.553l2.991 5.982a.869.869 0 01.02.037l.99 1.98a1 1 0 11-1.79.895L15.383 16h-4.764l-.724 1.447a1 1 0 11-1.788-.894l.99-1.98.019-.038 2.99-5.982A1 1 0 0113 8zm-1.382 6h2.764L13 11.236 11.618 14z" clip-rule="evenodd" />
+        </svg>
+        <span x-text="selectedName" class="text-sm"></span>
+        <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+    </button>
+    <div x-show="open"
+         x-cloak
+         x-transition:enter="transition ease-out duration-100"
+         x-transition:enter-start="transform opacity-0 scale-95"
+         x-transition:enter-end="transform opacity-100 scale-100"
+         x-transition:leave="transition ease-in duration-75"
+         x-transition:leave-start="transform opacity-100 scale-100"
+         x-transition:leave-end="transform opacity-0 scale-95"
+         class="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg py-1 z-50">
+        <template x-for="lang in languages" :key="lang.code">
+            <button
+                @click="selectLanguage(lang.code)"
+                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                :class="selected === lang.code ? 'bg-blue-50 font-medium' : ''"
+                x-text="lang.name">
+            </button>
+        </template>
+    </div>
+</div>
+
 <a
 href="https://github.com/KristianMSchmidt/semantic-art-search/blob/master/README.md"
 target="_blank" rel="noopener noreferrer"
@@ -465,6 +517,12 @@ title="View on GitHub"
       if (evt.detail.target.id === 'search-results') {
         window.scrollTo({ top: 0, behavior: 'auto' });
       }
+    });
+
+    // Inject language parameter into all HTMX requests
+    document.body.addEventListener('htmx:configRequest', (evt) => {
+      const searchLang = localStorage.getItem('searchLang') || 'en';
+      evt.detail.parameters['lang'] = searchLang;
     });
 </script>
 {% endblock content %}
