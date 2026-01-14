@@ -40,7 +40,7 @@ class Config(BaseModel):
     openai_api_key: str
 
     # Translation configuration
-    libretranslate_url: str
+    libretranslate_url: str | None
     translation_timeout: float = 2.0
     translation_enabled: bool = True
 
@@ -120,7 +120,9 @@ def create_config():
     if not openai_api_key:
         raise ValueError("OPENAI_API_KEY is not set")
     if translation_enabled and not libretranslate_url:
-        raise ValueError("LIBRETRANSLATE_URL is not set but TRANSLATION_ENABLED is True")
+        raise ValueError(
+            "LIBRETRANSLATE_URL is not set but TRANSLATION_ENABLED is True"
+        )
 
     return Config(
         qdrant_url=qdrant_url,
