@@ -8,6 +8,9 @@
 update-payloads: ## [DEV] Update Qdrant collection payload (ad-hoc ETL maintenance)
 	docker compose -f docker-compose.dev.yml exec web python -m etl.scripts.update_payload
 
+prod-update-payloads: ## [PROD] Update Qdrant collection payload (ad-hoc ETL maintenance)
+	docker compose -f docker-compose.prod.yml exec web python -m etl.scripts.update_payload
+
 # ---------- ETL Extract ---------- #
 
 extract-smk: ## [DEV] Extract raw data from SMK

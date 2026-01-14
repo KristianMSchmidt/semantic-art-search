@@ -91,15 +91,15 @@ def test_transform_smk_artwork_from_raw_to_transformed():
     # Verify optional fields are present (even if None/empty is valid)
     assert hasattr(transformed, "title")
     assert hasattr(transformed, "work_types")
-    assert hasattr(transformed, "artist")
+    assert hasattr(transformed, "artists")
     assert isinstance(transformed.work_types, list)
-    assert isinstance(transformed.artist, list)
+    assert isinstance(transformed.artists, list)
 
     # Verify at least one of these fields is populated (sanity check that transformer is working)
     has_data = (
         transformed.title is not None
         or len(transformed.work_types) > 0
-        or len(transformed.artist) > 0
+        or len(transformed.artists) > 0
         or transformed.production_date_start is not None
         or transformed.period is not None
     )

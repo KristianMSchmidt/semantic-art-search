@@ -26,7 +26,7 @@ class TransformedArtworkData(BaseModel):
     work_types: list[str] = Field(
         default_factory=list, description="Raw work type classifications"
     )
-    artist: list[str] = Field(default_factory=list, description="Artist names")
+    artists: list[str] = Field(default_factory=list, description="Artist names")
     production_date_start: Optional[int] = Field(
         default=None, description="Start year of production"
     )

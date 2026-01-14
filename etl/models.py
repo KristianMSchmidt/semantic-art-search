@@ -87,7 +87,7 @@ class TransformedData(models.Model):
     work_types = models.JSONField(
         default=list, help_text="List of work types in original language"
     )  # list[str]
-    artist = models.JSONField(default=list)  # list[str]
+    artists = models.JSONField(default=list)  # list[str]
     production_date_start = models.IntegerField(null=True, blank=True)
     production_date_end = models.IntegerField(null=True, blank=True)
     period = models.CharField(max_length=100, null=True, blank=True)
@@ -134,8 +134,8 @@ class TransformedData(models.Model):
 
     def get_artists(self):
         """Get the artist names"""
-        if len(self.artist) > 0:
-            return ", ".join(self.artist)
+        if len(self.artists) > 0:
+            return ", ".join(self.artists)
         return "Unknown Artist"
 
     def get_period(self):

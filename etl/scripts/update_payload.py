@@ -50,8 +50,22 @@ SAFETY:
 """
 
 import logging
+import os
+import sys
+import django
+
+# Add project root to Python path
+project_root = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+sys.path.insert(0, project_root)
+
+# Set up Django environment before importing models
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "djangoconfig.settings")
+django.setup()
+
 from artsearch.src.services.qdrant_service import QdrantService
-from artsearch.src.config import config
+from etl.models import TransformedData
 
 
 # Configure logging
@@ -84,98 +98,96 @@ def adhoc_update_payload(old_payload: dict) -> dict:
     new_payload = old_payload.copy()
 
     ##### MODIFY THIS SECTION WITH YOUR UPDATE LOGIC #####
-    # Example: Add a new field
-    # new_payload["credit_line"] = "Museum Purchase"
-
-    # Example: Update existing field
-    # old_thumbnail_url = new_payload["thumbnail_url"]
-    # new_thumbnail_url = adjust_thumbnail_size(old_thumbnail_url)
-    # new_payload["thumbnail_url"] = new_thumbnail_url
+    # Delete the old "artist" field (replaced by "artists" list)
+    if "artists" in new_payload:
+        if "artist" in new_payload:
+            del new_payload["artist"]
+    else:
+        breakpoint()
     #######################################################
 
     return new_payload
 
 
-def main(
+def main_upsert_bulk(
     collection_name: str,
-    batch_size: int = 1000,
+    batch_size: int = 500,
     dry_run: bool = True,
-) -> None:
-    """
-    Update payload fields using Qdrant's efficient set_payload() method.
-
-    This method only transfers payload data (not vectors), making it fast and efficient.
-
-    Args:
-        collection_name: Name of the Qdrant collection
-        batch_size: Number of points to process per batch
-        dry_run: If True, only shows what would be updated (no actual changes)
-    """
-    qdrant_service = QdrantService(collection_name=collection_name)
-    next_page_token = None
-    num_points = 0
-
-    logging.info(
-        f"Starting payload update on collection '{collection_name}' - dry_run={dry_run}"
-    )
+):
+    qdrant = QdrantService(collection_name).qdrant_client
+    next_offset = None
+    total_processed = 0
+    total_updated = 0
+    total_unchanged = 0
 
     while True:
-        # Fetch points (no vectors needed - more efficient!)
-        points, next_page_token = qdrant_service.fetch_points(
-            next_page_token,
+        points, next_offset = qdrant.scroll(
+            collection_name=collection_name,
             limit=batch_size,
-            with_vectors=False,
+            with_vectors=True,
             with_payload=True,
+            offset=next_offset,
         )
 
-        # Process each point
-        for point in points:
-            if not point.payload:
-                logging.warning(f"Point {point.id} has missing payload")
-                continue
-
-            new_payload = adhoc_update_payload(point.payload)
-
-            if not dry_run:
-                # Use set_payload for efficient payload-only updates
-                qdrant_service.qdrant_client.set_payload(
-                    collection_name=collection_name,
-                    payload=new_payload,
-                    points=[point.id],  # type: ignore
-                )
-
-        num_points += len(points)
-        logging.info(f"Processed {num_points} points so far...")
-
-        if next_page_token is None:  # No more points left
+        if not points:
             break
 
-    if dry_run:
+        upserts = []
+        batch_updated = 0
+        batch_unchanged = 0
+
+        for p in points:
+            assert p.payload is not None
+            final_payload = adhoc_update_payload(p.payload)
+            assert final_payload
+
+            # Only upsert if payload changed
+            if final_payload != p.payload:
+                upserts.append(
+                    {
+                        "id": p.id,
+                        "vector": p.vector,  # all 4 vectors, unchanged
+                        "payload": final_payload,
+                    }
+                )
+                batch_updated += 1
+            else:
+                batch_unchanged += 1
+
+        if not dry_run and upserts:
+            qdrant.upsert(
+                collection_name=collection_name,
+                points=upserts,
+            )
+
+        total_processed += len(points)
+        total_updated += batch_updated
+        total_unchanged += batch_unchanged
+
         logging.info(
-            f"DRY RUN complete: Would have updated {num_points} points. "
-            f"Set dry_run=False to apply changes."
+            f"Batch: {batch_unchanged} unchanged, {batch_updated} updated. "
+            f"Total: {total_processed} processed, {total_updated} updated"
         )
-    else:
-        logging.info(
-            f"Successfully updated {num_points} points in collection {collection_name}"
-        )
+
+        if next_offset is None:
+            break
+
+    logging.info(
+        f"Summary: {total_processed} total processed, "
+        f"{total_updated} updated, {total_unchanged} unchanged"
+    )
 
 
 if __name__ == "__main__":
-    # Choose your collection
-    collection_name = config.qdrant_collection_name_etl
+    collection_name = "artworks_prod_v1"
 
     confirmation = input(
         f"Are you sure you want to update payloads in collection '{collection_name}'? (yes/no): "
     )
+
     if confirmation.lower() != "yes":
         logging.info("Operation cancelled by user.")
         exit(0)
 
-    # Run with dry_run=True first to preview changes
-    # main(collection_name=collection_name, batch_size=1000, dry_run=True)
-
-    # Once you're confident, set dry_run=False to apply changes
-    # main(collection_name=collection_name, batch_size=1000, dry_run=False)
-
-    pass
+    DRY_RUN = False
+    main_upsert_bulk(collection_name=collection_name, batch_size=50, dry_run=DRY_RUN)

@@ -24,7 +24,7 @@
         </p>
     {% endif %}
 
-    {% if total_works == 0 %}
+    {% if is_first_batch and total_works == 0 %}
         <div class="text-center mt-8">
             <p class="text-lg text-gray-600">
             No artworks match your selected filters.

@@ -81,7 +81,7 @@ class BaseTransformer(ABC):
 
             # Extract optional fields
             title = self.extract_title(transformer_args.raw_json)
-            artist = self.extract_artists(transformer_args.raw_json)
+            artists = self.extract_artists(transformer_args.raw_json)
             production_date_start, production_date_end = self.extract_production_dates(
                 transformer_args.raw_json
             )
@@ -95,7 +95,7 @@ class BaseTransformer(ABC):
                 title=title,
                 work_types=work_types,
                 searchable_work_types=searchable_work_types,
-                artist=artist,
+                artists=artists,
                 production_date_start=production_date_start,
                 production_date_end=production_date_end,
                 period=period,
