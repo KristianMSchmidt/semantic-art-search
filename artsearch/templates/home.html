@@ -305,7 +305,7 @@ title="View on GitHub"
      class="fixed inset-0 z-50 bg-black/95 h-screen supports-[height:100svh]:h-svh w-screen"
      style="touch-action: none;"
      @keydown.escape.window="if (open) close()"
-     @keydown.space.window.prevent="if (open) showInfo = !showInfo"
+     @keydown.space.window="if (open) { $event.preventDefault(); showInfo = !showInfo; }"
      @open-viewer.window="openWith($event.detail)"
      @click="close()">
 

@@ -28,6 +28,7 @@ class TranslationResult:
         source_language: The source language code
         translation_used: Whether translation was actually performed
     """
+
     translated_text: str
     original_text: str
     source_language: str
