@@ -26,7 +26,7 @@
 
     {% if is_first_batch and total_works == 0 %}
         <div class="text-center mt-8">
-            <p class="text-lg text-gray-600">
+            <p class="text-lg text-gray-600" x-text="$store.i18n.t('artwork.noResults')">
             No artworks match your selected filters.
             </p>
         </div>

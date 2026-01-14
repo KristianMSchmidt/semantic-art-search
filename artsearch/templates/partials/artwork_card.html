@@ -75,7 +75,8 @@
         hx-get="{% url 'get-artworks' %}"
         hx-target="#search-results"
         hx-swap="innerHTML"
-        hx-include="#search-form">
+        hx-include="#search-form"
+        x-text="$store.i18n.t('artwork.findSimilar')">
         Find similar
       </button>
     </div>
@@ -83,7 +84,7 @@
   </div>
   {% if result.score %}
   <div class="absolute bottom-1 right-2 text-xs text-gray-400">
-    Score: {{ result.score|floatformat:3 }}
+    <span x-text="$store.i18n.t('artwork.score')">Score:</span> {{ result.score|floatformat:3 }}
   </div>
   {% endif %}
 </div>

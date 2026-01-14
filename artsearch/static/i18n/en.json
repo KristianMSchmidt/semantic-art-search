@@ -1,0 +1,64 @@
+{
+  "branding": {
+    "title": "Semantic Art Search"
+  },
+  "home": {
+    "tagline": "Discover art through meaning-driven search!",
+    "searchPlaceholder": "Search by theme, style, emotion, or more...",
+    "examplesTitle": "Try these examples",
+    "showMore": "More",
+    "showLess": "Less",
+    "exampleQueries": [
+      "Ship in a storm",
+      "Reading child",
+      "Orientalism",
+      "Inside cathedral",
+      "Ancient Rome",
+      "War",
+      "Music",
+      "Moonlight by the sea",
+      "Fauvism",
+      "Cubism",
+      "Blue dress",
+      "Death",
+      "Elephant",
+      "Hindu deity",
+      "Painter",
+      "Male model",
+      "Fish still life",
+      "Anatomy lesson",
+      "Winter landscape",
+      "Colorful flowers in a vase",
+      "Crucifixion",
+      "Breastfeeding",
+      "Calligraphy and landscape",
+      "Persian carpet",
+      "Mourning"
+    ]
+  },
+  "artwork": {
+    "tellMeAbout": "Tell me about this artwork",
+    "generatingDescription": "Generating description...",
+    "aboutTitle": "About this artwork",
+    "regenerate": "Regenerate",
+    "findSimilar": "Find similar",
+    "score": "Score:",
+    "noResults": "No artworks match your selected filters.",
+    "descriptionAttribution": "AI-generated description based on artwork image and available metadata"
+  },
+  "errors": {
+    "rateLimitTitle": "Rate limit exceeded",
+    "rateLimitMessage": "Too many requests. Please try again in an hour.",
+    "descriptionError": "Unable to generate description at this time. Please try again later."
+  },
+  "filters": {
+    "selectAll": "Select All",
+    "allMuseums": "All Museums",
+    "museum": "Museum",
+    "museums": "Museums",
+    "allWorkTypes": "All Work Types",
+    "workType": "Work Type",
+    "workTypes": "Work Types",
+    "worksCount": "works"
+  }
+}

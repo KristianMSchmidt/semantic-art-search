@@ -29,8 +29,8 @@
                     :checked="selectedItems.length === allItems.length"
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                 <span class="text-nowrap">
-                    Select All
-                    <span class="text-gray-500 font-normal">({{ filter_ctx.total_work_count }} works)</span>
+                    <span x-text="$store.i18n.t('filters.selectAll')"></span>
+                    <span class="text-gray-500 font-normal">({{ filter_ctx.total_work_count }} <span x-text="$store.i18n.t('filters.worksCount')"></span>)</span>
                 </span>
             </label>
 
@@ -52,7 +52,7 @@
                                 {{ dropdown_item.label | capfirst }}
                             {% endif %}
                             {% if dropdown_item.count is not None %}
-                            <span class="text-gray-500 font-normal">({{ dropdown_item.count }} works)</span>
+                            <span class="text-gray-500 font-normal">({{ dropdown_item.count }} <span x-text="$store.i18n.t('filters.worksCount')"></span>)</span>
                             {% endif %}
                     </span>
                 </label>

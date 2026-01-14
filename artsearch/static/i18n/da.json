@@ -1,0 +1,64 @@
+{
+  "branding": {
+    "title": "Semantic Art Search"
+  },
+  "home": {
+    "tagline": "Opdag kunst gennem meningsbaseret søgning!",
+    "searchPlaceholder": "Søg efter tema, stil, følelse eller mere...",
+    "examplesTitle": "Prøv disse eksempler",
+    "showMore": "Mere",
+    "showLess": "Mindre",
+    "exampleQueries": [
+      "Skib i en storm",
+      "Læsende barn",
+      "Orientalisme",
+      "Inde i katedral",
+      "Antikkens Rom",
+      "Krig",
+      "Musik",
+      "Måneskin ved havet",
+      "Fauvisme",
+      "Kubisme",
+      "Blå kjole",
+      "Død",
+      "Elefant",
+      "Hinduistisk guddom",
+      "Maler",
+      "Mandlig model",
+      "Fiskestilleben",
+      "Anatomilektion",
+      "Vinterlandskab",
+      "Farverige blomster i en vase",
+      "Korsfæstelse",
+      "Amning",
+      "Kalligrafi og landskab",
+      "Persisk tæppe",
+      "Sorg"
+    ]
+  },
+  "artwork": {
+    "tellMeAbout": "Fortæl mig om dette kunstværk",
+    "generatingDescription": "Genererer beskrivelse...",
+    "aboutTitle": "Om dette kunstværk",
+    "regenerate": "Generer igen",
+    "findSimilar": "Find lignende",
+    "score": "Score:",
+    "noResults": "Ingen kunstværker matcher dine valgte filtre.",
+    "descriptionAttribution": "AI-genereret beskrivelse baseret på kunstværkets billede og tilgængelige metadata"
+  },
+  "errors": {
+    "rateLimitTitle": "Hastighedsgrænse overskredet",
+    "rateLimitMessage": "For mange anmodninger. Prøv igen om en time.",
+    "descriptionError": "Kan ikke generere beskrivelse på nuværende tidspunkt. Prøv igen senere."
+  },
+  "filters": {
+    "selectAll": "Vælg alle",
+    "allMuseums": "Alle museer",
+    "museum": "Museum",
+    "museums": "Museer",
+    "allWorkTypes": "Alle værkstyper",
+    "workType": "Værkstype",
+    "workTypes": "Værkstyper",
+    "worksCount": "værker"
+  }
+}

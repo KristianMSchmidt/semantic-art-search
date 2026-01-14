@@ -33,8 +33,61 @@
             display: none !important;
         }
     </style>
-		<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 		<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+		<script>
+			// i18n store for Alpine.js
+			document.addEventListener('alpine:init', () => {
+				Alpine.store('i18n', {
+					locale: localStorage.getItem('searchLang') || 'en',
+					translations: {},
+
+					async init() {
+						await this.loadTranslations(this.locale);
+					},
+
+					async loadTranslations(locale) {
+						try {
+							const response = await fetch(`/static/i18n/${locale}.json`);
+							this.translations = await response.json();
+							this.locale = locale;
+						} catch (error) {
+							console.error(`Failed to load translations for ${locale}:`, error);
+							// Fallback to English if loading fails
+							if (locale !== 'en') {
+								const fallbackResponse = await fetch('/static/i18n/en.json');
+								this.translations = await fallbackResponse.json();
+								this.locale = 'en';
+							}
+						}
+					},
+
+					async setLocale(locale) {
+						await this.loadTranslations(locale);
+						localStorage.setItem('searchLang', locale);
+					},
+
+					t(key) {
+						const keys = key.split('.');
+						let value = this.translations;
+
+						for (const k of keys) {
+							if (value && typeof value === 'object' && k in value) {
+								value = value[k];
+							} else {
+								console.warn(`Translation key not found: ${key}`);
+								return key;
+							}
+						}
+
+						return value;
+					}
+				});
+
+				// Initialize translations on page load
+				Alpine.store('i18n').init();
+			});
+		</script>
+		<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 	</head>
 
 	<body class="bg-gray-50 font-serif leading-normal tracking-normal">
@@ -43,7 +96,7 @@
 		<nav class="bg-blue-500 p-4">
 			<div class="container mx-auto flex justify-between items-center">
 				<!-- Website Name -->
-				<a href="{% url 'home' %}" class="text-blue-50 text-lg font-bold">Semantic Art Search</a>
+				<a href="{% url 'home' %}" class="text-blue-50 text-lg font-bold" x-text="$store.i18n.t('branding.title')"></a>
 				<!-- Navbar links -->
 				<div class="flex space-x-4 items-center">
 					{% block nav_links %}

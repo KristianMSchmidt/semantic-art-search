@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Task Management
 
-This project uses **Beads** (`bd`) for issue tracking and workflow management. See `AGENTS.md` for complete workflow instructions, including session completion requirements.
+This project uses **Beads** (`bd`) for issue tracking and workflow management. See `AGENTS.md` for complete workflow instructions, including session completion requirements. Don't use TODO lists and markdown files to track progress; use Beads instead.
 
 ## Project Overview
 

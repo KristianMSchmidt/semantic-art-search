@@ -1,0 +1,64 @@
+{
+  "branding": {
+    "title": "Semantic Art Search"
+  },
+  "home": {
+    "tagline": "Ontdek kunst door betekenisgedreven zoeken!",
+    "searchPlaceholder": "Zoek op thema, stijl, emotie of meer...",
+    "examplesTitle": "Probeer deze voorbeelden",
+    "showMore": "Meer",
+    "showLess": "Minder",
+    "exampleQueries": [
+      "Schip in een storm",
+      "Lezend kind",
+      "Oriëntalisme",
+      "Binnen kathedraal",
+      "Oude Rome",
+      "Oorlog",
+      "Muziek",
+      "Maanlicht bij de zee",
+      "Fauvisme",
+      "Kubisme",
+      "Blauwe jurk",
+      "Dood",
+      "Olifant",
+      "Hindoeïstische godheid",
+      "Schilder",
+      "Mannelijk model",
+      "Visstilleven",
+      "Anatomieles",
+      "Winterlandschap",
+      "Kleurrijke bloemen in een vaas",
+      "Kruisiging",
+      "Borstvoeding",
+      "Kalligrafie en landschap",
+      "Perzisch tapijt",
+      "Rouw"
+    ]
+  },
+  "artwork": {
+    "tellMeAbout": "Vertel me over dit kunstwerk",
+    "generatingDescription": "Beschrijving genereren...",
+    "aboutTitle": "Over dit kunstwerk",
+    "regenerate": "Opnieuw genereren",
+    "findSimilar": "Vind vergelijkbare",
+    "score": "Score:",
+    "noResults": "Geen kunstwerken komen overeen met uw geselecteerde filters.",
+    "descriptionAttribution": "AI-gegenereerde beschrijving op basis van kunstwerkbeeld en beschikbare metadata"
+  },
+  "errors": {
+    "rateLimitTitle": "Snelheidslimiet overschreden",
+    "rateLimitMessage": "Te veel verzoeken. Probeer het over een uur opnieuw.",
+    "descriptionError": "Kan op dit moment geen beschrijving genereren. Probeer het later opnieuw."
+  },
+  "filters": {
+    "selectAll": "Selecteer alles",
+    "allMuseums": "Alle musea",
+    "museum": "Museum",
+    "museums": "Musea",
+    "allWorkTypes": "Alle werktypes",
+    "workType": "Werktype",
+    "workTypes": "Werktypes",
+    "worksCount": "werken"
+  }
+}
