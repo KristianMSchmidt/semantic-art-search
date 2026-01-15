@@ -501,3 +501,52 @@ def test_language_persists_across_requests(mock_qdrant_service):
     # Verify new language persisted
     assert response.context["current_language"] == "nl"
     assert response.context["current_language_name"] == "Nederlands"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_search_uses_session_language_for_translation(mock_qdrant_service):
+    """
+    Test that search requests use the session language for translation.
+
+    This test verifies the complete flow:
+    1. User sets language to Danish
+    2. User makes a search request
+    3. Translation service receives the Danish language code
+
+    Potential bugs this could catch:
+    - Language not passed from session to search service
+    - Translation service not called with correct language
+    - Session not persisting across HTMX-style requests
+    """
+    client = Client()
+
+    # Step 1: Set language to Danish
+    client.post(reverse("set-language"), {"language": "da"})
+
+    # Verify session has Danish
+    assert client.session.get("user_language") == "da"
+
+    # Step 2: Make a search request
+    with patch(
+        "artsearch.src.services.search_service.translate_to_english"
+    ) as mock_translate:
+        # Mock translation to return translated query
+        mock_translate.return_value = MagicMock(
+            translated_text="child",
+            original_text="barn",
+            source_language="da",
+            translation_used=True,
+        )
+
+        response = client.get(reverse("get-artworks"), {"query": "barn"})
+
+        assert response.status_code == 200
+
+        # Step 3: Verify translation was called with Danish
+        mock_translate.assert_called_once()
+        call_args = mock_translate.call_args
+
+        # The arguments should be (query, language)
+        assert call_args[0][0] == "barn"  # query
+        assert call_args[0][1] == "da"  # language

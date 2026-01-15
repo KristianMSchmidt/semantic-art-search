@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Any, Iterable, Literal
 from dataclasses import dataclass
 from urllib.parse import urlencode
@@ -6,6 +7,8 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.http import HttpRequest
 from django.urls import reverse
+
+logger = logging.getLogger(__name__)
 
 from artsearch.src.services.museum_stats_service import (
     get_work_type_names,
@@ -54,6 +57,7 @@ class SearchParams:
         Defaults to 'en' if not set or invalid.
         """
         lang = self.request.session.get("user_language", "en")
+        logger.debug(f"[LANGUAGE] Session language: {lang}")
         if lang not in SUPPORTED_LANGUAGES:
             return "en"
         return lang

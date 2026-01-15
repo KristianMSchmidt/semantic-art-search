@@ -58,7 +58,21 @@ def translate_to_english(query: str, source_language: str) -> TranslationResult:
         source_language = "en"
 
     # Skip translation if disabled or already English
-    if not config.translation_enabled or source_language == "en":
+    if not config.translation_enabled:
+        logger.info(
+            f"[TRANSLATION SKIP] Translation disabled. Query: '{query}', Language: '{source_language}'"
+        )
+        return TranslationResult(
+            translated_text=query,
+            original_text=query,
+            source_language=source_language,
+            translation_used=False,
+        )
+
+    if source_language == "en":
+        logger.info(
+            f"[TRANSLATION SKIP] Source is English. Query: '{query}'"
+        )
         return TranslationResult(
             translated_text=query,
             original_text=query,

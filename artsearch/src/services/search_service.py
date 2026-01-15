@@ -1,3 +1,4 @@
+import logging
 import traceback
 from typing import Any
 from dataclasses import dataclass
@@ -8,6 +9,8 @@ from artsearch.src.services.qdrant_service import (
 from artsearch.src.services.translation_service import translate_to_english
 from artsearch.src.utils.get_museums import get_museum_full_name, get_museum_slugs
 from artsearch.src.config import config
+
+logger = logging.getLogger(__name__)
 
 
 class QueryParsingError(Exception):
@@ -110,6 +113,8 @@ def handle_search(
     results = []
     error_message = None
     error_type = None
+
+    logger.debug(f"[SEARCH] Query: '{query}', Language: '{language}'")
 
     if query is None or query == "":
         if query is None:
