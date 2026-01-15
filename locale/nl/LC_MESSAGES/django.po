@@ -1,0 +1,21 @@
+# Dutch translations for Semantic Art Search.
+# Copyright (C) 2025
+# This file is distributed under the same license as the project.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Semantic Art Search\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-01-15 00:00+0000\n"
+"PO-Revision-Date: 2025-01-15 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Dutch\n"
+"Language: nl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: artsearch/templates/home.html:59
+msgid "Discover art through meaning-driven search!"
+msgstr "Ontdek kunst door middel van betekenisgedreven zoeken!"

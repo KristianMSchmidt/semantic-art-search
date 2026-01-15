@@ -550,3 +550,134 @@ def test_search_uses_session_language_for_translation(mock_qdrant_service):
         # The arguments should be (query, language)
         assert call_args[0][0] == "barn"  # query
         assert call_args[0][1] == "da"  # language
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_i18n_translates_ui_text_to_danish(mock_qdrant_service):
+    """
+    Test that UI text is translated to Danish when language is set.
+
+    This test verifies:
+    - SessionLanguageMiddleware activates Danish translation
+    - The {% trans %} tag renders Danish text
+    - Translation persists from session
+
+    Potential bugs this could catch:
+    - Middleware not activating translation
+    - Missing .mo files
+    - LOCALE_PATHS misconfigured
+    - {% trans %} tag not working
+    """
+    client = Client()
+
+    # Set language to Danish
+    client.post(reverse("set-language"), {"language": "da"})
+
+    # Load home page
+    response = client.get(reverse("home"))
+
+    assert response.status_code == 200
+
+    # Verify Danish translation appears in rendered HTML
+    content = response.content.decode("utf-8")
+    assert "Opdag kunst gennem meningsdrevet søgning!" in content
+    # English version should NOT appear
+    assert "Discover art through meaning-driven search!" not in content
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_i18n_translates_ui_text_to_dutch(mock_qdrant_service):
+    """
+    Test that UI text is translated to Dutch when language is set.
+
+    This test verifies:
+    - SessionLanguageMiddleware activates Dutch translation
+    - The {% trans %} tag renders Dutch text
+
+    Potential bugs this could catch:
+    - Dutch translation missing
+    - Language-specific .mo file issues
+    """
+    client = Client()
+
+    # Set language to Dutch
+    client.post(reverse("set-language"), {"language": "nl"})
+
+    # Load home page
+    response = client.get(reverse("home"))
+
+    assert response.status_code == 200
+
+    # Verify Dutch translation appears in rendered HTML
+    content = response.content.decode("utf-8")
+    assert "Ontdek kunst door middel van betekenisgedreven zoeken!" in content
+    # English version should NOT appear
+    assert "Discover art through meaning-driven search!" not in content
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_i18n_shows_english_by_default(mock_qdrant_service):
+    """
+    Test that UI text shows English when no language is set.
+
+    This test verifies:
+    - Default language is English
+    - English text renders without session language set
+
+    Potential bugs this could catch:
+    - Wrong default language
+    - Translation activated when it shouldn't be
+    """
+    client = Client()
+
+    # Load home page without setting language
+    response = client.get(reverse("home"))
+
+    assert response.status_code == 200
+
+    # Verify English text appears
+    content = response.content.decode("utf-8")
+    assert "Discover art through meaning-driven search!" in content
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_i18n_language_switch_updates_translation(mock_qdrant_service):
+    """
+    Test that switching languages updates the translated text.
+
+    This test verifies:
+    - Translation changes when language changes
+    - Session-based language switching works correctly
+
+    Potential bugs this could catch:
+    - Translation cached incorrectly
+    - Language switch not propagating to templates
+    """
+    client = Client()
+
+    # Start with English (default)
+    response = client.get(reverse("home"))
+    content = response.content.decode("utf-8")
+    assert "Discover art through meaning-driven search!" in content
+
+    # Switch to Danish
+    client.post(reverse("set-language"), {"language": "da"})
+    response = client.get(reverse("home"))
+    content = response.content.decode("utf-8")
+    assert "Opdag kunst gennem meningsdrevet søgning!" in content
+
+    # Switch to Dutch
+    client.post(reverse("set-language"), {"language": "nl"})
+    response = client.get(reverse("home"))
+    content = response.content.decode("utf-8")
+    assert "Ontdek kunst door middel van betekenisgedreven zoeken!" in content
+
+    # Switch back to English
+    client.post(reverse("set-language"), {"language": "en"})
+    response = client.get(reverse("home"))
+    content = response.content.decode("utf-8")
+    assert "Discover art through meaning-driven search!" in content
