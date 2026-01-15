@@ -1,5 +1,6 @@
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.admin.views.decorators import staff_member_required
 from django_ratelimit.decorators import ratelimit
 from artsearch.views.context_builders import (
@@ -30,6 +31,18 @@ def home_view(request: HttpRequest) -> HttpResponse:
     params = SearchParams(request=request)
     context = build_home_context(params=params)
     return render(request, "home.html", context)
+
+
+def set_language_view(request: HttpRequest) -> HttpResponse:
+    """
+    Set the user's language preference in session and redirect to home.
+    """
+    if request.method == "POST":
+        lang = request.POST.get("language", "en")
+        valid_codes = [code for code, name in settings.LANGUAGES]
+        if lang in valid_codes:
+            request.session[settings.LANGUAGE_SESSION_KEY] = lang
+    return redirect("home")
 
 
 def get_artworks_view(request: HttpRequest) -> HttpResponse:

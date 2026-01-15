@@ -121,6 +121,14 @@ USE_I18N = True
 
 USE_TZ = True
 
+# Supported languages for search
+LANGUAGES = [
+    ("en", "English"),
+    ("da", "Dansk"),
+    ("nl", "Nederlands"),
+]
+LANGUAGE_SESSION_KEY = "user_language"
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/

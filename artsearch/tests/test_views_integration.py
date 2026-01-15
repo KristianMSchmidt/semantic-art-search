@@ -365,3 +365,139 @@ def test_clear_cache_endpoint_clears_caches(mock_qdrant_service):
         == 0
     )
     assert museum_stats_service.get_total_works_for_filters.cache_info().currsize == 0
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_set_language_view_sets_session_and_redirects(mock_qdrant_service):
+    """
+    Test that POST to /set-language/ stores language in session and redirects.
+
+    This test verifies:
+    - Valid language code is stored in session
+    - Response redirects to home page
+    - Session persists the language
+
+    Potential bugs this could catch:
+    - Session not being set
+    - Wrong redirect target
+    - POST not handled correctly
+    """
+    client = Client()
+    url = reverse("set-language")
+
+    response = client.post(url, {"language": "da"})
+
+    # Should redirect to home
+    assert response.status_code == 302
+    assert response.url == reverse("home")
+
+    # Verify session has the language
+    assert client.session.get("user_language") == "da"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_set_language_view_validates_language_codes(mock_qdrant_service):
+    """
+    Test that /set-language/ rejects invalid language codes.
+
+    This test verifies:
+    - Invalid language codes are not stored
+    - Still redirects to home (graceful handling)
+    - Session remains unchanged for invalid codes
+
+    Potential bugs this could catch:
+    - Arbitrary values stored in session
+    - Security issue with untrusted input
+    """
+    client = Client()
+    url = reverse("set-language")
+
+    # Try to set invalid language
+    response = client.post(url, {"language": "invalid"})
+
+    # Should still redirect
+    assert response.status_code == 302
+
+    # Session should NOT have the invalid language
+    assert client.session.get("user_language") is None
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_home_view_includes_language_context(mock_qdrant_service):
+    """
+    Test that home view passes language context variables to template.
+
+    This test verifies:
+    - current_language is in context
+    - current_language_name is in context
+    - languages list is in context
+    - Default language is English
+
+    Potential bugs this could catch:
+    - Missing context variables
+    - Template rendering errors for language selector
+    """
+    client = Client()
+    url = reverse("home")
+
+    response = client.get(url)
+
+    assert response.status_code == 200
+
+    # Verify language context variables
+    assert "current_language" in response.context
+    assert "current_language_name" in response.context
+    assert "languages" in response.context
+
+    # Default should be English
+    assert response.context["current_language"] == "en"
+    assert response.context["current_language_name"] == "English"
+
+    # Languages should be the full list
+    languages = response.context["languages"]
+    assert len(languages) == 3
+    assert ("en", "English") in languages
+    assert ("da", "Dansk") in languages
+    assert ("nl", "Nederlands") in languages
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_language_persists_across_requests(mock_qdrant_service):
+    """
+    Test that language selection persists across page loads via session.
+
+    This test verifies:
+    - Setting language stores it in session
+    - Subsequent requests use the stored language
+    - Language context reflects session value
+
+    Potential bugs this could catch:
+    - Session not persisting
+    - Language reset on each request
+    - Context not reading from session
+    """
+    client = Client()
+
+    # Set language to Danish
+    client.post(reverse("set-language"), {"language": "da"})
+
+    # Load home page
+    response = client.get(reverse("home"))
+
+    # Verify language persisted
+    assert response.context["current_language"] == "da"
+    assert response.context["current_language_name"] == "Dansk"
+
+    # Change to Dutch
+    client.post(reverse("set-language"), {"language": "nl"})
+
+    # Load home page again
+    response = client.get(reverse("home"))
+
+    # Verify new language persisted
+    assert response.context["current_language"] == "nl"
+    assert response.context["current_language_name"] == "Nederlands"

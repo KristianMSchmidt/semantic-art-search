@@ -3,6 +3,7 @@ from typing import Any, Iterable, Literal
 from dataclasses import dataclass
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.http import HttpRequest
 from django.urls import reverse
 
@@ -47,12 +48,12 @@ class SearchParams:
 
     @property
     def language(self) -> str:
-        """Extract and validate language from request.
+        """Extract and validate language from session.
 
-        Returns language code (e.g., 'en', 'da', 'nl') from request parameter.
-        Defaults to 'en' if not provided or invalid.
+        Returns language code (e.g., 'en', 'da', 'nl') from session.
+        Defaults to 'en' if not set or invalid.
         """
-        lang = self.request.GET.get("lang", "en")
+        lang = self.request.session.get("user_language", "en")
         if lang not in SUPPORTED_LANGUAGES:
             return "en"
         return lang
@@ -338,8 +339,13 @@ def build_home_context(
     Build the full context for the search view.
     """
     filter_contexts = build_filter_contexts(params)
+    current_language = params.language
+    languages_dict = dict(settings.LANGUAGES)
 
     return {
         **filter_contexts,
         "example_queries": example_queries,
+        "current_language": current_language,
+        "current_language_name": languages_dict.get(current_language, "English"),
+        "languages": settings.LANGUAGES,
     }
