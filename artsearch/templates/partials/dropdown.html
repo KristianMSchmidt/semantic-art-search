@@ -1,7 +1,10 @@
+{% load i18n %}
 <div class="relative w-full sm:w-auto" x-data="dropdownComponent({
         selected: JSON.parse('{{ filter_ctx.selected_items_json|escapejs }}'),
         all: JSON.parse('{{ filter_ctx.all_items_json|escapejs }}'),
-        labelName: '{{ filter_ctx.label_name }}'
+        labelAll: '{{ filter_ctx.label_all|escapejs }}',
+        labelSingular: '{{ filter_ctx.label_singular|escapejs }}',
+        labelPlural: '{{ filter_ctx.label_plural|escapejs }}'
     })">
     <!-- Button -->
     <button
@@ -29,8 +32,8 @@
                     :checked="selectedItems.length === allItems.length"
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                 <span class="text-nowrap">
-                    Select All
-                    <span class="text-gray-500 font-normal">({{ filter_ctx.total_work_count }} works)</span>
+                    {% trans "Select All" %}
+                    <span class="text-gray-500 font-normal">({{ filter_ctx.total_work_count }} {% trans "works" %})</span>
                 </span>
             </label>
 
@@ -52,7 +55,7 @@
                                 {{ dropdown_item.label | capfirst }}
                             {% endif %}
                             {% if dropdown_item.count is not None %}
-                            <span class="text-gray-500 font-normal">({{ dropdown_item.count }} works)</span>
+                            <span class="text-gray-500 font-normal">({{ dropdown_item.count }} {% trans "works" %})</span>
                             {% endif %}
                     </span>
                 </label>

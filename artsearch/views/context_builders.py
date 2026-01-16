@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.http import HttpRequest
 from django.urls import reverse
+from django.utils.translation import gettext as _, ngettext
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ from artsearch.src.services.museum_stats_service import (
 from artsearch.src.services.search_service import handle_search
 from artsearch.src.services.translation_service import SUPPORTED_LANGUAGES
 from artsearch.src.utils.get_museums import get_museum_slugs
-from artsearch.src.constants.ui import EXAMPLE_QUERIES
+from artsearch.src.constants.ui import EXAMPLE_QUERIES, WORK_TYPE_LABELS
 from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
 
 
@@ -73,6 +74,10 @@ class FilterContext:
     all_items_json: str
     selected_items_json: str
     total_work_count: int
+    # Translated labels for JavaScript
+    label_all: str
+    label_singular: str
+    label_plural: str
 
 
 def retrieve_query(request: HttpRequest) -> str | None:
@@ -124,11 +129,11 @@ def prepare_work_types_for_dropdown(
     work_types_for_dropdown = []
 
     for searchable_work_type, count in work_types_count.items():
-        eng_plural = searchable_work_type + "s"
+        label = WORK_TYPE_LABELS.get(searchable_work_type, searchable_work_type + "s")
         work_types_for_dropdown.append(
             {
                 "value": searchable_work_type,
-                "label": eng_plural,
+                "label": label,
                 "count": count,
             }
         )
@@ -172,16 +177,21 @@ def prepare_initial_label(
     """
     Prepare the initial label for the dropdowns based on selected items.
     """
+    count = len(selected_items)
+    all_selected = not selected_items or count == len(all_items)
+
     if label_type == "work_types":
-        name = "Work Type"
-    elif label_type == "museums":
-        name = "Museum"
-    if not selected_items or len(selected_items) == len(all_items):
-        return f"All {name}s"
-    elif len(selected_items) == 1:
-        return f"1 {name}"
-    else:
-        return f"{len(selected_items)} {name}s"
+        if all_selected:
+            return _("All Work Types")
+        return ngettext("%(count)d Work Type", "%(count)d Work Types", count) % {
+            "count": count
+        }
+    else:  # museums
+        if all_selected:
+            return _("All Museums")
+        return ngettext("%(count)d Museum", "%(count)d Museums", count) % {
+            "count": count
+        }
 
 
 def make_url_with_params(
@@ -293,7 +303,10 @@ def build_work_type_filter_context(params: SearchParams) -> FilterContext:
         total_work_count=work_type_summary.total,
         all_items_json=json.dumps(work_type_names),
         selected_items_json=json.dumps(selected_work_types),
-        label_name="Work Type",
+        label_name=_("Work Type"),
+        label_all=_("All Work Types"),
+        label_singular=_("Work Type"),
+        label_plural=_("Work Types"),
     )
 
 
@@ -322,7 +335,10 @@ def build_museum_filter_context(params: SearchParams) -> FilterContext:
         total_work_count=museum_summary.total,
         all_items_json=json.dumps(museum_names),
         selected_items_json=json.dumps(selected_museums),
-        label_name="Museum",
+        label_name=_("Museum"),
+        label_all=_("All Museums"),
+        label_singular=_("Museum"),
+        label_plural=_("Museums"),
     )
 
 

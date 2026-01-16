@@ -2,6 +2,7 @@ import logging
 import traceback
 from typing import Any
 from dataclasses import dataclass
+from django.utils.translation import gettext as _
 from artsearch.src.services.qdrant_service import (
     QdrantService,
     SearchFunctionArguments,
@@ -119,10 +120,10 @@ def handle_search(
     if query is None or query == "":
         if query is None:
             # Initial page load
-            header_text = "A glimpse into the archive"
+            header_text = _("A glimpse into the archive")
         else:
             # Search with no query (currently disabled by FE)
-            header_text = "Works matching your filters"
+            header_text = _("Works matching your filters")
         try:
             results = qdrant_service.get_random_sample(
                 limit=limit,
@@ -158,10 +159,12 @@ def handle_search(
             else:
                 results = qdrant_service.search_text(search_arguments)
             assert total_works is not None
-            works_text = f"({total_works} works)"
-            header_text = (
-                f"Search results {works_text}".strip() if total_works > 0 else None
-            )
+            if total_works > 0:
+                header_text = _("Search results (%(count)d works)") % {
+                    "count": total_works
+                }
+            else:
+                header_text = None
         except QueryParsingError as e:
             error_message = str(e)
             error_type = "warning"

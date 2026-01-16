@@ -34,6 +34,9 @@ migrations:  ## Run migrations
 migrate:  ## Apply migrations
 	docker compose -f docker-compose.dev.yml exec web python manage.py migrate
 
+translate:  ## Compile translation files (.po -> .mo)
+	docker compose -f docker-compose.dev.yml exec web django-admin compilemessages --ignore='art_venv/*'
+
 shell:  ## Open shell in running docker development container
 	docker compose -f docker-compose.dev.yml exec web /bin/bash
 

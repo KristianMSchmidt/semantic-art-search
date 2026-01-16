@@ -74,7 +74,7 @@ title="View on GitHub"
             id="search-input"
             type="text"
             name="query"
-            placeholder="Search by theme, style, emotion, or more..."
+            placeholder="{% trans "Search by theme, style, emotion, or more..." %}"
             value="{{ query|default:'' }}"
             class="w-full sm:w-auto flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
             required
@@ -115,14 +115,14 @@ title="View on GitHub"
             type="submit"
             class="w-full sm:w-auto bg-blue-500 text-white px-8 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-            Search
+            {% trans "Search" %}
         </button>
 
     </form>
 
     <!-- Example Queries Section -->
     <div class="mb-5">
-        <p class="text-sm text-gray-600 mb-2">Try these examples</p>
+        <p class="text-sm text-gray-600 mb-2">{% trans "Try these examples" %}</p>
 
         <!-- Desktop View: show all examples -->
         <div class="hidden sm:flex flex-wrap gap-2">
@@ -449,7 +449,7 @@ title="View on GitHub"
         document.getElementById('search-input').value = query;
     }
 
-    function dropdownComponent({ selected, all, labelName }) {
+    function dropdownComponent({ selected, all, labelAll, labelSingular, labelPlural }) {
         return {
             open: false,
             selectedItems: [...selected],
@@ -465,11 +465,11 @@ title="View on GitHub"
 
             get buttonLabel() {
                 if (this.selectedItems.length === 0 || this.selectedItems.length === this.allItems.length) {
-                    return `All ${labelName}s`;
+                    return labelAll;
                 } else if (this.selectedItems.length === 1) {
-                    return `1 ${labelName}`;
+                    return `1 ${labelSingular}`;
                 } else {
-                    return `${this.selectedItems.length} ${labelName}s`;
+                    return `${this.selectedItems.length} ${labelPlural}`;
                 }
             }
         };

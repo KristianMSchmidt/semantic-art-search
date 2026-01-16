@@ -420,6 +420,53 @@ pytest etl/tests/test_load_embeddings_integration.py --create-db
 - Filter by work type (painting, print, drawing, etc.)
 - Results are paginated with 20 items per page
 
+## Internationalization (i18n)
+
+The application supports multiple languages for the UI.
+
+### Supported Languages
+- **English** (`en`) - Default/source language
+- **Danish** (`da`)
+- **Dutch** (`nl`)
+
+### Architecture
+
+**Two translation systems:**
+1. **Django i18n** - For UI strings (buttons, labels, headings)
+2. **LibreTranslate** - For runtime search query translation (translates user queries to English for CLIP)
+
+**Key Files:**
+- `locale/{lang}/LC_MESSAGES/django.po` - Translation files for each language
+- `artsearch/middleware.py` - `SessionLanguageMiddleware` for persistent language selection
+- `artsearch/src/services/translation_service.py` - LibreTranslate integration for search queries
+
+**Template Pattern:**
+```html
+{% load i18n %}
+{% trans "String to translate" %}
+```
+
+**Python Pattern (for translatable constants):**
+```python
+from django.utils.translation import gettext_lazy as _
+EXAMPLE = _("Translatable string")
+```
+
+### Commands
+```bash
+# Extract new translatable strings from code
+make shell
+django-admin makemessages -l da -l nl
+
+# Compile translations after editing .po files
+django-admin compilemessages
+```
+
+### Language Selection
+- Users select language via dropdown in navigation bar
+- Selection stored in Django session (`LANGUAGE_SESSION_KEY`)
+- Custom `SessionLanguageMiddleware` activates translations based on session
+
 ## Architectural Separation: ETL vs App
 
 ### Current Architecture

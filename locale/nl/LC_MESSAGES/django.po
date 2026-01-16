@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Semantic Art Search\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-01-15 00:00+0000\n"
+"POT-Creation-Date: 2026-01-16 04:37+0000\n"
 "PO-Revision-Date: 2025-01-15 00:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: Dutch\n"
@@ -16,6 +16,296 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+#: artsearch/src/constants/ui.py:4
+msgid "Aquatints"
+msgstr "Aquatinten"
+
+#: artsearch/src/constants/ui.py:5
+msgid "Busts"
+msgstr "Bustes"
+
+#: artsearch/src/constants/ui.py:6
+msgid "Designs"
+msgstr "Ontwerpen"
+
+#: artsearch/src/constants/ui.py:7
+msgid "Drawings"
+msgstr "Tekeningen"
+
+#: artsearch/src/constants/ui.py:8
+msgid "Guaches"
+msgstr "Gouaches"
+
+#: artsearch/src/constants/ui.py:9
+msgid "Miniatures"
+msgstr "Miniaturen"
+
+#: artsearch/src/constants/ui.py:10
+msgid "Paintings"
+msgstr "Schilderijen"
+
+#: artsearch/src/constants/ui.py:11
+msgid "Pastels"
+msgstr "Pastels"
+
+#: artsearch/src/constants/ui.py:12
+msgid "Prints"
+msgstr "Prenten"
+
+#: artsearch/src/constants/ui.py:13
+msgid "Watercolors"
+msgstr "Aquarellen"
+
+#: artsearch/src/constants/ui.py:18
+msgid "Ship in a storm"
+msgstr "Schip in een storm"
+
+#: artsearch/src/constants/ui.py:19
+msgid "Reading child"
+msgstr "Lezend kind"
+
+#: artsearch/src/constants/ui.py:20
+msgid "Orientalism"
+msgstr "Oriëntalisme"
+
+#: artsearch/src/constants/ui.py:21
+msgid "Inside cathedral"
+msgstr "Binnen in kathedraal"
+
+#: artsearch/src/constants/ui.py:22
+msgid "Ancient Rome"
+msgstr "Het oude Rome"
+
+#: artsearch/src/constants/ui.py:23
+msgid "War"
+msgstr "Oorlog"
+
+#: artsearch/src/constants/ui.py:24
+msgid "Music"
+msgstr "Muziek"
+
+#: artsearch/src/constants/ui.py:25
+msgid "Moonlight by the sea"
+msgstr "Maanlicht bij de zee"
+
+#: artsearch/src/constants/ui.py:26
+msgid "Fauvism"
+msgstr "Fauvisme"
+
+#: artsearch/src/constants/ui.py:27
+msgid "Cubism"
+msgstr "Kubisme"
+
+#: artsearch/src/constants/ui.py:28
+msgid "Blue dress"
+msgstr "Blauwe jurk"
+
+#: artsearch/src/constants/ui.py:29
+msgid "Death"
+msgstr "Dood"
+
+#: artsearch/src/constants/ui.py:30
+msgid "Elephant"
+msgstr "Olifant"
+
+#: artsearch/src/constants/ui.py:31
+msgid "Hindu deity"
+msgstr "Hindoe godheid"
+
+#: artsearch/src/constants/ui.py:32
+msgid "Painter"
+msgstr "Schilder"
+
+#: artsearch/src/constants/ui.py:33
+msgid "Male model"
+msgstr "Mannelijk model"
+
+#: artsearch/src/constants/ui.py:34
+msgid "Fish still life"
+msgstr "Visstilleven"
+
+#: artsearch/src/constants/ui.py:35
+msgid "Anatomy lesson"
+msgstr "Anatomische les"
+
+#: artsearch/src/constants/ui.py:36
+msgid "Winter landscape"
+msgstr "Winterlandschap"
+
+#: artsearch/src/constants/ui.py:37
+msgid "Colorful flowers in a vase"
+msgstr "Kleurrijke bloemen in een vaas"
+
+#: artsearch/src/constants/ui.py:38
+msgid "Crucifixion"
+msgstr "Kruisiging"
+
+#: artsearch/src/constants/ui.py:39
+msgid "Breastfeeding"
+msgstr "Borstvoeding"
+
+#: artsearch/src/constants/ui.py:40
+msgid "Calligraphy and landscape"
+msgstr "Kalligrafie en landschap"
+
+#: artsearch/src/constants/ui.py:41
+msgid "Persian carpet"
+msgstr "Perzisch tapijt"
+
+#: artsearch/src/constants/ui.py:42
+msgid "Mourning"
+msgstr "Rouw"
+
+#: artsearch/src/constants/ui.py:45
+msgid "Buddha"
+msgstr "Boeddha"
+
+#: artsearch/src/constants/ui.py:46
+msgid "Dead birds"
+msgstr "Dode vogels"
+
+#: artsearch/src/constants/ui.py:47
+msgid "Bible scene"
+msgstr "Bijbelscène"
+
+#: artsearch/src/constants/ui.py:48
+msgid "Camel"
+msgstr "Kameel"
+
+#: artsearch/src/constants/ui.py:49
+msgid "Rembrandt"
+msgstr "Rembrandt"
+
+#: artsearch/src/constants/ui.py:50
+msgid "Martin Luther"
+msgstr "Maarten Luther"
+
+#: artsearch/src/constants/ui.py:51
+msgid "Windmill"
+msgstr "Windmolen"
+
+#: artsearch/src/constants/ui.py:52
+msgid "Map of a fortress"
+msgstr "Kaart van een fort"
+
+#: artsearch/src/services/search_service.py:123
+msgid "A glimpse into the archive"
+msgstr "Een blik in het archief"
+
+#: artsearch/src/services/search_service.py:126
+msgid "Works matching your filters"
+msgstr "Werken die voldoen aan uw filters"
+
+#: artsearch/src/services/search_service.py:163
+#, python-format
+msgid "Search results (%(count)d works)"
+msgstr "Zoekresultaten (%(count)d werken)"
+
 #: artsearch/templates/home.html:59
 msgid "Discover art through meaning-driven search!"
 msgstr "Ontdek kunst door middel van betekenisgedreven zoeken!"
+
+#: artsearch/templates/home.html:77
+msgid "Search by theme, style, emotion, or more..."
+msgstr "Zoek op thema, stijl, emotie of meer..."
+
+#: artsearch/templates/home.html:118
+msgid "Search"
+msgstr "Zoeken"
+
+#: artsearch/templates/home.html:125
+msgid "Try these examples"
+msgstr "Probeer deze voorbeelden"
+
+#: artsearch/templates/partials/dropdown.html:35
+msgid "Select All"
+msgstr "Alles selecteren"
+
+#: artsearch/templates/partials/dropdown.html:36
+#: artsearch/templates/partials/dropdown.html:58
+msgid "works"
+msgstr "werken"
+
+#: artsearch/views/context_builders.py:185
+#: artsearch/views/context_builders.py:307
+msgid "All Work Types"
+msgstr "Alle typen"
+
+#: artsearch/views/context_builders.py:186
+#, python-format
+msgid "%(count)d Work Type"
+msgid_plural "%(count)d Work Types"
+msgstr[0] "%(count)d type"
+msgstr[1] "%(count)d typen"
+
+#: artsearch/views/context_builders.py:191
+#: artsearch/views/context_builders.py:339
+msgid "All Museums"
+msgstr "Alle musea"
+
+#: artsearch/views/context_builders.py:192
+#, python-format
+msgid "%(count)d Museum"
+msgid_plural "%(count)d Museums"
+msgstr[0] "%(count)d museum"
+msgstr[1] "%(count)d musea"
+
+#: artsearch/views/context_builders.py:306
+#: artsearch/views/context_builders.py:308
+msgid "Work Type"
+msgstr "Type"
+
+#: artsearch/views/context_builders.py:309
+msgid "Work Types"
+msgstr "Typen"
+
+#: artsearch/views/context_builders.py:338
+#: artsearch/views/context_builders.py:340
+msgid "Museum"
+msgstr "Museum"
+
+#: artsearch/views/context_builders.py:341
+msgid "Museums"
+msgstr "Musea"
+
+#, fuzzy
+#~| msgid "Blue dress"
+#~ msgid "Email address"
+#~ msgstr "Blauwe jurk"
+
+#, fuzzy
+#~| msgid "Painter"
+#~ msgid "Small integer"
+#~ msgstr "Schilder"
+
+#, fuzzy
+#~| msgid "Blue dress"
+#~ msgid "IP address"
+#~ msgstr "Blauwe jurk"
+
+#, fuzzy
+#~| msgid "Search"
+#~ msgid "March"
+#~ msgstr "Zoeken"
+
+#, fuzzy
+#~| msgid "War"
+#~ msgid "mar"
+#~ msgstr "Oorlog"
+
+#, fuzzy
+#~| msgid "War"
+#~ msgid "apr"
+#~ msgstr "Oorlog"
+
+#, fuzzy
+#~| msgid "Search"
+#~ msgctxt "abbrev. month"
+#~ msgid "March"
+#~ msgstr "Zoeken"
+
+#, fuzzy
+#~| msgid "Search"
+#~ msgctxt "alt. month"
+#~ msgid "March"
+#~ msgstr "Zoeken"
