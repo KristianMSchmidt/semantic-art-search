@@ -14,7 +14,7 @@ Semantic Art Search is a Django-based web application that uses CLIP (Contrastiv
 
 ### Data Flow
 1. **ETL Pipeline**: Museum APIs → Raw metadata (PostgreSQL) → Transformed data → Images (S3) → Embeddings (Qdrant)
-2. **Search Pipeline**: User query → CLIP text embedding → Qdrant vector search → Results
+2. **Search Pipeline**: User query → Text embedding (CLIP or Jina) → Qdrant vector search → Results
 3. **Similar Image Search**: Object number → Retrieve image embedding → Vector similarity search
 
 ### Museum Integration
@@ -63,6 +63,7 @@ This principle drives the duplicate detection logic in MET and RMA extractors. W
 - Vector DB: `QDRANT_URL`, `QDRANT_API_KEY`
 - Storage: `AWS_*` variables for S3-compatible object storage
 - Django: `DJANGO_SECRET_KEY`, `ALLOWED_HOSTS`, `DEBUG`
+- Embedding: `JINA_API_KEY` (for Jina embedding model)
 
 ### Docker Deployment
 - **Development**: `docker-compose.dev.yml` - includes local PostgreSQL database and web container
@@ -343,6 +344,13 @@ All ETL pipeline stages have integration tests:
    - Tests active vector system
    - Tests idempotency and reset functionality
 
+7. **`test_embedding_model_selector.py`** (in `artsearch/tests/`)
+   - Model resolution logic (auto → clip)
+   - Query parameter extraction
+   - URL building with model params
+   - Embedder selection in QdrantService
+   - View integration tests
+
 ### Commands
 ```bash
 make test              # Run all tests
@@ -404,7 +412,7 @@ pytest etl/tests/test_load_embeddings_integration.py --create-db
 ## Search Features
 
 ### Query Types
-1. **Text Search**: Natural language queries converted to CLIP embeddings
+1. **Text Search**: Natural language queries converted to embeddings
 2. **Object Number Search**: Direct lookup by object number (e.g., "KMS1")
 3. **Museum-Specific Search**: Format "museum:object_number" (e.g., "smk:KMS1")
 4. **Similar Image Search**: Find visually similar artworks
@@ -413,6 +421,47 @@ pytest etl/tests/test_load_embeddings_integration.py --create-db
 - Filter by museum (SMK, CMA, RMA, MET)
 - Filter by work type (painting, print, drawing, etc.)
 - Results are paginated with 20 items per page
+
+### Embedding Model Selection
+
+Users can select which embedding model to use for searches via a radio button UI on the homepage.
+
+**Available Models:**
+- **Auto**: Resolves to the current default model (currently CLIP)
+- **CLIP**: OpenAI CLIP (ViT-L/14) - 768-dimensional embeddings, local model
+- **Jina**: Jina CLIP v2 - 256-dimensional embeddings, API-based
+
+**Architecture:**
+
+```
+User selects model → ?model=clip|jina|auto query param
+    ↓
+SearchParams.selected_embedding_model (reads param)
+    ↓
+resolve_embedding_model() converts "auto" → "clip"
+    ↓
+QdrantService selects embedder:
+    - get_clip_embedder() → local PyTorch model
+    - get_jina_embedder() → Jina API
+    ↓
+Query Qdrant with named vector:
+    - "image_clip" for CLIP
+    - "image_jina" for Jina
+```
+
+**Key Files:**
+- `artsearch/src/constants/embedding_models.py`: Model definitions and resolution logic
+- `artsearch/src/services/clip_embedder.py`: CLIP embedder (singleton, GPU-enabled)
+- `artsearch/src/services/jina_embedder.py`: Jina embedder (API-based)
+- `artsearch/src/services/qdrant_service.py`: Vector search with model selection
+- `artsearch/views/context_builders.py`: URL building with model param
+- `artsearch/templates/partials/model_selector.html`: UI component
+
+**Design Decisions:**
+- "auto" excluded from URLs to keep them clean (only explicit models appear in query string)
+- Invalid model values default to "auto"
+- Embedder instances use singleton pattern (one per worker)
+- Text embeddings cached via LRU cache (maxsize=50)
 
 ## Architectural Separation: ETL vs App
 
