@@ -84,14 +84,12 @@ title="View on GitHub"
 
     </form>
 
-    <!-- Model Selector -->
-    <div class="mb-3">
-        {% include "partials/model_selector.html" %}
-    </div>
-
     <!-- Example Queries Section -->
     <div class="mb-5">
-        <p class="text-sm text-gray-600 mb-2">Try these examples</p>
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-sm text-gray-600">Try these examples</p>
+            {% include "partials/model_selector.html" %}
+        </div>
 
         <!-- Desktop View: show all examples -->
         <div class="hidden sm:flex flex-wrap gap-2">
