@@ -20,6 +20,7 @@ psycopg2-binary==2.9.10
 # HTTP/API
 requests==2.32.4
 openai==1.59.7
+deepl==1.21.0
 
 # Utilities
 python-dotenv==1.1.1

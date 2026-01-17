@@ -9,13 +9,14 @@ Tests the translation service's ability to:
 
 Following CLAUDE.md test principles:
 - What-focused: Test business outcomes (translation results)
-- Mock expensive dependencies: Mock HTTP requests to LibreTranslate
+- Mock expensive dependencies: Mock DeepL API calls
 - Keep tests simple and focused
 """
 
 import pytest
 from unittest.mock import patch, MagicMock
-from requests.exceptions import Timeout, RequestException
+
+import deepl
 
 from artsearch.src.services.translation_service import (
     translate_to_english,
@@ -38,14 +39,15 @@ class TestTranslationService:
         assert result.source_language == "en"
         assert result.translation_used is False
 
-    @patch("artsearch.src.services.translation_service.requests.post")
-    def test_danish_translation_success(self, mock_post):
+    @patch("artsearch.src.services.translation_service._get_translator")
+    def test_danish_translation_success(self, mock_get_translator):
         """Danish queries should be translated to English."""
-        # Mock successful API response
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"translatedText": "sunset"}
-        mock_response.raise_for_status = MagicMock()
-        mock_post.return_value = mock_response
+        # Mock successful DeepL response
+        mock_translator = MagicMock()
+        mock_result = MagicMock()
+        mock_result.text = "sunset"
+        mock_translator.translate_text.return_value = mock_result
+        mock_get_translator.return_value = mock_translator
 
         result = translate_to_english("solnedgang", "da")
 
@@ -55,22 +57,22 @@ class TestTranslationService:
         assert result.source_language == "da"
         assert result.translation_used is True
 
-        # Verify API was called correctly
-        mock_post.assert_called_once()
-        call_args = mock_post.call_args
-        assert "translate" in call_args[0][0]
-        assert call_args[1]["json"]["q"] == "solnedgang"
-        assert call_args[1]["json"]["source"] == "da"
-        assert call_args[1]["json"]["target"] == "en"
+        # Verify DeepL API was called correctly
+        mock_translator.translate_text.assert_called_once_with(
+            "solnedgang",
+            source_lang="DA",
+            target_lang="EN-US",
+        )
 
-    @patch("artsearch.src.services.translation_service.requests.post")
-    def test_dutch_translation_success(self, mock_post):
+    @patch("artsearch.src.services.translation_service._get_translator")
+    def test_dutch_translation_success(self, mock_get_translator):
         """Dutch queries should be translated to English."""
-        # Mock successful API response
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"translatedText": "forest"}
-        mock_response.raise_for_status = MagicMock()
-        mock_post.return_value = mock_response
+        # Mock successful DeepL response
+        mock_translator = MagicMock()
+        mock_result = MagicMock()
+        mock_result.text = "forest"
+        mock_translator.translate_text.return_value = mock_result
+        mock_get_translator.return_value = mock_translator
 
         result = translate_to_english("bos", "nl")
 
@@ -80,25 +82,20 @@ class TestTranslationService:
         assert result.source_language == "nl"
         assert result.translation_used is True
 
-    @patch("artsearch.src.services.translation_service.requests.post")
-    def test_timeout_graceful_degradation(self, mock_post):
-        """On timeout, should return original query without failing."""
-        # Mock timeout exception
-        mock_post.side_effect = Timeout("Connection timeout")
+        # Verify DeepL API was called correctly
+        mock_translator.translate_text.assert_called_once_with(
+            "bos",
+            source_lang="NL",
+            target_lang="EN-US",
+        )
 
-        result = translate_to_english("solnedgang", "da")
-
-        assert isinstance(result, TranslationResult)
-        assert result.translated_text == "solnedgang"  # Original query
-        assert result.original_text == "solnedgang"
-        assert result.source_language == "da"
-        assert result.translation_used is False
-
-    @patch("artsearch.src.services.translation_service.requests.post")
-    def test_connection_error_graceful_degradation(self, mock_post):
+    @patch("artsearch.src.services.translation_service._get_translator")
+    def test_connection_error_graceful_degradation(self, mock_get_translator):
         """On connection error, should return original query without failing."""
         # Mock connection error
-        mock_post.side_effect = RequestException("Connection failed")
+        mock_translator = MagicMock()
+        mock_translator.translate_text.side_effect = deepl.DeepLException("Connection failed")
+        mock_get_translator.return_value = mock_translator
 
         result = translate_to_english("bos", "nl")
 
@@ -108,13 +105,29 @@ class TestTranslationService:
         assert result.source_language == "nl"
         assert result.translation_used is False
 
-    @patch("artsearch.src.services.translation_service.requests.post")
-    def test_http_error_graceful_degradation(self, mock_post):
-        """On HTTP error (4xx/5xx), should return original query without failing."""
-        # Mock HTTP error via raise_for_status
-        mock_response = MagicMock()
-        mock_response.raise_for_status.side_effect = RequestException("500 Server Error")
-        mock_post.return_value = mock_response
+    @patch("artsearch.src.services.translation_service._get_translator")
+    def test_authorization_error_graceful_degradation(self, mock_get_translator):
+        """On authorization error, should return original query without failing."""
+        # Mock authorization error
+        mock_translator = MagicMock()
+        mock_translator.translate_text.side_effect = deepl.AuthorizationException("Invalid API key")
+        mock_get_translator.return_value = mock_translator
+
+        result = translate_to_english("solnedgang", "da")
+
+        assert isinstance(result, TranslationResult)
+        assert result.translated_text == "solnedgang"  # Original query
+        assert result.original_text == "solnedgang"
+        assert result.source_language == "da"
+        assert result.translation_used is False
+
+    @patch("artsearch.src.services.translation_service._get_translator")
+    def test_quota_exceeded_graceful_degradation(self, mock_get_translator):
+        """On quota exceeded error, should return original query without failing."""
+        # Mock quota exceeded error
+        mock_translator = MagicMock()
+        mock_translator.translate_text.side_effect = deepl.QuotaExceededException("Quota exceeded")
+        mock_get_translator.return_value = mock_translator
 
         result = translate_to_english("solnedgang", "da")
 
@@ -150,20 +163,3 @@ class TestTranslationService:
         assert result.original_text == "solnedgang"
         assert result.source_language == "da"
         assert result.translation_used is False
-
-    @patch("artsearch.src.services.translation_service.requests.post")
-    def test_timeout_uses_config_timeout_value(self, mock_post):
-        """Translation should use timeout value from config."""
-        from artsearch.src.services.translation_service import config
-
-        # Mock successful API response
-        mock_response = MagicMock()
-        mock_response.json.return_value = {"translatedText": "sunset"}
-        mock_response.raise_for_status = MagicMock()
-        mock_post.return_value = mock_response
-
-        translate_to_english("solnedgang", "da")
-
-        # Verify timeout parameter was passed
-        call_args = mock_post.call_args
-        assert call_args[1]["timeout"] == config.translation_timeout

@@ -1,5 +1,5 @@
 """
-Translation service for multilingual search support using LibreTranslate.
+Translation service for multilingual search support using DeepL.
 
 Provides text translation from supported languages to English for search queries.
 Implements graceful degradation - if translation fails, returns original query.
@@ -7,15 +7,22 @@ Implements graceful degradation - if translation fails, returns original query.
 
 import logging
 from dataclasses import dataclass
-import requests
-from requests.exceptions import Timeout, RequestException
+
+import deepl
 
 from artsearch.src.config import config
 
 logger = logging.getLogger(__name__)
 
-# Supported source languages for translation
+# Supported source languages for translation (lowercase, used in UI)
 SUPPORTED_LANGUAGES = ["en", "da", "nl"]
+
+# Mapping from our lowercase language codes to DeepL's format
+LANGUAGE_CODE_TO_DEEPL = {
+    "da": "DA",
+    "nl": "NL",
+    "en": "EN",
+}
 
 
 @dataclass
@@ -32,6 +39,11 @@ class TranslationResult:
     original_text: str
     source_language: str
     translation_used: bool
+
+
+def _get_translator() -> deepl.Translator:
+    """Create and return a DeepL translator instance."""
+    return deepl.Translator(config.deepl_api_key)
 
 
 def translate_to_english(query: str, source_language: str) -> TranslationResult:
@@ -82,19 +94,16 @@ def translate_to_english(query: str, source_language: str) -> TranslationResult:
 
     # Attempt translation with graceful degradation
     try:
-        response = requests.post(
-            f"{config.libretranslate_url}/translate",
-            json={
-                "q": query,
-                "source": source_language,
-                "target": "en",
-                "format": "text",
-            },
-            timeout=config.translation_timeout,
-        )
-        response.raise_for_status()
+        translator = _get_translator()
+        deepl_source_lang = LANGUAGE_CODE_TO_DEEPL[source_language]
 
-        translated_text = response.json()["translatedText"]
+        result = translator.translate_text(
+            query,
+            source_lang=deepl_source_lang,
+            target_lang="EN-US",
+        )
+
+        translated_text = result.text
 
         logger.info(
             f"[TRANSLATION] '{query}' ({source_language}) -> '{translated_text}' (en)"
@@ -107,21 +116,9 @@ def translate_to_english(query: str, source_language: str) -> TranslationResult:
             translation_used=True,
         )
 
-    except Timeout:
+    except deepl.DeepLException as e:
         logger.warning(
-            f"Translation timeout after {config.translation_timeout}s, "
-            f"using original query: '{query}'"
-        )
-        return TranslationResult(
-            translated_text=query,
-            original_text=query,
-            source_language=source_language,
-            translation_used=False,
-        )
-
-    except RequestException as e:
-        logger.warning(
-            f"Translation request failed ({e.__class__.__name__}), "
+            f"Translation failed ({e.__class__.__name__}), "
             f"using original query: '{query}'"
         )
         return TranslationResult(

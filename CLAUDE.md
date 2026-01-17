@@ -433,12 +433,12 @@ The application supports multiple languages for the UI.
 
 **Two translation systems:**
 1. **Django i18n** - For UI strings (buttons, labels, headings)
-2. **LibreTranslate** - For runtime search query translation (translates user queries to English for CLIP)
+2. **DeepL** - For runtime search query translation (translates user queries to English for CLIP)
 
 **Key Files:**
 - `locale/{lang}/LC_MESSAGES/django.po` - Translation files for each language
 - `artsearch/middleware.py` - `SessionLanguageMiddleware` for persistent language selection
-- `artsearch/src/services/translation_service.py` - LibreTranslate integration for search queries
+- `artsearch/src/services/translation_service.py` - DeepL integration for search queries
 
 **Template Pattern:**
 ```html
