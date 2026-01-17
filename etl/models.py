@@ -73,7 +73,7 @@ class TransformedData(models.Model):
 
     # Fields copied from MetaDataRaw on transform
     object_number = models.CharField(
-        max_length=100, help_text="Stable and unique puclic artwork identifier"
+        max_length=100, help_text="Stable and unique public artwork identifier"
     )  # Required field
     museum_slug = models.CharField(max_length=10)  # Required field
     museum_db_id = models.CharField(
@@ -131,12 +131,6 @@ class TransformedData(models.Model):
         if self.title:
             return self.title
         return "Untitled"
-
-    def get_artists(self):
-        """Get the artist names"""
-        if len(self.artists) > 0:
-            return ", ".join(self.artists)
-        return "Unknown Artist"
 
     def get_period(self):
         """Get formatted date display."""

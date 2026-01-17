@@ -102,8 +102,6 @@ def adhoc_update_payload(old_payload: dict) -> dict:
     if "artists" in new_payload:
         if "artist" in new_payload:
             del new_payload["artist"]
-    else:
-        breakpoint()
     #######################################################
 
     return new_payload

@@ -66,7 +66,7 @@ def store_raw_data_rma(force_refetch: bool = False):
         total_num_created = 0
         total_num_updated = 0
         total_num_skipped = 0
-        items_to_far = 0
+        items_so_far = 0
         page_token = ""
 
         while True:
@@ -89,11 +89,11 @@ def store_raw_data_rma(force_refetch: bool = False):
 
             items = data.get("items", [])
             total = data.get("total_count", 0)
-            items_to_far += len(items)
+            items_so_far += len(items)
             next_page_token = data.get("next_page_token", None)
 
             logging.info(
-                f"Upserting {len(items)} items. Items so far: {items_to_far}/{total} for work type: {work_type}."
+                f"Upserting {len(items)} items. Items so far: {items_so_far}/{total} for work type: {work_type}."
             )
 
             for item in items:
@@ -168,4 +168,4 @@ def store_raw_data_rma(force_refetch: bool = False):
                 break
             page_token = next_page_token
 
-    print(f"Total time taken: {time.time() - start_time:.2f} seconds")
+    logging.info(f"Total time taken: {time.time() - start_time:.2f} seconds")
