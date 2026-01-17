@@ -44,6 +44,13 @@ class SearchParams:
     def offset(self) -> int:
         return retrieve_offset(self.request)
 
+    @property
+    def selected_embedding_model(self) -> str:
+        model = self.request.GET.get("model", "auto")
+        if model not in ["auto", "clip", "jina"]:
+            return "auto"
+        return model
+
 
 @dataclass
 class FilterContext:
@@ -172,6 +179,7 @@ def make_url_with_params(
     offset: int | None = None,
     selected_work_types: list[str] = [],
     selected_museums: list[str] = [],
+    embedding_model: str | None = None,
 ) -> str:
     """Make a URL with query parameters for pagination and filtering."""
     query_params = {}
@@ -183,6 +191,8 @@ def make_url_with_params(
         query_params["work_types"] = selected_work_types
     if selected_museums:
         query_params["museums"] = selected_museums
+    if embedding_model and embedding_model != "auto":
+        query_params["model"] = embedding_model
     if not query_params:
         return reverse(url_name)
     return f"{reverse(url_name)}?{urlencode(query_params, doseq=True)}"
@@ -193,6 +203,7 @@ def make_urls_with_params(
     offset: int,
     selected_work_types: list[str],
     selected_museums: list[str],
+    embedding_model: str | None = None,
 ) -> dict[str, str]:
     """Make URLs with query parameters for pagination and filtering"""
     return {
@@ -202,11 +213,12 @@ def make_urls_with_params(
             offset=offset,
             selected_work_types=selected_work_types,
             selected_museums=selected_museums,
+            embedding_model=embedding_model,
         ),
     }
 
 
-def build_search_context(params: SearchParams) -> dict[str, Any]:
+def build_search_context(params: SearchParams, embedding_model: str = "clip") -> dict[str, Any]:
     """
     Build the main context for the search view.
     """
@@ -232,6 +244,7 @@ def build_search_context(params: SearchParams) -> dict[str, Any]:
         museum_prefilter=museum_prefilter,
         work_type_prefilter=work_type_prefilter,
         total_works=total_works,
+        embedding_model=embedding_model,
     )
 
     urls = make_urls_with_params(
@@ -239,6 +252,7 @@ def build_search_context(params: SearchParams) -> dict[str, Any]:
         offset=offset + limit,
         selected_museums=params.selected_museums,
         selected_work_types=params.selected_work_types,
+        embedding_model=params.selected_embedding_model,
     )
 
     return {

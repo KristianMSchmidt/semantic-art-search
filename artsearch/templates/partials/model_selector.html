@@ -1,0 +1,11 @@
+<div id="model-selector" class="flex items-center space-x-4 text-sm">
+    <span class="text-gray-600">Model:</span>
+    {% for model in embedding_models %}
+    <label class="inline-flex items-center cursor-pointer">
+        <input type="radio" name="model" value="{{ model.value }}"
+               {% if model.value == selected_model %}checked{% endif %}
+               class="form-radio text-blue-500">
+        <span class="ml-1">{{ model.label }}</span>
+    </label>
+    {% endfor %}
+</div>

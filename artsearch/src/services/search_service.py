@@ -88,6 +88,7 @@ def handle_search(
     work_type_prefilter: list[str] | None,
     total_works: int | None = None,
     museum_slugs: list[str] = get_museum_slugs(),
+    embedding_model: str = "clip",
 ) -> dict[Any, Any]:
     """
     Handle the search logic based on the provided query and filters.
@@ -130,9 +131,13 @@ def handle_search(
             if query_analysis.is_find_similar_query:
                 search_arguments.object_number = query_analysis.object_number
                 search_arguments.object_museum = query_analysis.object_museum
-                results = qdrant_service.search_similar_images(search_arguments)
+                results = qdrant_service.search_similar_images(
+                    search_arguments, embedding_model=embedding_model
+                )
             else:
-                results = qdrant_service.search_text(search_arguments)
+                results = qdrant_service.search_text(
+                    search_arguments, embedding_model=embedding_model
+                )
             assert total_works is not None
             works_text = f"({total_works} works)"
             header_text = (
