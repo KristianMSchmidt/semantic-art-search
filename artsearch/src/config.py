@@ -39,6 +39,9 @@ class Config(BaseModel):
     # OpenAI configuration
     openai_api_key: str
 
+    # Jina API
+    jina_api_key: str
+
 
 def create_config():
     env_files = [".env.dev", ".env.prod"]
@@ -76,6 +79,9 @@ def create_config():
     # OpenAI configuration
     openai_api_key = os.getenv("OPENAI_API_KEY")
 
+    # Jina API
+    jina_api_key = os.getenv("JINA_API_KEY")
+
     if not qdrant_url:
         raise ValueError("QDRANT_URL is not set")
     if not qdrant_api_key:
@@ -110,6 +116,8 @@ def create_config():
         raise ValueError("POSTGRES_PORT is not set")
     if not openai_api_key:
         raise ValueError("OPENAI_API_KEY is not set")
+    if not jina_api_key:
+        raise ValueError("JINA_API_KEY is not set")
 
     return Config(
         qdrant_url=qdrant_url,
@@ -134,6 +142,7 @@ def create_config():
         image_max_dimension=image_max_dimension,
         image_jpeg_quality=image_jpeg_quality,
         openai_api_key=openai_api_key,
+        jina_api_key=jina_api_key,
     )
 
 

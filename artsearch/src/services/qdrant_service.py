@@ -10,8 +10,10 @@ from artsearch.src.utils.qdrant_formatting import (
     format_hits,
 )
 from artsearch.src.services.clip_embedder import get_clip_embedder
+from artsearch.src.services.jina_embedder import get_jina_embedder
 from artsearch.src.utils.get_qdrant_client import get_qdrant_client
 from artsearch.src.config import config
+from artsearch.src.constants.embedding_models import MODEL_TO_VECTOR_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +74,7 @@ class QdrantService:
         work_types: list[str] | None,
         museums: list[str] | None,
         object_number: str | None,
+        embedding_model: str = "clip",
     ) -> list[dict]:
         """
         Perform search in qdrant collection based on vector similarity.
@@ -125,6 +128,9 @@ class QdrantService:
         # but seems not to be needed yet.
         search_params = models.SearchParams(exact=True)
 
+        # Determine which vector to search based on embedding model
+        vector_name = MODEL_TO_VECTOR_NAME[embedding_model]
+
         qdrant_start = time.time()
         response = self.qdrant_client.query_points(
             collection_name=self.collection_name,
@@ -133,7 +139,7 @@ class QdrantService:
             offset=offset,
             query_filter=query_filter,
             search_params=search_params,
-            using="image_clip",
+            using=vector_name,
         )
         qdrant_time = (time.time() - qdrant_start) * 1000
 
@@ -157,7 +163,11 @@ class QdrantService:
 
         return formatted
 
-    def search_text(self, search_function_args: SearchFunctionArguments) -> list[dict]:
+    def search_text(
+        self,
+        search_function_args: SearchFunctionArguments,
+        embedding_model: str = "clip",
+    ) -> list[dict]:
         """Search for related artworks based on a text query."""
 
         # Unpack the search function arguments
@@ -167,16 +177,26 @@ class QdrantService:
         work_types = search_function_args.work_type_prefilter
         museums = search_function_args.museum_prefilter
 
+        # Choose embedder based on model
         embedding_start = time.time()
-        query_vector = get_clip_embedder().generate_text_embedding(query)
+        if embedding_model == "jina":
+            query_vector = get_jina_embedder().generate_text_embedding(query)
+        else:
+            query_vector = get_clip_embedder().generate_text_embedding(query)
         embedding_time = (time.time() - embedding_start) * 1000
 
         logger.info(
-            f"[TIMING] search_text - CLIP text embedding: {embedding_time:.2f}ms"
+            f"[TIMING] search_text - {embedding_model.upper()} text embedding: {embedding_time:.2f}ms"
         )
 
         results = self._search(
-            query_vector, limit, offset, work_types, museums, object_number=None
+            query_vector,
+            limit,
+            offset,
+            work_types,
+            museums,
+            object_number=None,
+            embedding_model=embedding_model,
         )
 
         return results
@@ -184,6 +204,7 @@ class QdrantService:
     def search_similar_images(
         self,
         search_function_args: SearchFunctionArguments,
+        embedding_model: str = "clip",
     ) -> list[dict]:
         """
         Search for artworks similar to the given target object based on vector embedding similarity.
@@ -218,20 +239,29 @@ class QdrantService:
             raise ValueError("No vector found for the given object number and museum.")
         vec = items[0].vector
 
+        # Determine which vector name to use based on embedding model
+        vector_name = MODEL_TO_VECTOR_NAME[embedding_model]
+
         # Qdrant may return either a single vector (list[float]) or a dict of named vectors.
         if isinstance(vec, dict):
             named_vecs = cast(dict[str, list[float]], vec)
-            image_clip_vec = named_vecs.get("image_clip")
-            if image_clip_vec is None:
+            target_vec = named_vecs.get(vector_name)
+            if target_vec is None:
                 raise ValueError(
-                    "No 'image_clip' vector found in the point's named vectors."
+                    f"No '{vector_name}' vector found in the point's named vectors."
                 )
-            query_vector = cast(list[float], image_clip_vec)
+            query_vector = cast(list[float], target_vec)
         else:
             query_vector = cast(list[float], vec)
 
         results = self._search(
-            query_vector, limit, offset, work_types, museums, object_number
+            query_vector,
+            limit,
+            offset,
+            work_types,
+            museums,
+            object_number,
+            embedding_model=embedding_model,
         )
 
         return results
