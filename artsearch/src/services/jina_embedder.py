@@ -44,7 +44,7 @@ class JinaEmbedder:
             JINA_API_URL,
             headers=headers,
             json={
-                "input": [{"url": image_url}],
+                "input": [{"image": image_url}],
                 "model": JINA_MODEL,
                 "dimensions": JINA_DIMENSIONS,
             },
