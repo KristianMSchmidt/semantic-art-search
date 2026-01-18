@@ -301,6 +301,20 @@ class QdrantService:
         """Upload points to a Qdrant collection."""
         self.qdrant_client.upsert(collection_name=self.collection_name, points=points)
 
+    def get_point_vectors(self, point_id: str) -> dict[str, list[float]] | None:
+        """Fetch existing vectors for a point. Returns None if point doesn't exist."""
+        try:
+            points = self.qdrant_client.retrieve(
+                collection_name=self.collection_name,
+                ids=[point_id],
+                with_vectors=True,
+            )
+            if points and points[0].vector:
+                return cast(dict[str, list[float]], points[0].vector)
+            return None
+        except Exception:
+            return None
+
     def fetch_points(
         self,
         next_page_token: PointId | None,

@@ -90,7 +90,7 @@ def is_retryable_error(error: Exception) -> bool:
 
 
 # Active vector types configuration - easy to expand later
-ACTIVE_VECTOR_TYPES = ["image_clip"]
+ACTIVE_VECTOR_TYPES = ["image_clip", "image_jina"]
 
 # Vector type to database field mapping
 VECTOR_TYPE_TO_FIELD = {
@@ -264,7 +264,12 @@ class EmbeddingLoadService:
 
         Active vector types use calculated values, non-active types use zero vectors.
         This allows incremental activation of new vector types in the future.
+
+        For existing points with vectors already stored, fetches and preserves those
+        vectors to avoid overwriting them when adding new vector types.
         """
+        point_id = generate_uuid5(record.museum_slug, record.object_number)
+
         # Default zero vectors for all types
         all_vectors: Dict[str, List[float]] = {
             "text_clip": [0.0] * 768,
@@ -273,7 +278,17 @@ class EmbeddingLoadService:
             "image_jina": [0.0] * 256,
         }
 
-        # Update with calculated vectors
+        # Only fetch existing vectors if point likely exists (any vector flag is True)
+        # This avoids unnecessary Qdrant calls for new records
+        point_likely_exists = any(
+            getattr(record, VECTOR_TYPE_TO_FIELD[vt]) for vt in VECTOR_TYPE_TO_FIELD
+        )
+        if point_likely_exists:
+            existing_vectors = self.qdrant_service.get_point_vectors(point_id)
+            if existing_vectors:
+                all_vectors.update(existing_vectors)
+
+        # Update with newly calculated vectors
         all_vectors.update(vectors_dict)
 
         # Create named vectors dict
@@ -292,7 +307,7 @@ class EmbeddingLoadService:
         }
 
         return PointStruct(
-            id=generate_uuid5(record.museum_slug, record.object_number),
+            id=point_id,
             vector=vectors,  # type: ignore
             payload=payload,
         )
@@ -331,9 +346,14 @@ class EmbeddingLoadService:
             )
 
         elif vector_type == "image_jina":
-            raise NotImplementedError(
-                "image_jina vector calculation not yet implemented"
+            from artsearch.src.services.jina_embedder import get_jina_embedder
+
+            bucket_url = get_bucket_image_url(
+                record.museum_slug, record.object_number, use_etl_bucket=True
             )
+            jina_embedder = get_jina_embedder()
+            embedding = jina_embedder.generate_image_embedding(bucket_url)
+            return embedding
 
         elif vector_type == "text_jina":
             raise NotImplementedError(
