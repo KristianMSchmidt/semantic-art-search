@@ -13,7 +13,10 @@ from artsearch.src.services.clip_embedder import get_clip_embedder
 from artsearch.src.services.jina_embedder import get_jina_embedder
 from artsearch.src.utils.get_qdrant_client import get_qdrant_client
 from artsearch.src.config import config
-from artsearch.src.constants.embedding_models import MODEL_TO_VECTOR_NAME
+from artsearch.src.constants.embedding_models import (
+    MODEL_TO_VECTOR_NAME,
+    ResolvedEmbeddingModel,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +77,7 @@ class QdrantService:
         work_types: list[str] | None,
         museums: list[str] | None,
         object_number: str | None,
-        embedding_model: str = "clip",
+        embedding_model: ResolvedEmbeddingModel = "clip",
     ) -> list[dict]:
         """
         Perform search in qdrant collection based on vector similarity.
@@ -166,7 +169,7 @@ class QdrantService:
     def search_text(
         self,
         search_function_args: SearchFunctionArguments,
-        embedding_model: str = "clip",
+        embedding_model: ResolvedEmbeddingModel = "clip",
     ) -> list[dict]:
         """Search for related artworks based on a text query."""
 
@@ -204,7 +207,7 @@ class QdrantService:
     def search_similar_images(
         self,
         search_function_args: SearchFunctionArguments,
-        embedding_model: str = "clip",
+        embedding_model: ResolvedEmbeddingModel = "clip",
     ) -> list[dict]:
         """
         Search for artworks similar to the given target object based on vector embedding similarity.

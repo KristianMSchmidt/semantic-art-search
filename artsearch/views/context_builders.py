@@ -16,6 +16,10 @@ from artsearch.src.services.search_service import handle_search
 from artsearch.src.utils.get_museums import get_museum_slugs
 from artsearch.src.constants.ui import EXAMPLE_QUERIES
 from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
+from artsearch.src.constants.embedding_models import (
+    EmbeddingModelChoice,
+    validate_embedding_model,
+)
 
 
 RESULTS_PER_PAGE = 25
@@ -45,11 +49,9 @@ class SearchParams:
         return retrieve_offset(self.request)
 
     @property
-    def selected_embedding_model(self) -> str:
+    def selected_embedding_model(self) -> EmbeddingModelChoice:
         model = self.request.GET.get("model", "auto")
-        if model not in ["auto", "clip", "jina"]:
-            return "auto"
-        return model
+        return validate_embedding_model(model)
 
 
 @dataclass
@@ -179,7 +181,7 @@ def make_url_with_params(
     offset: int | None = None,
     selected_work_types: list[str] = [],
     selected_museums: list[str] = [],
-    embedding_model: str | None = None,
+    embedding_model: EmbeddingModelChoice | None = None,
 ) -> str:
     """Make a URL with query parameters for pagination and filtering."""
     query_params = {}
@@ -203,7 +205,7 @@ def make_urls_with_params(
     offset: int,
     selected_work_types: list[str],
     selected_museums: list[str],
-    embedding_model: str | None = None,
+    embedding_model: EmbeddingModelChoice | None = None,
 ) -> dict[str, str]:
     """Make URLs with query parameters for pagination and filtering"""
     return {
@@ -218,7 +220,7 @@ def make_urls_with_params(
     }
 
 
-def build_search_context(params: SearchParams, embedding_model: str = "auto") -> dict[str, Any]:
+def build_search_context(params: SearchParams, embedding_model: EmbeddingModelChoice = "auto") -> dict[str, Any]:
     """
     Build the main context for the search view.
     """

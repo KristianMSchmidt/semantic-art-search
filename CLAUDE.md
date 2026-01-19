@@ -345,7 +345,8 @@ All ETL pipeline stages have integration tests:
    - Tests idempotency and reset functionality
 
 7. **`test_embedding_model_selector.py`** (in `artsearch/tests/`)
-   - Model resolution logic (auto → clip)
+   - Smart auto model resolution (context-aware selection)
+   - Art historical query detection
    - Query parameter extraction
    - URL building with model params
    - Embedder selection in QdrantService
@@ -427,9 +428,19 @@ pytest etl/tests/test_load_embeddings_integration.py --create-db
 Users can select which embedding model to use for searches via a radio button UI on the homepage.
 
 **Available Models:**
-- **Auto**: Resolves to the current default model (currently CLIP)
+- **Auto**: Smart selection based on query type (see below)
 - **CLIP**: OpenAI CLIP (ViT-L/14) - 768-dimensional embeddings, local model
 - **Jina**: Jina CLIP v2 - 256-dimensional embeddings, API-based
+
+**Smart Auto Selection:**
+When "Auto" is selected, the system chooses the optimal model based on context:
+- **Similarity search** → Jina (better for image-to-image similarity)
+- **Art historical queries** → CLIP (better for art movements, styles, periods)
+- **General text queries** → Jina (better for natural language descriptions)
+
+Art historical detection uses keyword matching for:
+- Art movements (impressionism, baroque, cubism, etc.)
+- Style patterns ("in the style of", *istic, *esque)
 
 **Architecture:**
 
@@ -438,7 +449,11 @@ User selects model → ?model=clip|jina|auto query param
     ↓
 SearchParams.selected_embedding_model (reads param)
     ↓
-resolve_embedding_model() converts "auto" → "clip"
+resolve_embedding_model(model, is_similarity_search, query)
+    - "clip"/"jina" → returns as-is
+    - "auto" + similarity search → "jina"
+    - "auto" + art historical query → "clip"
+    - "auto" + general query → "jina"
     ↓
 QdrantService selects embedder:
     - get_clip_embedder() → local PyTorch model
@@ -450,7 +465,7 @@ Query Qdrant with named vector:
 ```
 
 **Key Files:**
-- `artsearch/src/constants/embedding_models.py`: Model definitions and resolution logic
+- `artsearch/src/constants/embedding_models.py`: Model definitions, resolution logic, art historical detection
 - `artsearch/src/services/clip_embedder.py`: CLIP embedder (singleton, GPU-enabled)
 - `artsearch/src/services/jina_embedder.py`: Jina embedder (API-based)
 - `artsearch/src/services/qdrant_service.py`: Vector search with model selection

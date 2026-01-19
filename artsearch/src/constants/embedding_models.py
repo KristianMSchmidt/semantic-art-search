@@ -2,6 +2,9 @@ import re
 from typing import Literal
 
 EmbeddingModelChoice = Literal["auto", "clip", "jina"]
+ResolvedEmbeddingModel = Literal["clip", "jina"]
+
+VALID_MODELS: frozenset[EmbeddingModelChoice] = frozenset(["auto", "clip", "jina"])
 
 EMBEDDING_MODELS = [
     {"value": "auto", "label": "Auto", "description": "Smart selection based on query"},
@@ -10,6 +13,14 @@ EMBEDDING_MODELS = [
 ]
 
 DEFAULT_EMBEDDING_MODEL: EmbeddingModelChoice = "auto"
+
+
+def validate_embedding_model(model: str) -> EmbeddingModelChoice:
+    """Validate and return model, defaulting to 'auto' for invalid values."""
+    if model in VALID_MODELS:
+        return model  # type: ignore[return-value]
+    return DEFAULT_EMBEDDING_MODEL
+
 
 # Comprehensive list of art movements and styles for query detection
 ART_MOVEMENTS: frozenset[str] = frozenset([
@@ -88,7 +99,7 @@ def resolve_embedding_model(
     *,
     is_similarity_search: bool = False,
     query: str | None = None
-) -> Literal["clip", "jina"]:
+) -> ResolvedEmbeddingModel:
     """
     Resolve 'auto' to the actual model based on context.
 
