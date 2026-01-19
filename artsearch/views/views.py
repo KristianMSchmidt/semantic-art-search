@@ -40,6 +40,15 @@ def get_artworks_view(request: HttpRequest) -> HttpResponse:
     HTMX endpoint for fetching artwork results (initial search or pagination).
     """
     params = SearchParams(request=request)
+
+    # Check for query length validation error
+    if params.query_error:
+        context = {
+            "error_message": params.query_error,
+            "error_type": "error",
+        }
+        return render(request, "partials/artwork_response.html", context)
+
     if params.offset == 0:
         log_search_query(params)
     context = build_search_context(params, embedding_model=params.selected_embedding_model)

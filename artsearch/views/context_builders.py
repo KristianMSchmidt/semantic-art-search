@@ -20,6 +20,7 @@ from artsearch.src.constants.embedding_models import (
     EmbeddingModelChoice,
     validate_embedding_model,
 )
+from artsearch.src.constants.search import MAX_QUERY_LENGTH
 
 
 RESULTS_PER_PAGE = 25
@@ -33,6 +34,14 @@ class SearchParams:
     @property
     def query(self) -> str | None:
         return retrieve_query(self.request)
+
+    @property
+    def query_error(self) -> str | None:
+        """Return error message if query exceeds max length, None otherwise."""
+        query = self.query
+        if query is not None and len(query) > MAX_QUERY_LENGTH:
+            return f"Query too long (max {MAX_QUERY_LENGTH} characters)"
+        return None
 
     @property
     def selected_museums(self) -> list[str]:

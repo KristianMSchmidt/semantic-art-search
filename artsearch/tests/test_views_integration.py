@@ -365,3 +365,59 @@ def test_clear_cache_endpoint_clears_caches(mock_qdrant_service):
         == 0
     )
     assert museum_stats_service.get_total_works_for_filters.cache_info().currsize == 0
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_query_within_limit_succeeds(mock_qdrant_service):
+    """
+    Test that a query at exactly 500 characters works.
+
+    This test verifies:
+    - Query at max length (500 chars) is accepted
+    - No error message returned
+    - Search is performed normally
+
+    Potential bugs this could catch:
+    - Off-by-one error in length validation
+    - Queries at boundary length incorrectly rejected
+    """
+    client = Client()
+    # Create a query exactly at the 500 character limit
+    query = "a" * 500
+    url = reverse("get-artworks") + f"?query={query}"
+
+    response = client.get(url)
+
+    # Should succeed - no error message
+    assert response.status_code == 200
+    assert response.context.get("error_message") is None
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_query_exceeds_limit_returns_error(mock_qdrant_service):
+    """
+    Test that a query over 500 characters returns an error message.
+
+    This test verifies:
+    - Query over max length (501+ chars) is rejected
+    - Error message is returned in context
+    - Correct error message text
+
+    Potential bugs this could catch:
+    - Length validation not implemented
+    - Wrong error message
+    - Search performed despite invalid query
+    """
+    client = Client()
+    # Create a query that exceeds the 500 character limit
+    query = "a" * 501
+    url = reverse("get-artworks") + f"?query={query}"
+
+    response = client.get(url)
+
+    # Should return error message
+    assert response.status_code == 200
+    assert response.context.get("error_message") == "Query too long (max 500 characters)"
+    assert response.context.get("error_type") == "error"

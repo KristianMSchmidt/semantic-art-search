@@ -40,6 +40,7 @@ title="View on GitHub"
             name="query"
             placeholder="Search by theme, style, emotion, or more..."
             value="{{ query|default:'' }}"
+            maxlength="500"
             class="w-full sm:w-auto flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
             required
         />
@@ -405,11 +406,21 @@ title="View on GitHub"
 <script>
     function validateSearchInput() {
         const input = document.getElementById("search-input");
+        const maxLength = 500;
+
         if (!input.value.trim()) {
             input.focus();
             input.reportValidity();  // shows browser's native "Please fill out this field" popup
             return false;
         }
+
+        if (input.value.length > maxLength) {
+            input.setCustomValidity(`Query too long (max ${maxLength} characters)`);
+            input.reportValidity();
+            input.setCustomValidity("");  // reset for future validations
+            return false;
+        }
+
         return true;
     }
 
