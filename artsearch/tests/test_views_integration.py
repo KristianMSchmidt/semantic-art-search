@@ -23,7 +23,7 @@ def mock_qdrant_service():
 
     # Mock methods used by search_service
     mock_service.get_random_sample.return_value = []
-    mock_service.search_text.return_value = []
+    mock_service.search_text.return_value = ([], "jina")  # Returns (results, actual_model)
     mock_service.search_similar_images.return_value = []
     mock_service.get_items_by_object_number.return_value = []
 
@@ -421,3 +421,119 @@ def test_query_exceeds_limit_returns_error(mock_qdrant_service):
     assert response.status_code == 200
     assert response.context.get("error_message") == "Query too long (max 500 characters)"
     assert response.context.get("error_type") == "error"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_jina_fallback_renders_oob_swap(mock_qdrant_service):
+    """
+    Test that when Jina fails and falls back to CLIP, the OOB swap is rendered.
+
+    This test verifies:
+    - OOB swap div is rendered when fallback occurs
+    - Context has correct selected_model and actual_model values
+    - CLIP radio button is checked in the OOB swap
+
+    Potential bugs this could catch:
+    - OOB swap not rendered on fallback
+    - Model selector not updated to reflect actual model used
+    - User sees incorrect model selection after fallback
+    """
+    # Mock search_text to simulate fallback: requested jina, got clip
+    mock_qdrant_service.search_text.return_value = ([], "clip")
+
+    client = Client()
+    url = reverse("get-artworks") + "?query=test&model=jina"
+
+    with patch(
+        "artsearch.views.context_builders.get_total_works_for_filters",
+        return_value=10,
+    ):
+        response = client.get(url)
+
+    assert response.status_code == 200
+
+    # Verify context
+    assert response.context["selected_model"] == "jina"
+    assert response.context["actual_model"] == "clip"
+
+    # Verify OOB swap is rendered
+    html = response.content.decode()
+    assert 'id="model-selector"' in html
+    assert 'hx-swap-oob="true"' in html
+    # CLIP should be checked (the actual model used)
+    assert 'value="clip"' in html
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_no_fallback_no_oob_swap(mock_qdrant_service):
+    """
+    Test that when no fallback occurs, OOB swap is NOT rendered.
+
+    This test verifies:
+    - OOB swap div is NOT rendered when actual_model equals selected_model
+    - Context has matching selected_model and actual_model
+
+    Potential bugs this could catch:
+    - OOB swap rendered unnecessarily
+    - UI flicker from unnecessary DOM updates
+    """
+    # Mock search_text: requested clip, got clip (no fallback)
+    mock_qdrant_service.search_text.return_value = ([], "clip")
+
+    client = Client()
+    url = reverse("get-artworks") + "?query=test&model=clip"
+
+    with patch(
+        "artsearch.views.context_builders.get_total_works_for_filters",
+        return_value=10,
+    ):
+        response = client.get(url)
+
+    assert response.status_code == 200
+
+    # Verify context - both should be clip
+    assert response.context["selected_model"] == "clip"
+    assert response.context["actual_model"] == "clip"
+
+    # Verify OOB swap is NOT rendered (actual == selected)
+    html = response.content.decode()
+    assert 'hx-swap-oob="true"' not in html or 'id="model-selector"' not in html
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_jina_success_no_oob_swap(mock_qdrant_service):
+    """
+    Test that when Jina succeeds, OOB swap is NOT rendered.
+
+    This test verifies:
+    - OOB swap div is NOT rendered when Jina works without fallback
+    - Context has matching selected_model and actual_model (both jina)
+
+    Potential bugs this could catch:
+    - OOB swap rendered even when requested model works
+    - Model selector incorrectly updated
+    """
+    # Mock search_text: requested jina, got jina (success)
+    mock_qdrant_service.search_text.return_value = ([], "jina")
+
+    client = Client()
+    url = reverse("get-artworks") + "?query=test&model=jina"
+
+    with patch(
+        "artsearch.views.context_builders.get_total_works_for_filters",
+        return_value=10,
+    ):
+        response = client.get(url)
+
+    assert response.status_code == 200
+
+    # Verify context - both should be jina
+    assert response.context["selected_model"] == "jina"
+    assert response.context["actual_model"] == "jina"
+
+    # Verify OOB swap is NOT rendered (actual == selected)
+    html = response.content.decode()
+    assert 'hx-swap-oob="true"' not in html or 'id="model-selector"' not in html
