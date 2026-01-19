@@ -19,6 +19,7 @@ from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
 from artsearch.src.constants.embedding_models import (
     EmbeddingModelChoice,
     validate_embedding_model,
+    EMBEDDING_MODELS,
 )
 from artsearch.src.constants.search import MAX_QUERY_LENGTH
 
@@ -272,6 +273,8 @@ def build_search_context(params: SearchParams, embedding_model: EmbeddingModelCh
         "is_first_batch": offset == 0,
         "total_works": total_works,
         "urls": urls,
+        "selected_model": embedding_model,
+        "embedding_models": EMBEDDING_MODELS,
     }
 
 

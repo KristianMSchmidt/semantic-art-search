@@ -48,3 +48,24 @@
           ></div>
       {% endif %} <!-- End of total_works check -->
 {% endif %} <!-- End of not_error_message check -->
+
+{# OOB swap for model selector when fallback occurred #}
+{% if actual_model and actual_model != selected_model %}
+<div id="model-selector" hx-swap-oob="true" class="inline-flex items-center gap-2">
+    <span class="text-gray-500 text-sm">Model:</span>
+    <div class="inline-flex rounded-lg bg-gray-100 p-0.5">
+        {% for model in embedding_models %}
+        <label class="relative cursor-pointer">
+            <input type="radio" name="model" value="{{ model.value }}"
+                   {% if model.value == actual_model %}checked{% endif %}
+                   class="peer sr-only">
+            <span class="block px-3 py-1 rounded-md text-gray-500 text-sm font-medium transition-all
+                         peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm
+                         hover:text-gray-700">
+                {{ model.label }}
+            </span>
+        </label>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}

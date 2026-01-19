@@ -35,10 +35,22 @@ def home_view(request: HttpRequest) -> HttpResponse:
     return render(request, "home.html", context)
 
 
+@ratelimit(key="ip", rate="20/m", method="GET")
+@ratelimit(key="ip", rate="50/h", method="GET")
 def get_artworks_view(request: HttpRequest) -> HttpResponse:
     """
     HTMX endpoint for fetching artwork results (initial search or pagination).
+
+    Rate limited to 20/min and 50/hour per IP address to prevent Jina API abuse.
     """
+    # Check if rate limited
+    if getattr(request, "limited", False):
+        context = {
+            "error_message": "Too many searches. Please wait a moment before trying again.",
+            "error_type": "warning",
+        }
+        return render(request, "partials/artwork_response.html", context)
+
     params = SearchParams(request=request)
 
     # Check for query length validation error
@@ -77,12 +89,13 @@ def update_museums(request):
     return render(request, "partials/dropdown.html", context)
 
 
-@ratelimit(key="ip", rate="15/15m", method="GET")
+@ratelimit(key="ip", rate="5/m", method="GET")
+@ratelimit(key="ip", rate="20/h", method="GET")
 def get_artwork_description_view(request: HttpRequest) -> HttpResponse:
     """
     HTMX endpoint for fetching AI-generated artwork description.
 
-    Rate limited to 15 requests per 15 minutes per IP address to prevent OpenAI API abuse.
+    Rate limited to 5/min and 20/hour per IP address to prevent OpenAI API abuse.
 
     Query params:
     - museum: museum slug (e.g., 'smk')

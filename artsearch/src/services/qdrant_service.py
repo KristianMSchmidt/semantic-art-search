@@ -170,8 +170,13 @@ class QdrantService:
         self,
         search_function_args: SearchFunctionArguments,
         embedding_model: ResolvedEmbeddingModel = "clip",
-    ) -> list[dict]:
-        """Search for related artworks based on a text query."""
+    ) -> tuple[list[dict], ResolvedEmbeddingModel]:
+        """Search for related artworks based on a text query.
+
+        Returns:
+            Tuple of (results, actual_model_used). The actual model may differ
+            from the requested model if a fallback occurred (e.g., Jina → CLIP).
+        """
 
         # Unpack the search function arguments
         query: TextQuery = search_function_args.query
@@ -181,6 +186,7 @@ class QdrantService:
         museums = search_function_args.museum_prefilter
 
         # Choose embedder based on model
+        actual_model = embedding_model
         embedding_start = time.time()
         if embedding_model == "jina":
             try:
@@ -188,13 +194,13 @@ class QdrantService:
             except Exception as e:
                 logger.warning(f"Jina embedding failed, falling back to CLIP: {e}")
                 query_vector = get_clip_embedder().generate_text_embedding(query)
-                embedding_model = "clip"  # Update for correct Qdrant collection
+                actual_model = "clip"  # Update for correct Qdrant collection
         else:
             query_vector = get_clip_embedder().generate_text_embedding(query)
         embedding_time = (time.time() - embedding_start) * 1000
 
         logger.info(
-            f"[TIMING] search_text - {embedding_model.upper()} text embedding: {embedding_time:.2f}ms"
+            f"[TIMING] search_text - {actual_model.upper()} text embedding: {embedding_time:.2f}ms"
         )
 
         results = self._search(
@@ -204,10 +210,10 @@ class QdrantService:
             work_types,
             museums,
             object_number=None,
-            embedding_model=embedding_model,
+            embedding_model=actual_model,
         )
 
-        return results
+        return results, actual_model
 
     def search_similar_images(
         self,
