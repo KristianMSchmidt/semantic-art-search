@@ -34,6 +34,14 @@ Each artwork links to its page at the source museum, so you can dive deeper and 
 
 Currently, **search queries must be in English**, but multilingual support might be added in a future version.
 
+### 🔧 Embedding Model Selection
+
+You can select which embedding model to use for your search:
+
+- **Auto** (default): Automatically selects the best model based on your query
+- **Jina** (Jina CLIP v2): Best for general language understanding and multilingual queries
+- **CLIP** (OpenAI CLIP ViT-L/14): Best for art-specific queries like "Fauvism" or "Impressionistic landscape"
+
 ---
 
 ## 🤔 How Is This Search Different?
