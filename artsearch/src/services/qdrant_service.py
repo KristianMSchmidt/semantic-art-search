@@ -183,7 +183,12 @@ class QdrantService:
         # Choose embedder based on model
         embedding_start = time.time()
         if embedding_model == "jina":
-            query_vector = get_jina_embedder().generate_text_embedding(query)
+            try:
+                query_vector = get_jina_embedder().generate_text_embedding(query)
+            except Exception as e:
+                logger.warning(f"Jina embedding failed, falling back to CLIP: {e}")
+                query_vector = get_clip_embedder().generate_text_embedding(query)
+                embedding_model = "clip"  # Update for correct Qdrant collection
         else:
             query_vector = get_clip_embedder().generate_text_embedding(query)
         embedding_time = (time.time() - embedding_start) * 1000

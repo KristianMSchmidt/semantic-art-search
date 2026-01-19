@@ -22,6 +22,7 @@ def _cached_jina_text_embedding(query: str) -> tuple[float, ...]:
             "model": JINA_MODEL,
             "dimensions": JINA_DIMENSIONS,
         },
+        timeout=10,
     )
     response.raise_for_status()
     return tuple(response.json()["data"][0]["embedding"])
