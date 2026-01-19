@@ -12,7 +12,7 @@ from artsearch.views.context_builders import (
 from artsearch.views.log_utils import log_search_query
 from artsearch.src.services import museum_stats_service
 from artsearch.src.services.artwork_description.service import generate_description
-from artsearch.src.constants.embedding_models import EMBEDDING_MODELS, resolve_embedding_model
+from artsearch.src.constants.embedding_models import EMBEDDING_MODELS
 
 
 def home_view(request: HttpRequest) -> HttpResponse:
@@ -42,8 +42,7 @@ def get_artworks_view(request: HttpRequest) -> HttpResponse:
     params = SearchParams(request=request)
     if params.offset == 0:
         log_search_query(params)
-    resolved_model = resolve_embedding_model(params.selected_embedding_model)
-    context = build_search_context(params, embedding_model=resolved_model)
+    context = build_search_context(params, embedding_model=params.selected_embedding_model)
     return render(request, "partials/artwork_response.html", context)
 
 

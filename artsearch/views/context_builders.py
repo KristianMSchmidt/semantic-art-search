@@ -218,7 +218,7 @@ def make_urls_with_params(
     }
 
 
-def build_search_context(params: SearchParams, embedding_model: str = "clip") -> dict[str, Any]:
+def build_search_context(params: SearchParams, embedding_model: str = "auto") -> dict[str, Any]:
     """
     Build the main context for the search view.
     """

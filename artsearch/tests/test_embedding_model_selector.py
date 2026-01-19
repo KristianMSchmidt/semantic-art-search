@@ -13,6 +13,7 @@ from django.http import QueryDict
 from artsearch.src.constants.embedding_models import (
     EMBEDDING_MODELS,
     resolve_embedding_model,
+    is_art_historical_query,
 )
 from artsearch.views.context_builders import SearchParams, make_url_with_params
 
@@ -61,15 +62,115 @@ def clear_lru_caches():
 @pytest.mark.parametrize(
     "input_model,expected",
     [
-        ("auto", "clip"),
         ("clip", "clip"),
         ("jina", "jina"),
     ],
 )
-def test_resolve_embedding_model(input_model, expected):
-    """Test that resolve_embedding_model correctly resolves model values."""
+def test_resolve_embedding_model_explicit(input_model, expected):
+    """Test that explicit model choices are returned as-is."""
     result = resolve_embedding_model(input_model)
     assert result == expected
+
+
+@pytest.mark.unit
+def test_resolve_embedding_model_auto_defaults_to_jina():
+    """Test that auto resolves to jina for non-art-historical queries."""
+    result = resolve_embedding_model("auto")
+    assert result == "jina"
+
+
+@pytest.mark.unit
+def test_resolve_embedding_model_auto_similarity_search_uses_jina():
+    """Test that similarity search always uses Jina."""
+    result = resolve_embedding_model("auto", is_similarity_search=True, query="impressionism")
+    assert result == "jina"
+
+
+@pytest.mark.unit
+def test_resolve_embedding_model_auto_art_historical_uses_clip():
+    """Test that art historical queries use CLIP."""
+    result = resolve_embedding_model("auto", query="impressionism paintings")
+    assert result == "clip"
+
+
+@pytest.mark.unit
+def test_resolve_embedding_model_auto_non_art_uses_jina():
+    """Test that non-art queries use Jina."""
+    result = resolve_embedding_model("auto", query="cat sitting on chair")
+    assert result == "jina"
+
+
+# =============================================================================
+# Unit Tests: is_art_historical_query()
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "query",
+    [
+        # Art movement keywords
+        "impressionism",
+        "Impressionism",  # case insensitive
+        "IMPRESSIONISM",  # case insensitive
+        "baroque paintings",
+        "art nouveau poster",
+        "cubism and futurism",
+        "abstract expressionism",
+        "pop art style",
+        "pre-raphaelite brotherhood",
+        "ukiyo-e prints",
+        "harlem renaissance artists",
+        # Fauvism and Cubism variations
+        "fauvism",
+        "Fauvism",
+        "FAUVISM",
+        "fauvism paintings",
+        "the fauvism movement",
+        "cubism",
+        "Cubism",
+        "CUBISM",
+        "cubism art",
+        "analytical cubism",
+        "synthetic cubism",
+        # Style patterns - "in the style of"
+        "in the style of Monet",
+        "painting in the style of the Dutch masters",
+        # Style patterns - *istic
+        "expressionistic brushwork",
+        "impressionistic landscape",
+        "cubistic forms",
+        "fauvistic colors",  # *istic pattern
+        # Style patterns - *esque
+        "Rembrandtesque lighting",
+        "Turneresque seascape",
+    ],
+)
+def test_is_art_historical_query_returns_true(query):
+    """Test that art historical queries are correctly detected."""
+    assert is_art_historical_query(query) is True
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "query",
+    [
+        # General queries
+        "cat",
+        "sunset over ocean",
+        "portrait of a woman",
+        "flowers in a vase",
+        "landscape with mountains",
+        # Words that shouldn't trigger detection (-esque excluded words)
+        "a picturesque village",  # "picturesque" is excluded
+        "grotesque monster",  # "grotesque" is excluded
+        "burlesque show",  # "burlesque" is excluded
+        "statuesque figure",  # "statuesque" is excluded
+    ],
+)
+def test_is_art_historical_query_returns_false(query):
+    """Test that non-art-historical queries are correctly identified."""
+    assert is_art_historical_query(query) is False
 
 
 # =============================================================================
@@ -203,10 +304,29 @@ def test_home_view_selected_model_from_query_param(
 
 @pytest.mark.integration
 @pytest.mark.django_db
-def test_get_artworks_view_resolves_auto_to_clip(mock_qdrant_service):
-    """Test that search with model=auto calls Qdrant with embedding_model='clip'."""
+def test_get_artworks_view_auto_resolves_to_jina_for_regular_query(mock_qdrant_service):
+    """Test that search with model=auto uses Jina for non-art-historical queries."""
     client = Client()
-    url = reverse("get-artworks") + "?query=landscape&model=auto"
+    url = reverse("get-artworks") + "?query=cat&model=auto"
+
+    with patch(
+        "artsearch.views.context_builders.get_total_works_for_filters",
+        return_value=10,
+    ):
+        client.get(url)
+
+    # Check that search_text was called with embedding_model="jina"
+    mock_qdrant_service.search_text.assert_called_once()
+    _, kwargs = mock_qdrant_service.search_text.call_args
+    assert kwargs["embedding_model"] == "jina"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_get_artworks_view_auto_resolves_to_clip_for_art_historical_query(mock_qdrant_service):
+    """Test that search with model=auto uses CLIP for art-historical queries."""
+    client = Client()
+    url = reverse("get-artworks") + "?query=impressionism&model=auto"
 
     with patch(
         "artsearch.views.context_builders.get_total_works_for_filters",
@@ -357,3 +477,35 @@ def test_qdrant_service_search_text_selects_correct_embedder():
         mock_jina.assert_called_once()
         mock_clip.assert_not_called()
         mock_jina_embedder.generate_text_embedding.assert_called_once_with("test query")
+
+
+# =============================================================================
+# Integration Tests: Smart Auto Behavior in search_service
+# =============================================================================
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_similarity_search_uses_jina_with_auto(mock_qdrant_service):
+    """Test that similarity search uses Jina when model is auto."""
+    from qdrant_client.models import ScoredPoint
+
+    # Mock get_items_by_object_number to return an artwork (triggering similarity search)
+    mock_item = MagicMock()
+    mock_item.payload = {"museum": "smk", "object_number": "KMS1"}
+    mock_qdrant_service.get_items_by_object_number.return_value = [mock_item]
+    mock_qdrant_service.search_similar_images.return_value = []
+
+    client = Client()
+    url = reverse("get-artworks") + "?query=smk:KMS1&model=auto"
+
+    with patch(
+        "artsearch.views.context_builders.get_total_works_for_filters",
+        return_value=10,
+    ):
+        client.get(url)
+
+    # Check that search_similar_images was called with embedding_model="jina"
+    mock_qdrant_service.search_similar_images.assert_called_once()
+    _, kwargs = mock_qdrant_service.search_similar_images.call_args
+    assert kwargs["embedding_model"] == "jina"
