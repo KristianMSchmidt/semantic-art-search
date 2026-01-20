@@ -5,6 +5,7 @@ from artsearch.src.services.qdrant_service import (
     QdrantService,
     SearchFunctionArguments,
 )
+from artsearch.src.services.browse_service import handle_browse
 from artsearch.src.utils.get_museums import get_museum_full_name, get_museum_slugs
 from artsearch.src.config import config
 from artsearch.src.constants.embedding_models import (
@@ -94,10 +95,29 @@ def handle_search(
     total_works: int | None = None,
     museum_slugs: list[str] = get_museum_slugs(),
     embedding_model: EmbeddingModelChoice = "auto",
+    seed: str | None = None,
 ) -> dict[Any, Any]:
     """
     Handle the search logic based on the provided query and filters.
+
+    For browsing (no query), delegates to handle_browse which uses PostgreSQL
+    for deterministic random ordering with proper pagination support.
     """
+    # Browsing mode (no query) - delegate to browse handler
+    if query is None or query == "":
+        if seed is None:
+            raise ValueError("seed is required for browsing mode (no query)")
+        return handle_browse(
+            offset=offset,
+            limit=limit,
+            museum_prefilter=museum_prefilter,
+            work_type_prefilter=work_type_prefilter,
+            seed=seed,
+            total_works=total_works or 0,
+            is_initial_load=(query is None),
+        )
+
+    # Search mode (has query)
     qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
 
     header_text = None
@@ -106,65 +126,47 @@ def handle_search(
     error_type = None
     actual_model: ResolvedEmbeddingModel | None = None
 
-    if query is None or query == "":
-        if query is None:
-            # Initial page load
-            header_text = "A glimpse into the archive"
-        else:
-            # Search with no query (currently disabled by FE)
-            header_text = "Works matching your filters"
-        try:
-            results = qdrant_service.get_random_sample(
-                limit=limit,
-                work_types=work_type_prefilter,
-                museums=museum_prefilter,
-            )
-        except Exception:
-            traceback.print_exc()
-            error_message = "An unexpected error occurred. Please try again."
-            error_type = "error"
-    else:
-        # The user submitted a query.
-        search_arguments = SearchFunctionArguments(
+    # The user submitted a query.
+    search_arguments = SearchFunctionArguments(
+        query=query,
+        limit=limit,
+        offset=offset,
+        work_type_prefilter=work_type_prefilter,
+        museum_prefilter=museum_prefilter,
+    )
+    try:
+        query_analysis = analyze_query(query, museum_slugs)
+
+        # Resolve embedding model with context
+        resolved_model = resolve_embedding_model(
+            embedding_model,
+            is_similarity_search=query_analysis.is_find_similar_query,
             query=query,
-            limit=limit,
-            offset=offset,
-            work_type_prefilter=work_type_prefilter,
-            museum_prefilter=museum_prefilter,
         )
-        try:
-            query_analysis = analyze_query(query, museum_slugs)
 
-            # Resolve embedding model with context
-            resolved_model = resolve_embedding_model(
-                embedding_model,
-                is_similarity_search=query_analysis.is_find_similar_query,
-                query=query,
+        if query_analysis.is_find_similar_query:
+            search_arguments.object_number = query_analysis.object_number
+            search_arguments.object_museum = query_analysis.object_museum
+            results = qdrant_service.search_similar_images(
+                search_arguments, embedding_model=resolved_model
             )
-
-            if query_analysis.is_find_similar_query:
-                search_arguments.object_number = query_analysis.object_number
-                search_arguments.object_museum = query_analysis.object_museum
-                results = qdrant_service.search_similar_images(
-                    search_arguments, embedding_model=resolved_model
-                )
-                actual_model = resolved_model
-            else:
-                results, actual_model = qdrant_service.search_text(
-                    search_arguments, embedding_model=resolved_model
-                )
-            assert total_works is not None
-            works_text = f"({total_works} works)"
-            header_text = (
-                f"Search results {works_text}".strip() if total_works > 0 else None
+            actual_model = resolved_model
+        else:
+            results, actual_model = qdrant_service.search_text(
+                search_arguments, embedding_model=resolved_model
             )
-        except QueryParsingError as e:
-            error_message = str(e)
-            error_type = "warning"
-        except Exception:
-            traceback.print_exc()
-            error_message = "An unexpected error occurred. Please try again."
-            error_type = "error"
+        assert total_works is not None
+        works_text = f"({total_works} works)"
+        header_text = (
+            f"Search results {works_text}".strip() if total_works > 0 else None
+        )
+    except QueryParsingError as e:
+        error_message = str(e)
+        error_type = "warning"
+    except Exception:
+        traceback.print_exc()
+        error_message = "An unexpected error occurred. Please try again."
+        error_type = "error"
 
     return {
         "results": results,

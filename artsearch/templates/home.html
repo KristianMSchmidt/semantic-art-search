@@ -33,7 +33,7 @@ title="View on GitHub"
         hx-on:submit="return validateSearchInput()"
         class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mb-4 sm:mb-5">
 
-        <!-- Search Input -->
+        <!-- Search Input (empty query triggers browse mode with random results) -->
         <input
             id="search-input"
             type="text"
@@ -42,7 +42,6 @@ title="View on GitHub"
             value="{{ query|default:'' }}"
             maxlength="500"
             class="w-full sm:w-auto flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            required
         />
 
         <!-- Museum Dropdown -->
@@ -408,12 +407,7 @@ title="View on GitHub"
         const input = document.getElementById("search-input");
         const maxLength = 500;
 
-        if (!input.value.trim()) {
-            input.focus();
-            input.reportValidity();  // shows browser's native "Please fill out this field" popup
-            return false;
-        }
-
+        // Empty query is allowed - triggers browse mode with random results
         if (input.value.length > maxLength) {
             input.setCustomValidity(`Query too long (max ${maxLength} characters)`);
             input.reportValidity();

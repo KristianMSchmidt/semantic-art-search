@@ -21,17 +21,23 @@ def mock_qdrant_service():
     """Mock Qdrant service for all tests."""
     mock_service = MagicMock()
 
-    # Mock methods used by search_service
-    mock_service.get_random_sample.return_value = []
+    # Mock methods used by search_service and browse_service
+    mock_service.get_items_by_ids.return_value = []
     mock_service.search_text.return_value = ([], "jina")  # Returns (results, actual_model)
     mock_service.search_similar_images.return_value = []
     mock_service.get_items_by_object_number.return_value = []
 
-    # Patch QdrantService where it's used (search_service), not where it's defined
-    # This is required because search_service uses: from qdrant_service import QdrantService
+    # Patch QdrantService where it's used (search_service and browse_service)
+    # Also patch get_random_artwork_ids for browse mode tests
     with patch(
         "artsearch.src.services.search_service.QdrantService",
         return_value=mock_service,
+    ), patch(
+        "artsearch.src.services.browse_service.QdrantService",
+        return_value=mock_service,
+    ), patch(
+        "artsearch.src.services.browse_service.get_random_artwork_ids",
+        return_value=[],
     ):
         yield mock_service
 

@@ -280,36 +280,73 @@ class QdrantService:
 
         return results
 
-    def get_random_sample(
-        self, limit: int, work_types: list[str] | None, museums: list[str] | None
+    def get_items_by_ids(
+        self,
+        artwork_ids: list[tuple[str, str]],  # (museum_slug, object_number)
     ) -> list[dict]:
-        """Get a random sample of items from the collection."""
-        conditions = []
-        if museums is not None:
-            conditions.append(
-                models.FieldCondition(
-                    key="museum",
-                    match=models.MatchAny(any=museums),
-                )
-            )
-        if work_types is not None:
-            conditions.append(
-                models.FieldCondition(
-                    key="searchable_work_types",
-                    match=models.MatchAny(any=work_types),
-                )
-            )
+        """
+        Fetch full payloads for multiple artworks by their (museum, object_number) pairs.
 
-        sampled = self.qdrant_client.query_points(
+        Since object_numbers are only unique per museum, we use compound filters.
+        Results are returned in the same order as the input artwork_ids.
+
+        Args:
+            artwork_ids: List of (museum_slug, object_number) tuples
+
+        Returns:
+            List of formatted payloads in the same order as input
+        """
+        if not artwork_ids:
+            return []
+
+        start_time = time.time()
+
+        # Build compound filter: (museum=A AND obj=1) OR (museum=B AND obj=2) OR ...
+        should_conditions = [
+            models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="museum", match=models.MatchValue(value=museum)
+                    ),
+                    models.FieldCondition(
+                        key="object_number", match=models.MatchValue(value=obj_num)
+                    ),
+                ]
+            )
+            for museum, obj_num in artwork_ids
+        ]
+
+        result = self.qdrant_client.query_points(
             collection_name=self.collection_name,
-            query=models.SampleQuery(sample=models.Sample.RANDOM),
-            with_vectors=False,
+            query_filter=models.Filter(should=should_conditions),
             with_payload=True,
-            limit=limit,
-            query_filter=models.Filter(must=conditions),
+            limit=len(artwork_ids),
         )
-        payloads = [point.payload for point in sampled.points]
-        return format_payloads(payloads)
+
+        qdrant_time = (time.time() - start_time) * 1000
+
+        # Build lookup dict for reordering
+        payload_map = {
+            (p.payload["museum"], p.payload["object_number"]): p.payload
+            for p in result.points
+        }
+
+        # Return in original order from PostgreSQL
+        ordered_payloads = [
+            payload_map[key] for key in artwork_ids if key in payload_map
+        ]
+
+        format_start = time.time()
+        formatted = format_payloads(ordered_payloads)
+        format_time = (time.time() - format_start) * 1000
+
+        logger.info(
+            f"[TIMING] get_items_by_ids - "
+            f"requested={len(artwork_ids)}, found={len(ordered_payloads)}, "
+            f"qdrant={qdrant_time:.2f}ms, format={format_time:.2f}ms"
+        )
+
+        return formatted
 
     def upload_points(self, points: list[models.PointStruct]) -> None:
         """Upload points to a Qdrant collection."""
