@@ -170,12 +170,10 @@ class QdrantService:
         self,
         search_function_args: SearchFunctionArguments,
         embedding_model: ResolvedEmbeddingModel = "clip",
-    ) -> tuple[list[dict], ResolvedEmbeddingModel]:
+    ) -> list[dict]:
         """Search for related artworks based on a text query.
 
-        Returns:
-            Tuple of (results, actual_model_used). The actual model may differ
-            from the requested model if a fallback occurred (e.g., Jina → CLIP).
+        If Jina embedding fails, silently falls back to CLIP.
         """
 
         # Unpack the search function arguments
@@ -203,7 +201,7 @@ class QdrantService:
             f"[TIMING] search_text - {actual_model.upper()} text embedding: {embedding_time:.2f}ms"
         )
 
-        results = self._search(
+        return self._search(
             query_vector,
             limit,
             offset,
@@ -212,8 +210,6 @@ class QdrantService:
             object_number=None,
             embedding_model=actual_model,
         )
-
-        return results, actual_model
 
     def search_similar_images(
         self,

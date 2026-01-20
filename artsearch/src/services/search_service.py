@@ -11,7 +11,6 @@ from artsearch.src.config import config
 from artsearch.src.constants.embedding_models import (
     resolve_embedding_model,
     EmbeddingModelChoice,
-    ResolvedEmbeddingModel,
 )
 
 
@@ -124,7 +123,6 @@ def handle_search(
     results = []
     error_message = None
     error_type = None
-    actual_model: ResolvedEmbeddingModel | None = None
 
     # The user submitted a query.
     search_arguments = SearchFunctionArguments(
@@ -150,9 +148,8 @@ def handle_search(
             results = qdrant_service.search_similar_images(
                 search_arguments, embedding_model=resolved_model
             )
-            actual_model = resolved_model
         else:
-            results, actual_model = qdrant_service.search_text(
+            results = qdrant_service.search_text(
                 search_arguments, embedding_model=resolved_model
             )
         assert total_works is not None
@@ -173,5 +170,4 @@ def handle_search(
         "header_text": header_text,
         "error_message": error_message,
         "error_type": error_type,
-        "actual_model": actual_model,
     }

@@ -100,7 +100,7 @@ def handle_browse(
         is_initial_load: True if this is the initial page load (query=None)
 
     Returns:
-        Dict with results, header_text, error_message, error_type, actual_model
+        Dict with results, header_text, error_message, error_type
     """
     start_time = time.time()
     qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
@@ -134,5 +134,4 @@ def handle_browse(
         "header_text": header_text,
         "error_message": None,
         "error_type": None,
-        "actual_model": None,  # No embedding model used for browse
     }
