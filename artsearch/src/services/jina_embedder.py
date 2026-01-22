@@ -36,6 +36,12 @@ class JinaEmbedder:
         """Generate image embedding using Jina CLIP v2 API.
 
         Jina API accepts image URLs directly - it fetches the image server-side.
+
+        Cost note: Jina tiles images >512px into 512×512 chunks, each costing 4,000
+        tokens. Pre-resizing to 512×512 locally would reduce costs ~4× for typical
+        artwork images. However, all 180k artworks were embedded without preprocessing
+        (Jan 2025), so any change requires re-embedding everything for consistency.
+        See .claude/rules/etl-pipeline.md for full context.
         """
         headers = {
             "Content-Type": "application/json",

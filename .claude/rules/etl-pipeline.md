@@ -100,9 +100,20 @@ VECTOR_TYPE_TO_FIELD = {
 **Data Flow:**
 1. Query where `image_loaded=True` AND active vector is False
 2. Download image from S3 bucket
-3. Generate embedding (CLIP: 768 dims, Jina: 1024 dims)
+3. Generate embedding (CLIP: 768 dims, Jina: 256 dims)
 4. Upload to Qdrant with named vectors + payload
 5. Set vector field to True
+
+### Jina Image Preprocessing (Cost vs Quality Decision)
+
+**Background:** Jina CLIP v2 charges by tokens. Images larger than 512×512 are tiled into 512×512 chunks, each costing 4,000 tokens. A 1000×1000 image costs 4× more than a pre-resized 512×512 image.
+
+**Decision (Jan 2025):** We currently pass full S3 URLs directly to Jina without local preprocessing. This means:
+- Higher API costs (images are tiled server-side)
+- Higher quality embeddings (more detail captured)
+- All 180k artworks were embedded this way for consistency
+
+**If re-embedding in the future:** Consider adding local resize-to-512×512 preprocessing in `jina_embedder.py` before API calls. But you MUST re-embed ALL images to maintain consistency — mixing tiled and pre-resized embeddings will degrade search quality.
 
 **Qdrant Collection:** `artworks_etl_v1`
 - 4 named vectors: `text_clip`, `image_clip`, `text_jina`, `image_jina`
