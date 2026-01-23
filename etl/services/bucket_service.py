@@ -1,3 +1,5 @@
+import logging
+
 import boto3
 from botocore.config import Config
 import requests
@@ -125,8 +127,8 @@ class BucketService:
             )
             content_type = "image/jpeg"  # Always JPEG after resize
         except Exception as e:
-            print(f"Warning: Failed to resize image for {museum}:{object_number}: {e}")
-            print("Uploading original image as fallback")
+            logging.warning(f"Failed to resize image for {museum}:{object_number}: {e}")
+            logging.warning("Uploading original image as fallback")
             image_bytes = resp.content
 
         self.s3.put_object(
@@ -137,7 +139,7 @@ class BucketService:
             ContentType=content_type,
             CacheControl=cache_control,
         )
-        print(f"Successfully uploaded {key} to bucket {self.bucket_name}")
+        logging.info(f"Successfully uploaded {key} to bucket {self.bucket_name}")
 
     def copy_thumbnail(self, old_key: str, new_key: str) -> None:
         self.s3.copy_object(
@@ -162,9 +164,9 @@ class BucketService:
             )
             errors = response.get("Errors", [])
             if errors:
-                print(f"Errors occurred while deleting keys: {errors}")
+                logging.error(f"Errors occurred while deleting keys: {errors}")
         except ClientError as e:
-            print(f"Failed to delete keys: {e}")
+            logging.error(f"Failed to delete keys: {e}")
 
     def object_exists(self, key: str) -> bool:
         """

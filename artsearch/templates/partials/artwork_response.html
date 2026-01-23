@@ -39,12 +39,14 @@
               {% include "partials/artwork_card.html" %}
             {% endfor %}
           </div>
-          {# Load more artworks when the user scrolls down #}
+          {# Load more artworks when the user scrolls down (only if there are results) #}
+          {% if results %}
           <div
             hx-get="{{ urls.get_artworks_with_params }}"
             hx-trigger="revealed"
             hx-swap="outerHTML"
             class="py-4 text-center text-gray-500"
           ></div>
+          {% endif %}
       {% endif %} <!-- End of total_works check -->
 {% endif %} <!-- End of not_error_message check -->

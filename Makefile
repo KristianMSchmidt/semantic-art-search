@@ -91,13 +91,13 @@ stats: ## Get work type stats
 # ---------- Qdrant Vector Database ---------- #
 
 qdrant-info: ## Show collection info (point count, vectors, indices)
-	docker compose -f docker-compose.dev.yml exec web curl -s http://qdrant:6333/collections/artworks_prod_v1 | python -m json.tool
+	docker compose -f docker-compose.dev.yml exec web curl -s http://qdrant:6333/collections/artworks_prod_v1 | python3 -m json.tool
 
 qdrant-health: ## Check Qdrant health status
 	docker compose -f docker-compose.dev.yml exec web curl -s http://qdrant:6333/health
 
 qdrant-collections: ## List all collections
-	docker compose -f docker-compose.dev.yml exec web curl -s http://qdrant:6333/collections | python -m json.tool
+	docker compose -f docker-compose.dev.yml exec web curl -s http://qdrant:6333/collections | python3 -m json.tool
 
 qdrant-logs: ## Show Qdrant container logs
 	docker compose -f docker-compose.dev.yml logs qdrant --tail=50
@@ -111,16 +111,16 @@ qdrant-snapshot: ## Create a snapshot of the collection
 
 qdrant-stats: ## Show collection statistics (quick summary)
 	@echo "Collection: artworks_prod_v1"
-	@docker compose -f docker-compose.dev.yml exec web curl -s http://qdrant:6333/collections/artworks_prod_v1 | python -c "import sys, json; data=json.load(sys.stdin); print(f\"Points: {data['result']['points_count']:,}\"); print(f\"Status: {data['result']['status']}\"); print(f\"Vectors: {', '.join(data['result']['config']['params']['vectors'].keys())}\")"
+	@docker compose -f docker-compose.dev.yml exec web curl -s http://qdrant:6333/collections/artworks_prod_v1 | python3 -c "import sys, json; data=json.load(sys.stdin); print(f\"Points: {data['result']['points_count']:,}\"); print(f\"Status: {data['result']['status']}\"); print(f\"Vectors: {', '.join(data['result']['config']['params']['vectors'].keys())}\")"
 
 prod_qdrant-info: ## [PROD] Show production collection info
-	docker compose -f docker-compose.prod.yml exec web curl -s http://qdrant:6333/collections/artworks_prod_v1 | python -m json.tool
+	docker compose -f docker-compose.prod.yml exec web curl -s http://qdrant:6333/collections/artworks_prod_v1 | python3 -m json.tool
 
 prod_qdrant-health: ## [PROD] Check production Qdrant health
 	docker compose -f docker-compose.prod.yml exec web curl -s http://qdrant:6333/health
 
 prod_qdrant-collections: ## [PROD] List all production collections
-	docker compose -f docker-compose.prod.yml exec web curl -s http://qdrant:6333/collections | python -m json.tool
+	docker compose -f docker-compose.prod.yml exec web curl -s http://qdrant:6333/collections | python3 -m json.tool
 
 prod_qdrant-logs: ## [PROD] Show production Qdrant logs
 	docker compose -f docker-compose.prod.yml logs qdrant --tail=50
@@ -142,7 +142,7 @@ prod_qdrant-snapshot: ## [PROD] Create a snapshot of the production collection
 
 prod_qdrant-stats: ## [PROD] Show production collection statistics
 	@echo "Collection: artworks_prod_v1 (Production)"
-	@docker compose -f docker-compose.prod.yml exec web curl -s http://qdrant:6333/collections/artworks_prod_v1 | python -c "import sys, json; data=json.load(sys.stdin); print(f\"Points: {data['result']['points_count']:,}\"); print(f\"Status: {data['result']['status']}\"); print(f\"Vectors: {', '.join(data['result']['config']['params']['vectors'].keys())}\")"
+	@docker compose -f docker-compose.prod.yml exec web curl -s http://qdrant:6333/collections/artworks_prod_v1 | python3 -c "import sys, json; data=json.load(sys.stdin); print(f\"Points: {data['result']['points_count']:,}\"); print(f\"Status: {data['result']['status']}\"); print(f\"Vectors: {', '.join(data['result']['config']['params']['vectors'].keys())}\")"
 
 
 # ---------- Database Utilities ---------- #

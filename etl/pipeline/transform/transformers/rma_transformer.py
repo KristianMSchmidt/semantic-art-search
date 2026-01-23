@@ -1,5 +1,6 @@
-from typing import Optional, Any
+import logging
 import re
+from typing import Optional, Any
 from etl.pipeline.transform.base_transformer import BaseTransformer
 from etl.pipeline.transform.utils import get_searchable_work_types
 from etl.pipeline.shared.rma_utils import extract_provided_cho, extract_object_number
@@ -261,7 +262,7 @@ def extract_type_ids(type_resources) -> list[str]:
         elif "skos:Concept" in type_resources:
             type_ids.append(type_resources["skos:Concept"].get("@rdf:about"))
         else:
-            print("[WARN] Unknown dict format in type_resources:", type_resources)
+            logging.warning(f"Unknown dict format in type_resources: {type_resources}")
 
     elif isinstance(type_resources, list):
         for item in type_resources:
@@ -270,10 +271,10 @@ def extract_type_ids(type_resources) -> list[str]:
             elif "skos:Concept" in item:
                 type_ids.append(item["skos:Concept"].get("@rdf:about"))
             else:
-                print("[WARN] Unknown list item format in type_resources:", item)
+                logging.warning(f"Unknown list item format in type_resources: {item}")
 
     else:
-        print("[WARN] Unexpected type_resources format:", type_resources)
+        logging.warning(f"Unexpected type_resources format: {type_resources}")
 
     # Filter out any None values just in case
     return [tid for tid in type_ids if tid]
@@ -307,7 +308,7 @@ def extract_worktypes(rdf_data: dict[str, Any]) -> list[str] | None:
         # Fall back to global lookup if using @rdf:resource
         concepts = rdf_data.get("skos:Concept")
         if not concepts:
-            print("[WARN] No skos:Concept found for lookup.")
+            logging.warning("No skos:Concept found for lookup.")
             return None
 
         type_ids = extract_type_ids(type_data)
@@ -320,7 +321,7 @@ def extract_worktypes(rdf_data: dict[str, Any]) -> list[str] | None:
         for type_id in type_ids:
             labels = concept_lookup.get(type_id)
             if not labels:
-                print(f"[WARN] No labels found for type_id: {type_id}")
+                logging.warning(f"No labels found for type_id: {type_id}")
                 continue
             label = parse_label(labels)
             work_types.append(label)
@@ -513,7 +514,7 @@ def extract_artist_names(rdf_data: dict) -> list[str]:
             artist_names.append(creator)
             continue
 
-        print(f"[WARN] Unknown dc:creator format: {creator}")
+        logging.warning(f"Unknown dc:creator format: {creator}")
 
     return artist_names
 
@@ -758,7 +759,7 @@ def extract_creation_date(provided_cho: dict[str, Any]) -> str | None:
     try:
         date_data = provided_cho["dcterms:created"]
     except KeyError:
-        print("KeyError: dcterms:created not found in provided_cho")
+        logging.warning("KeyError: dcterms:created not found in provided_cho")
         return None
     if date_data:
         if isinstance(date_data, list):
@@ -801,7 +802,7 @@ def resolve_agent_label(rdf_data: dict, ref: str) -> str | None:
         if desc.get("@rdf:about") == ref:
             return parse_label(desc.get("skos:prefLabel"))
 
-    print(f"[WARN] Could not resolve agent for reference: {ref}")
+    logging.warning(f"Could not resolve agent for reference: {ref}")
     return None
 
 

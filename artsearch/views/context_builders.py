@@ -1,4 +1,5 @@
 import json
+import secrets
 from typing import Any, Iterable, Literal
 from dataclasses import dataclass
 from urllib.parse import urlencode
@@ -16,6 +17,12 @@ from artsearch.src.services.search_service import handle_search
 from artsearch.src.utils.get_museums import get_museum_slugs
 from artsearch.src.constants.ui import EXAMPLE_QUERIES
 from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
+from artsearch.src.constants.embedding_models import (
+    EmbeddingModelChoice,
+    validate_embedding_model,
+    EMBEDDING_MODELS,
+)
+from artsearch.src.constants.search import MAX_QUERY_LENGTH
 
 
 RESULTS_PER_PAGE = 25
@@ -31,6 +38,14 @@ class SearchParams:
         return retrieve_query(self.request)
 
     @property
+    def query_error(self) -> str | None:
+        """Return error message if query exceeds max length, None otherwise."""
+        query = self.query
+        if query is not None and len(query) > MAX_QUERY_LENGTH:
+            return f"Query too long (max {MAX_QUERY_LENGTH} characters)"
+        return None
+
+    @property
     def selected_museums(self) -> list[str]:
         museum_names = get_museum_slugs()
         return retrieve_selected(museum_names, self.request, "museums")
@@ -43,6 +58,19 @@ class SearchParams:
     @property
     def offset(self) -> int:
         return retrieve_offset(self.request)
+
+    @property
+    def selected_embedding_model(self) -> EmbeddingModelChoice:
+        model = self.request.GET.get("model", "auto")
+        return validate_embedding_model(model)
+
+    @property
+    def seed(self) -> str:
+        """Get seed from URL or generate new one for deterministic random ordering."""
+        existing = self.request.GET.get("seed")
+        if existing:
+            return existing
+        return secrets.token_hex(8)  # 16-char hex string
 
 
 @dataclass
@@ -172,6 +200,8 @@ def make_url_with_params(
     offset: int | None = None,
     selected_work_types: list[str] = [],
     selected_museums: list[str] = [],
+    embedding_model: EmbeddingModelChoice | None = None,
+    seed: str | None = None,
 ) -> str:
     """Make a URL with query parameters for pagination and filtering."""
     query_params = {}
@@ -183,6 +213,10 @@ def make_url_with_params(
         query_params["work_types"] = selected_work_types
     if selected_museums:
         query_params["museums"] = selected_museums
+    if embedding_model and embedding_model != "auto":
+        query_params["model"] = embedding_model
+    if seed:
+        query_params["seed"] = seed
     if not query_params:
         return reverse(url_name)
     return f"{reverse(url_name)}?{urlencode(query_params, doseq=True)}"
@@ -193,6 +227,8 @@ def make_urls_with_params(
     offset: int,
     selected_work_types: list[str],
     selected_museums: list[str],
+    embedding_model: EmbeddingModelChoice | None = None,
+    seed: str | None = None,
 ) -> dict[str, str]:
     """Make URLs with query parameters for pagination and filtering"""
     return {
@@ -202,11 +238,13 @@ def make_urls_with_params(
             offset=offset,
             selected_work_types=selected_work_types,
             selected_museums=selected_museums,
+            embedding_model=embedding_model,
+            seed=seed,
         ),
     }
 
 
-def build_search_context(params: SearchParams) -> dict[str, Any]:
+def build_search_context(params: SearchParams, embedding_model: EmbeddingModelChoice = "auto") -> dict[str, Any]:
     """
     Build the main context for the search view.
     """
@@ -218,13 +256,15 @@ def build_search_context(params: SearchParams) -> dict[str, Any]:
         get_work_type_names(), params.selected_work_types
     )
 
-    if params.query is None:
-        total_works = None
-    else:
-        total_works = get_total_works_for_filters(
-            tuple(params.selected_museums),
-            tuple(params.selected_work_types),
-        )
+    # Get total works count (needed for both search and browse modes)
+    total_works = get_total_works_for_filters(
+        tuple(params.selected_museums),
+        tuple(params.selected_work_types),
+    )
+
+    # Determine if we're in browse mode (no query)
+    is_browse_mode = params.query is None or params.query == ""
+
     search_results = handle_search(
         query=params.query,
         offset=offset,
@@ -232,13 +272,19 @@ def build_search_context(params: SearchParams) -> dict[str, Any]:
         museum_prefilter=museum_prefilter,
         work_type_prefilter=work_type_prefilter,
         total_works=total_works,
+        embedding_model=embedding_model,
+        seed=params.seed if is_browse_mode else None,
     )
 
+    # Only include seed in pagination URLs for browse mode
+    # This ensures filter changes get a new random order
     urls = make_urls_with_params(
         query=params.query,
         offset=offset + limit,
         selected_museums=params.selected_museums,
         selected_work_types=params.selected_work_types,
+        embedding_model=params.selected_embedding_model,
+        seed=params.seed if is_browse_mode else None,
     )
 
     return {
@@ -247,6 +293,8 @@ def build_search_context(params: SearchParams) -> dict[str, Any]:
         "is_first_batch": offset == 0,
         "total_works": total_works,
         "urls": urls,
+        "selected_model": embedding_model,
+        "embedding_models": EMBEDDING_MODELS,
     }
 
 

@@ -232,6 +232,21 @@ load-embeddings-all-force:  ## [DEV] Force regenerate embeddings for all museums
 load-embeddings-retry-failed:  ## [DEV] Retry previously failed embeddings for all museums
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --retry-failed --batch-size 50 --delay 0.1 --batch-delay 2
 
+load-embeddings-smk-retry-failed:  ## [DEV] Retry previously failed embeddings for SMK museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --retry-failed --museum smk --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-cma-retry-failed:  ## [DEV] Retry previously failed embeddings for CMA museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --retry-failed --museum cma --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-rma-retry-failed:  ## [DEV] Retry previously failed embeddings for RMA museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --retry-failed --museum rma --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-met-retry-failed:  ## [DEV] Retry previously failed embeddings for MET museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --retry-failed --museum met --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-aic-retry-failed:  ## [DEV] Retry previously failed embeddings for AIC museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --retry-failed --museum aic --batch-size 50 --delay 0.1 --batch-delay 2
+
 # ---------- ETL Load Embeddings [PROD] ---------- #
 
 prod_load-embeddings-smk:  ## [PROD] Generate CLIP embeddings for SMK museum
@@ -276,6 +291,21 @@ prod_load-embeddings-all-force:  ## [PROD] Force regenerate embeddings for all m
 
 prod_load-embeddings-retry-failed:  ## [PROD] Retry previously failed embeddings for all museums
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --retry-failed --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-smk-retry-failed:  ## [PROD] Retry previously failed embeddings for SMK museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --retry-failed --museum smk --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-cma-retry-failed:  ## [PROD] Retry previously failed embeddings for CMA museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --retry-failed --museum cma --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-rma-retry-failed:  ## [PROD] Retry previously failed embeddings for RMA museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --retry-failed --museum rma --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-met-retry-failed:  ## [PROD] Retry previously failed embeddings for MET museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --retry-failed --museum met --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-aic-retry-failed:  ## [PROD] Retry previously failed embeddings for AIC museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --retry-failed --museum aic --batch-size 50 --delay 0.1 --batch-delay 2
 
 # ---------- ETL Load Artwork Stats ---------- #
 

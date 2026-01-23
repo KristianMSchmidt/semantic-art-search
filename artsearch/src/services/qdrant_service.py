@@ -10,8 +10,13 @@ from artsearch.src.utils.qdrant_formatting import (
     format_hits,
 )
 from artsearch.src.services.clip_embedder import get_clip_embedder
+from artsearch.src.services.jina_embedder import get_jina_embedder
 from artsearch.src.utils.get_qdrant_client import get_qdrant_client
 from artsearch.src.config import config
+from artsearch.src.constants.embedding_models import (
+    MODEL_TO_VECTOR_NAME,
+    ResolvedEmbeddingModel,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +77,7 @@ class QdrantService:
         work_types: list[str] | None,
         museums: list[str] | None,
         object_number: str | None,
+        embedding_model: ResolvedEmbeddingModel = "clip",
     ) -> list[dict]:
         """
         Perform search in qdrant collection based on vector similarity.
@@ -125,6 +131,9 @@ class QdrantService:
         # but seems not to be needed yet.
         search_params = models.SearchParams(exact=True)
 
+        # Determine which vector to search based on embedding model
+        vector_name = MODEL_TO_VECTOR_NAME[embedding_model]
+
         qdrant_start = time.time()
         response = self.qdrant_client.query_points(
             collection_name=self.collection_name,
@@ -133,7 +142,7 @@ class QdrantService:
             offset=offset,
             query_filter=query_filter,
             search_params=search_params,
-            using="image_clip",
+            using=vector_name,
         )
         qdrant_time = (time.time() - qdrant_start) * 1000
 
@@ -157,8 +166,15 @@ class QdrantService:
 
         return formatted
 
-    def search_text(self, search_function_args: SearchFunctionArguments) -> list[dict]:
-        """Search for related artworks based on a text query."""
+    def search_text(
+        self,
+        search_function_args: SearchFunctionArguments,
+        embedding_model: ResolvedEmbeddingModel = "clip",
+    ) -> list[dict]:
+        """Search for related artworks based on a text query.
+
+        If Jina embedding fails, silently falls back to CLIP.
+        """
 
         # Unpack the search function arguments
         query: TextQuery = search_function_args.query
@@ -167,23 +183,38 @@ class QdrantService:
         work_types = search_function_args.work_type_prefilter
         museums = search_function_args.museum_prefilter
 
+        # Choose embedder based on model
+        actual_model = embedding_model
         embedding_start = time.time()
-        query_vector = get_clip_embedder().generate_text_embedding(query)
+        if embedding_model == "jina":
+            try:
+                query_vector = get_jina_embedder().generate_text_embedding(query)
+            except Exception as e:
+                logger.warning(f"Jina embedding failed, falling back to CLIP: {e}")
+                query_vector = get_clip_embedder().generate_text_embedding(query)
+                actual_model = "clip"  # Update for correct Qdrant collection
+        else:
+            query_vector = get_clip_embedder().generate_text_embedding(query)
         embedding_time = (time.time() - embedding_start) * 1000
 
         logger.info(
-            f"[TIMING] search_text - CLIP text embedding: {embedding_time:.2f}ms"
+            f"[TIMING] search_text - {actual_model.upper()} text embedding: {embedding_time:.2f}ms"
         )
 
-        results = self._search(
-            query_vector, limit, offset, work_types, museums, object_number=None
+        return self._search(
+            query_vector,
+            limit,
+            offset,
+            work_types,
+            museums,
+            object_number=None,
+            embedding_model=actual_model,
         )
-
-        return results
 
     def search_similar_images(
         self,
         search_function_args: SearchFunctionArguments,
+        embedding_model: ResolvedEmbeddingModel = "clip",
     ) -> list[dict]:
         """
         Search for artworks similar to the given target object based on vector embedding similarity.
@@ -218,58 +249,118 @@ class QdrantService:
             raise ValueError("No vector found for the given object number and museum.")
         vec = items[0].vector
 
+        # Determine which vector name to use based on embedding model
+        vector_name = MODEL_TO_VECTOR_NAME[embedding_model]
+
         # Qdrant may return either a single vector (list[float]) or a dict of named vectors.
         if isinstance(vec, dict):
             named_vecs = cast(dict[str, list[float]], vec)
-            image_clip_vec = named_vecs.get("image_clip")
-            if image_clip_vec is None:
+            target_vec = named_vecs.get(vector_name)
+            if target_vec is None:
                 raise ValueError(
-                    "No 'image_clip' vector found in the point's named vectors."
+                    f"No '{vector_name}' vector found in the point's named vectors."
                 )
-            query_vector = cast(list[float], image_clip_vec)
+            query_vector = cast(list[float], target_vec)
         else:
             query_vector = cast(list[float], vec)
 
         results = self._search(
-            query_vector, limit, offset, work_types, museums, object_number
+            query_vector,
+            limit,
+            offset,
+            work_types,
+            museums,
+            object_number,
+            embedding_model=embedding_model,
         )
 
         return results
 
-    def get_random_sample(
-        self, limit: int, work_types: list[str] | None, museums: list[str] | None
+    def get_items_by_ids(
+        self,
+        artwork_ids: list[tuple[str, str]],  # (museum_slug, object_number)
     ) -> list[dict]:
-        """Get a random sample of items from the collection."""
-        conditions = []
-        if museums is not None:
-            conditions.append(
-                models.FieldCondition(
-                    key="museum",
-                    match=models.MatchAny(any=museums),
-                )
-            )
-        if work_types is not None:
-            conditions.append(
-                models.FieldCondition(
-                    key="searchable_work_types",
-                    match=models.MatchAny(any=work_types),
-                )
-            )
+        """
+        Fetch full payloads for multiple artworks by their (museum, object_number) pairs.
 
-        sampled = self.qdrant_client.query_points(
+        Since object_numbers are only unique per museum, we use compound filters.
+        Results are returned in the same order as the input artwork_ids.
+
+        Args:
+            artwork_ids: List of (museum_slug, object_number) tuples
+
+        Returns:
+            List of formatted payloads in the same order as input
+        """
+        if not artwork_ids:
+            return []
+
+        start_time = time.time()
+
+        # Build compound filter: (museum=A AND obj=1) OR (museum=B AND obj=2) OR ...
+        should_conditions = [
+            models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="museum", match=models.MatchValue(value=museum)
+                    ),
+                    models.FieldCondition(
+                        key="object_number", match=models.MatchValue(value=obj_num)
+                    ),
+                ]
+            )
+            for museum, obj_num in artwork_ids
+        ]
+
+        result = self.qdrant_client.query_points(
             collection_name=self.collection_name,
-            query=models.SampleQuery(sample=models.Sample.RANDOM),
-            with_vectors=False,
+            query_filter=models.Filter(should=should_conditions),
             with_payload=True,
-            limit=limit,
-            query_filter=models.Filter(must=conditions),
+            limit=len(artwork_ids),
         )
-        payloads = [point.payload for point in sampled.points]
-        return format_payloads(payloads)
+
+        qdrant_time = (time.time() - start_time) * 1000
+
+        # Build lookup dict for reordering
+        payload_map = {
+            (p.payload["museum"], p.payload["object_number"]): p.payload
+            for p in result.points
+        }
+
+        # Return in original order from PostgreSQL
+        ordered_payloads = [
+            payload_map[key] for key in artwork_ids if key in payload_map
+        ]
+
+        format_start = time.time()
+        formatted = format_payloads(ordered_payloads)
+        format_time = (time.time() - format_start) * 1000
+
+        logger.info(
+            f"[TIMING] get_items_by_ids - "
+            f"requested={len(artwork_ids)}, found={len(ordered_payloads)}, "
+            f"qdrant={qdrant_time:.2f}ms, format={format_time:.2f}ms"
+        )
+
+        return formatted
 
     def upload_points(self, points: list[models.PointStruct]) -> None:
         """Upload points to a Qdrant collection."""
         self.qdrant_client.upsert(collection_name=self.collection_name, points=points)
+
+    def get_point_vectors(self, point_id: str) -> dict[str, list[float]] | None:
+        """Fetch existing vectors for a point. Returns None if point doesn't exist."""
+        try:
+            points = self.qdrant_client.retrieve(
+                collection_name=self.collection_name,
+                ids=[point_id],
+                with_vectors=True,
+            )
+            if points and points[0].vector:
+                return cast(dict[str, list[float]], points[0].vector)
+            return None
+        except Exception:
+            return None
 
     def fetch_points(
         self,

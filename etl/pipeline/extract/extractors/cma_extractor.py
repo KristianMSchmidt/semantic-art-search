@@ -108,4 +108,4 @@ def store_raw_data_cma(force_refetch: bool = False):
 
             offset += LIMIT
 
-    print(f"Total time taken: {time.time() - start_time:.2f} seconds")
+    logging.info(f"Total time taken: {time.time() - start_time:.2f} seconds")

@@ -31,7 +31,7 @@ def get_dept_object_ids(
         resp = http_session.get(url)
         resp.raise_for_status()
     except requests.RequestException as e:
-        print(f"Error fetching department {department_id} object IDs: {e}")
+        logging.error(f"Error fetching department {department_id} object IDs: {e}")
         raise
     else:
         return resp.json().get("objectIDs", [])
@@ -51,12 +51,12 @@ def get_item(object_id: int, http_session: requests.Session) -> dict | None:
                 logging.warning(f"Object {object_id} not found (404), skipping")
                 return None
             # Retry other HTTP errors
-            print(
+            logging.warning(
                 f"Attempt {attempt + 1} failed for object {object_id}: {e}. Retrying..."
             )
             time.sleep(3**attempt)  # Exponential backoff: 1s, 3s, 9s
         except requests.RequestException as e:
-            print(
+            logging.warning(
                 f"Attempt {attempt + 1} failed for object {object_id}: {e}. Retrying..."
             )
             time.sleep(3**attempt)  # Exponential backoff: 1s, 3s, 9s
@@ -73,7 +73,7 @@ def get_object_ids_by_search(
         resp = http_session.get(SEARCH_URL, params=query_params)
         resp.raise_for_status()
     except requests.RequestException as e:
-        print(f"Error searching items: {e}")
+        logging.error(f"Error searching items: {e}")
         raise
     else:
         return resp.json().get("objectIDs", [])
@@ -96,9 +96,9 @@ def filter_objects(object_ids: list[int]) -> list[int]:
         obj_id for obj_id in object_ids if obj_id not in object_ids_to_skip
     ]
 
-    print(f"Total objects: {len(object_ids)}")
-    print(f"Already fetched (skipping): {len(object_ids_to_skip)}")
-    print(f"Objects to fetch: {len(objects_to_fetch)}")
+    logging.info(f"Total objects: {len(object_ids)}")
+    logging.info(f"Already fetched (skipping): {len(object_ids_to_skip)}")
+    logging.info(f"Objects to fetch: {len(objects_to_fetch)}")
     return objects_to_fetch
 
 
@@ -115,7 +115,7 @@ def handle_met_upload(
         objects_to_fetch = filter_objects(object_ids)
 
     if not objects_to_fetch:
-        print("No objects need fetching - all are already fetched")
+        logging.info("No objects need fetching - all are already fetched")
         return
 
     num_created = 0
@@ -126,7 +126,7 @@ def handle_met_upload(
     total_num_skipped = 0
 
     for idx, object_id in enumerate(objects_to_fetch):
-        print(f"Processing {idx + 1} of {len(objects_to_fetch)} objects...")
+        logging.info(f"Processing {idx + 1} of {len(objects_to_fetch)} objects...")
 
         time.sleep(SLEEP_BETWEEN_REQUESTS)  # to avoid rate limiting
 
@@ -176,10 +176,10 @@ def handle_met_upload(
             num_updated = 0
             num_skipped = 0
 
-    print(f"Total number of items created: {total_num_created}")
-    print(f"Total number of items updated: {total_num_updated}")
-    print(f"Total number of items skipped (duplicate object_number): {total_num_skipped}")
-    print(f"Total time taken: {time.time() - start_time:.2f} seconds")
+    logging.info(f"Total number of items created: {total_num_created}")
+    logging.info(f"Total number of items updated: {total_num_updated}")
+    logging.info(f"Total number of items skipped (duplicate object_number): {total_num_skipped}")
+    logging.info(f"Total time taken: {time.time() - start_time:.2f} seconds")
 
 
 def store_raw_data_met(force_refetch: bool = False) -> None:

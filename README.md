@@ -30,9 +30,17 @@ When you search:
 - You can filter by work type (e.g., painting, print, drawing)
 - You can search across all museums or limit to one or more
 
-Each artwork links to its page at the source museum, so you can dive deeper and explore the full context
+Each artwork links to its page at the source museum, so you can dive deeper and explore the full context.
 
-Currently, **search queries must be in English**, but multilingual support might be added in a future version.
+### 🔧 Embedding Model Selection
+
+You can choose between two embedding models:
+
+- **Auto** (default): Automatically selects the best model based on your query
+- **CLIP**: OpenAI's original model, strong on art-historical terms and styles
+- **Jina**: Multilingual model with broad language understanding
+
+Jina supports queries in multiple languages, so you can search in your native language.
 
 ---
 
@@ -48,7 +56,7 @@ Semantic Art Search helps you discover works that match the intent of your query
 
 ## 🧠 Behind The Scenes
 
-The system uses *CLIP*, a multimodal neural network, to embed both images and search queries into a shared vector space. It then performs vector-based nearest neighbor search to rank artworks by semantic or stylistic relevance to the query.
+The system uses *CLIP-based models* (multimodal neural networks) to embed both images and search queries into a shared vector space. It then performs vector-based nearest neighbor search to rank artworks by semantic or stylistic relevance to the query.
 
 ## 🎨 Artwork Coverage
 

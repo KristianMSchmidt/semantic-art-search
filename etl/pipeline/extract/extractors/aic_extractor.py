@@ -196,4 +196,4 @@ def store_raw_data_aic(force_refetch: bool = False):
     logging.info(f"Total items created: {total_num_created}")
     logging.info(f"Total items updated: {total_num_updated}")
     logging.info(f"Total items skipped (filtered out): {total_num_skipped}")
-    print(f"Total time taken: {time.time() - start_time:.2f} seconds")
+    logging.info(f"Total time taken: {time.time() - start_time:.2f} seconds")
