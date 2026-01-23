@@ -2,6 +2,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
 from django_ratelimit.decorators import ratelimit
+
 from artsearch.views.context_builders import (
     build_search_context,
     build_home_context,
@@ -13,6 +14,14 @@ from artsearch.views.log_utils import log_search_query
 from artsearch.src.services import museum_stats_service
 from artsearch.src.services.artwork_description.service import generate_description
 from artsearch.src.constants.embedding_models import EMBEDDING_MODELS
+
+
+def get_client_ip(group, request):
+    """Get real client IP from X-Forwarded-For header (set by nginx proxy)."""
+    xff = request.META.get("HTTP_X_FORWARDED_FOR")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR")
 
 
 def home_view(request: HttpRequest) -> HttpResponse:
@@ -35,13 +44,13 @@ def home_view(request: HttpRequest) -> HttpResponse:
     return render(request, "home.html", context)
 
 
-@ratelimit(key="ip", rate="20/m", method="GET")
-@ratelimit(key="ip", rate="100/h", method="GET")
+@ratelimit(key=get_client_ip, rate="30/m", method="GET", block=False)
+@ratelimit(key=get_client_ip, rate="200/h", method="GET", block=False)
 def get_artworks_view(request: HttpRequest) -> HttpResponse:
     """
     HTMX endpoint for fetching artwork results (initial search or pagination).
 
-    Rate limited to 20/min and 100/hour per IP address to prevent Jina API abuse.
+    Rate limited to 30/min and 200/hour per IP address to prevent Jina API abuse.
     """
     # Check if rate limited
     if getattr(request, "limited", False):
@@ -91,8 +100,8 @@ def update_museums(request):
     return render(request, "partials/dropdown.html", context)
 
 
-@ratelimit(key="ip", rate="5/m", method="GET")
-@ratelimit(key="ip", rate="50/h", method="GET")
+@ratelimit(key=get_client_ip, rate="5/m", method="GET", block=False)
+@ratelimit(key=get_client_ip, rate="50/h", method="GET", block=False)
 def get_artwork_description_view(request: HttpRequest) -> HttpResponse:
     """
     HTMX endpoint for fetching AI-generated artwork description.
