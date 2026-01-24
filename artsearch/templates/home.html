@@ -86,56 +86,17 @@ title="View on GitHub"
             {% include "partials/model_selector.html" %}
         </div>
 
-        <!-- Desktop View: show all examples -->
-        <div class="hidden sm:flex flex-wrap gap-2">
-            {% for example in example_queries %}
-            <button
-                type="button"
-                class="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onclick="insertQuery('{{ example }}')"
-                hx-get="{% url 'get-artworks' %}"
-                hx-target="#search-results"
-                hx-swap="innerHTML"
-                hx-include="#search-form, #model-selector"
-            >
-                {{ example }}
-            </button>
-            {% endfor %}
-        </div>
-
-        <!-- Mobile View: show a few examples and a "More"/"Less" toggle -->
-        <div class="sm:hidden" x-data="{ showAll: false }"
-             @htmx:after-swap.window="if ($event.detail.target.id === 'search-results') showAll = false">
-            <!-- collapsed state -->
-            <div class="flex flex-wrap gap-2" x-show="!showAll">
-                {% for example in example_queries|slice:":5" %}
-                <button
-                    type="button"
-                    class="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    onclick="insertQuery('{{ example }}')"
-                    hx-get="{% url 'get-artworks' %}"
-                    hx-target="#search-results"
-                    hx-swap="innerHTML"
-                    hx-include="#search-form, #model-selector"
-                >
-                    {{ example }}
-                </button>
-                {% endfor %}
-                <button
-                    type="button"
-                    class="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg text-sm hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    x-on:click="showAll = true; setTimeout(() => $event.target.blur(), 100)"
-                    x-on:touchend="setTimeout(() => $event.target.blur(), 100)"
-                >
-                    More
-                </button>
-            </div>
-
-            <!-- expanded state -->
-            <div class="flex flex-wrap gap-2" x-show="showAll">
+        <!-- Unified Example Queries with responsive defaults -->
+        <div
+            x-data="exampleQueries()"
+            @resize.window.debounce.150ms="if (!showAll) visibleCount = getDefaultCount()"
+            @htmx:after-swap.window="if ($event.detail.target.id === 'search-results') { showAll = false; visibleCount = getDefaultCount(); }"
+        >
+            <div class="flex flex-wrap gap-2">
                 {% for example in example_queries %}
                 <button
                     type="button"
+                    x-show="showAll || {{ forloop.counter0 }} < visibleCount"
                     class="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     onclick="insertQuery('{{ example }}')"
                     hx-get="{% url 'get-artworks' %}"
@@ -146,11 +107,25 @@ title="View on GitHub"
                     {{ example }}
                 </button>
                 {% endfor %}
+
+                <!-- More button -->
                 <button
                     type="button"
+                    x-show="!showAll && visibleCount < {{ example_queries|length }}"
+                    x-cloak
                     class="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg text-sm hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    x-on:click="showAll = false; setTimeout(() => $event.target.blur(), 100)"
-                    x-on:touchend="setTimeout(() => $event.target.blur(), 100)"
+                    @click="showAll = true; setTimeout(() => $event.target.blur(), 100)"
+                >
+                    More
+                </button>
+
+                <!-- Less button -->
+                <button
+                    type="button"
+                    x-show="showAll"
+                    x-cloak
+                    class="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg text-sm hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    @click="showAll = false; setTimeout(() => $event.target.blur(), 100)"
                 >
                     Less
                 </button>
@@ -462,6 +437,24 @@ title="View on GitHub"
       }
     }));
   }
+
+    function exampleQueries() {
+        return {
+            showAll: false,
+            visibleCount: {{ example_query_counts.sm }},
+
+            getDefaultCount() {
+                const width = window.innerWidth;
+                if (width >= 1024) return {{ example_query_counts.lg }};
+                if (width >= 768) return {{ example_query_counts.md }};
+                return {{ example_query_counts.sm }};
+            },
+
+            init() {
+                this.visibleCount = this.getDefaultCount();
+            }
+        };
+    }
 </script>
 
 <script>
