@@ -152,7 +152,7 @@ title="View on GitHub"
 <div x-data="{
   open: false,
   url: '',
-  showInfo: false,
+  showInfo: window.innerWidth >= 1024,
   scrollY: 0,
   title: '',
   artist: '',
@@ -184,7 +184,7 @@ title="View on GitHub"
     this.objectNumber = data.objectNumber || '';
     this.museumDbId = data.museumDbId || '';
     this.open = true;
-    this.showInfo = false;
+    this.showInfo = window.innerWidth >= 1024;
     this.resetDescription();
     // iOS Safari scroll lock: position fixed approach
     this.scrollY = window.scrollY;
@@ -252,6 +252,17 @@ title="View on GitHub"
          @click.stop="showInfo = !showInfo"
          draggable="false">
   </div>
+
+  <!-- Info hint - shows when metadata is hidden on mobile -->
+  <button x-show="!showInfo"
+          @click.stop="showInfo = true"
+          class="absolute bottom-4 right-4 lg:hidden bg-white/20 backdrop-blur-sm rounded-full p-2 text-white"
+          title="Tap for info">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+  </button>
 
   <!-- Info drawer -->
   <div x-show="showInfo"
