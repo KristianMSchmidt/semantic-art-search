@@ -1,17 +1,152 @@
-<div id="model-selector" class="inline-flex items-center gap-2">
-    <span class="text-gray-500 text-sm">Model:</span>
-    <div class="inline-flex rounded-lg bg-gray-100 p-0.5">
-        {% for model in embedding_models %}
-        <label class="relative cursor-pointer">
-            <input type="radio" name="model" value="{{ model.value }}"
-                   {% if model.value == selected_model %}checked{% endif %}
-                   class="peer sr-only">
-            <span class="block px-3 py-1 rounded-md text-gray-500 text-sm font-medium transition-all
-                         peer-checked:bg-white peer-checked:text-blue-600 peer-checked:shadow-sm
-                         hover:text-gray-700">
-                {{ model.label }}
-            </span>
-        </label>
-        {% endfor %}
+<div id="model-selector"
+     x-data="{
+         open: false,
+         selectedModel: '{{ selected_model }}',
+         getLabel() {
+             const labels = { auto: 'Auto', clip: 'OpenAI CLIP', jina: 'Jina CLIP v2' };
+             return labels[this.selectedModel] || 'Auto';
+         },
+         selectModel(value) {
+             this.selectedModel = value;
+             this.open = false;
+         }
+     }"
+     @keydown.escape.window="if (open) open = false"
+     class="relative">
+
+    <!-- Hidden input for HTMX (keeps existing integration) -->
+    <input type="hidden" name="model" :value="selectedModel">
+
+    <!-- Trigger button -->
+    <button type="button"
+            @click="open = true"
+            class="inline-flex items-center gap-1.5 px-3 py-1 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+        <span>Model:</span>
+        <span class="font-medium text-gray-800" x-text="getLabel()"></span>
+        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
+    </button>
+
+    <!-- Backdrop -->
+    <div x-show="open"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @click="open = false"
+         class="fixed inset-0 bg-black/50 z-40"
+         x-cloak>
+    </div>
+
+    <!-- Mobile: Bottom sheet (md:hidden) -->
+    <div x-show="open"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="translate-y-full"
+         x-transition:enter-end="translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="translate-y-0"
+         x-transition:leave-end="translate-y-full"
+         class="md:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 max-h-[80vh] overflow-y-auto"
+         @click.stop
+         x-cloak>
+
+        <!-- Handle bar -->
+        <div class="flex justify-center py-3">
+            <div class="w-10 h-1 bg-gray-300 rounded-full"></div>
+        </div>
+
+        <!-- Header -->
+        <div class="px-5 pb-3 border-b border-gray-100">
+            <h2 class="text-lg font-semibold text-gray-900">Search settings</h2>
+        </div>
+
+        <!-- Content -->
+        <div class="p-5">
+            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Search Model</h3>
+
+            <div class="space-y-2">
+                {% for model in embedding_models %}
+                <button type="button"
+                        @click="selectModel('{{ model.value }}')"
+                        :class="selectedModel === '{{ model.value }}'
+                            ? 'bg-blue-50 border-blue-200'
+                            : 'border-transparent hover:bg-gray-50'"
+                        class="w-full flex items-center justify-between p-3 rounded-lg border transition">
+                    <div class="text-left">
+                        <div class="font-medium text-gray-900">
+                            {{ model.label }}{% if model.value == 'auto' %} <span class="text-gray-500 font-normal">(recommended)</span>{% endif %}
+                        </div>
+                        <div class="text-sm text-gray-500">{{ model.description }}</div>
+                    </div>
+                    <div x-show="selectedModel === '{{ model.value }}'" class="text-blue-600">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Done button -->
+        <div class="p-5 pt-0">
+            <button type="button"
+                    @click="open = false"
+                    class="w-full py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition">
+                Done
+            </button>
+        </div>
+    </div>
+
+    <!-- Desktop: Modal (hidden md:block) -->
+    <div x-show="open"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 scale-95"
+         x-transition:enter-end="opacity-100 scale-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 scale-100"
+         x-transition:leave-end="opacity-0 scale-95"
+         class="hidden md:block fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-xl z-50 w-80"
+         @click.stop
+         x-cloak>
+
+        <!-- Header -->
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <h2 class="text-lg font-semibold text-gray-900">Search Model</h2>
+            <button type="button"
+                    @click="open = false"
+                    class="text-gray-400 hover:text-gray-600 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Content -->
+        <div class="p-4 space-y-2">
+            {% for model in embedding_models %}
+            <button type="button"
+                    @click="selectModel('{{ model.value }}')"
+                    :class="selectedModel === '{{ model.value }}'
+                        ? 'bg-blue-50 border-blue-200'
+                        : 'border-transparent hover:bg-gray-50'"
+                    class="w-full flex items-center justify-between p-3 rounded-lg border transition">
+                <div class="text-left">
+                    <div class="font-medium text-gray-900">
+                        {{ model.label }}{% if model.value == 'auto' %} <span class="text-gray-500 font-normal">(recommended)</span>{% endif %}
+                    </div>
+                    <div class="text-sm text-gray-500">{{ model.description }}</div>
+                </div>
+                <div x-show="selectedModel === '{{ model.value }}'" class="text-blue-600">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+            </button>
+            {% endfor %}
+        </div>
     </div>
 </div>

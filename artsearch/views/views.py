@@ -14,6 +14,7 @@ from artsearch.views.log_utils import log_search_query
 from artsearch.src.services import museum_stats_service
 from artsearch.src.services.artwork_description.service import generate_description
 from artsearch.src.constants.embedding_models import EMBEDDING_MODELS
+from artsearch.src.constants.ui import EXAMPLE_QUERY_COUNTS
 
 
 def get_client_ip(group, request):
@@ -41,6 +42,7 @@ def home_view(request: HttpRequest) -> HttpResponse:
     context = build_home_context(params=params)
     context["embedding_models"] = EMBEDDING_MODELS
     context["selected_model"] = params.selected_embedding_model
+    context["example_query_counts"] = EXAMPLE_QUERY_COUNTS
     return render(request, "home.html", context)
 
 
