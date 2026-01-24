@@ -32,7 +32,6 @@ EXAMPLE_QUERIES: dict[str, list[str]] = {
         "Winter landscape",
         "Crucifixion",
         "Calligraphy and landscape",
-        "Human anatomy",
         "Breastfeeding",
         "Buddha",
         "Dead birds",
