@@ -25,7 +25,7 @@ from artsearch.src.constants.embedding_models import (
 from artsearch.src.constants.search import MAX_QUERY_LENGTH
 
 
-RESULTS_PER_PAGE = 25
+RESULTS_PER_PAGE = 24
 
 
 @dataclass

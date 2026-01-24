@@ -82,7 +82,7 @@ title="View on GitHub"
     <!-- Example Queries Section -->
     <div class="mb-5">
         <div class="flex items-center justify-between mb-2">
-            <p class="text-sm text-gray-600">Try these examples</p>
+            <p class="text-sm text-gray-600">Example queries</p>
             {% include "partials/model_selector.html" %}
         </div>
 
@@ -90,13 +90,14 @@ title="View on GitHub"
         <div
             x-data="exampleQueries()"
             @resize.window.debounce.150ms="if (!showAll) visibleCount = getDefaultCount()"
-            @htmx:after-swap.window="if ($event.detail.target.id === 'search-results') { showAll = false; visibleCount = getDefaultCount(); }"
+            @htmx:after-swap.window="if ($event.detail.target.id === 'search-results' && window.innerWidth < 768) { showAll = false; visibleCount = getDefaultCount(); }"
         >
             <div class="flex flex-wrap gap-2">
                 {% for example in example_queries %}
                 <button
                     type="button"
                     x-show="showAll || {{ forloop.counter0 }} < visibleCount"
+                    x-cloak
                     class="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     onclick="insertQuery('{{ example }}')"
                     hx-get="{% url 'get-artworks' %}"
@@ -151,7 +152,7 @@ title="View on GitHub"
 <div x-data="{
   open: false,
   url: '',
-  showInfo: false,
+  showInfo: window.innerWidth >= 1024,
   scrollY: 0,
   title: '',
   artist: '',
@@ -183,7 +184,7 @@ title="View on GitHub"
     this.objectNumber = data.objectNumber || '';
     this.museumDbId = data.museumDbId || '';
     this.open = true;
-    this.showInfo = false;
+    this.showInfo = window.innerWidth >= 1024;
     this.resetDescription();
     // iOS Safari scroll lock: position fixed approach
     this.scrollY = window.scrollY;
@@ -251,6 +252,17 @@ title="View on GitHub"
          @click.stop="showInfo = !showInfo"
          draggable="false">
   </div>
+
+  <!-- Info hint - shows when metadata is hidden on mobile -->
+  <button x-show="!showInfo"
+          @click.stop="showInfo = true"
+          class="absolute bottom-4 right-4 lg:hidden bg-white/20 backdrop-blur-sm rounded-full p-2 text-white"
+          title="Tap for info">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+  </button>
 
   <!-- Info drawer -->
   <div x-show="showInfo"
