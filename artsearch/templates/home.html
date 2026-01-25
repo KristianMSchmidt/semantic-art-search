@@ -86,14 +86,13 @@ title="View on GitHub"
             <div
                 class="order-2 sm:order-1 flex-grow"
                 x-data="exampleQueries()"
-                @resize.window.debounce.150ms="if (!showAll) visibleCount = getDefaultCount()"
-                @htmx:after-swap.window="if ($event.detail.target.id === 'search-results' && window.innerWidth < 768) { showAll = false; visibleCount = getDefaultCount(); }"
+                @resize.window.debounce.150ms="visibleCount = getVisibleCount()"
             >
                 <div class="flex flex-wrap gap-2">
                 {% for example in example_queries %}
                 <button
                     type="button"
-                    x-show="showAll || {{ forloop.counter0 }} < visibleCount"
+                    x-show="{{ forloop.counter0 }} < visibleCount"
                     x-cloak
                     class="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     onclick="insertQuery('{{ example }}')"
@@ -105,28 +104,6 @@ title="View on GitHub"
                     {{ example }}
                 </button>
                 {% endfor %}
-
-                <!-- More button -->
-                <button
-                    type="button"
-                    x-show="!showAll && visibleCount < {{ example_queries|length }}"
-                    x-cloak
-                    class="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg text-sm hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    @click="showAll = true; setTimeout(() => $event.target.blur(), 100)"
-                >
-                    More
-                </button>
-
-                <!-- Less button -->
-                <button
-                    type="button"
-                    x-show="showAll"
-                    x-cloak
-                    class="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg text-sm hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    @click="showAll = false; setTimeout(() => $event.target.blur(), 100)"
-                >
-                    Less
-                </button>
                 </div>
             </div>
 
@@ -493,10 +470,9 @@ title="View on GitHub"
 
     function exampleQueries() {
         return {
-            showAll: false,
             visibleCount: {{ example_query_counts.sm }},
 
-            getDefaultCount() {
+            getVisibleCount() {
                 const width = window.innerWidth;
                 if (width >= 1024) return {{ example_query_counts.lg }};
                 if (width >= 768) return {{ example_query_counts.md }};
@@ -504,7 +480,7 @@ title="View on GitHub"
             },
 
             init() {
-                this.visibleCount = this.getDefaultCount();
+                this.visibleCount = this.getVisibleCount();
             }
         };
     }
