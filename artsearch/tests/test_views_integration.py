@@ -15,6 +15,17 @@ from unittest.mock import patch, MagicMock
 from django.test import Client
 from django.urls import reverse
 
+from artsearch.models import ExampleQuery
+
+
+@pytest.fixture
+def example_queries(db):
+    """Create example queries in the database for tests."""
+    queries = ["Ship in a storm", "Reading child", "Cubism"]
+    for query in queries:
+        ExampleQuery.objects.create(query=query, is_active=True)
+    return queries
+
 
 @pytest.fixture
 def mock_qdrant_service():
@@ -44,7 +55,7 @@ def mock_qdrant_service():
 
 @pytest.mark.integration
 @pytest.mark.django_db
-def test_home_view_loads_successfully(mock_qdrant_service):
+def test_home_view_loads_successfully(mock_qdrant_service, example_queries):
     """
     Test that the home page loads successfully and contains expected elements.
 
@@ -52,7 +63,7 @@ def test_home_view_loads_successfully(mock_qdrant_service):
     - Home page returns 200 OK
     - Page contains search form elements
     - Filter dropdowns are present
-    - Example queries are included
+    - Example queries are included (from database)
 
     Potential bugs this could catch:
     - URL routing broken
@@ -90,10 +101,10 @@ def test_home_view_loads_successfully(mock_qdrant_service):
         "Museums should be alphabetically sorted"
     )
 
-    # Verify example queries are provided (from constants, not Qdrant)
-    example_queries = response.context["example_queries"]
-    assert isinstance(example_queries, list)
-    assert len(example_queries) > 0
+    # Verify example queries are provided (from database via fixture)
+    returned_queries = response.context["example_queries"]
+    assert isinstance(returned_queries, list)
+    assert len(returned_queries) > 0
 
 
 @pytest.mark.integration
@@ -407,5 +418,92 @@ def test_query_exceeds_limit_returns_error(mock_qdrant_service):
     assert response.status_code == 200
     assert response.context.get("error_message") == "Query too long (max 500 characters)"
     assert response.context.get("error_type") == "error"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_home_view_returns_only_active_example_queries(mock_qdrant_service):
+    """
+    Test that only active example queries are returned on the home page.
+
+    This test verifies:
+    - Queries with is_active=True are included
+    - Queries with is_active=False are excluded
+    - The is_active flag filters correctly
+
+    Potential bugs this could catch:
+    - is_active filter not applied
+    - All queries returned regardless of status
+    - Filter logic inverted
+    """
+    # Create active and inactive queries
+    ExampleQuery.objects.create(query="Active query", is_active=True)
+    ExampleQuery.objects.create(query="Inactive query", is_active=False)
+
+    client = Client()
+    response = client.get(reverse("home"))
+
+    queries = response.context["example_queries"]
+
+    assert len(queries) == 1
+    assert queries[0] == "Active query"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_home_view_randomizes_example_queries(mock_qdrant_service):
+    """
+    Test that example queries are randomized on each page load.
+
+    This test verifies:
+    - Multiple requests produce different orderings
+    - Randomization via random.sample() is working
+
+    Potential bugs this could catch:
+    - Queries always returned in same order
+    - Randomization logic removed or broken
+    - Database ordering overriding randomization
+    """
+    # Create several queries to make randomization statistically observable
+    for i in range(10):
+        ExampleQuery.objects.create(query=f"Query {i}", is_active=True)
+
+    client = Client()
+
+    # Make multiple requests and collect orderings
+    orderings = []
+    for _ in range(5):
+        response = client.get(reverse("home"))
+        order = tuple(response.context["example_queries"])
+        orderings.append(order)
+
+    # At least some orderings should differ (statistically very likely with 10 items)
+    assert len(set(orderings)) > 1, "Expected different orderings across requests"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_home_view_handles_no_example_queries(mock_qdrant_service):
+    """
+    Test that home page handles empty example queries gracefully.
+
+    This test verifies:
+    - Home page loads successfully with no queries in database
+    - example_queries context is an empty list
+    - No errors or crashes
+
+    Potential bugs this could catch:
+    - Crash when database has no queries
+    - random.sample() failing on empty list
+    - Template rendering errors with empty list
+    """
+    # Ensure no queries exist
+    ExampleQuery.objects.all().delete()
+
+    client = Client()
+    response = client.get(reverse("home"))
+
+    assert response.status_code == 200
+    assert response.context["example_queries"] == []
 
 
