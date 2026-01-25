@@ -2,10 +2,6 @@
      x-data="{
          open: false,
          selectedModel: '{{ selected_model }}',
-         touchStartY: 0,
-         dragY: 0,
-         isDragging: false,
-         isAnimating: false,
          getLabel() {
              const labels = { auto: 'Auto', clip: 'OpenAI CLIP', jina: 'Jina CLIP v2' };
              return labels[this.selectedModel] || 'Auto';
@@ -17,47 +13,9 @@
          selectModel(value) {
              this.selectedModel = value;
              this.open = false;
-         },
-         onTouchStart(e) {
-             if (this.isAnimating) return;
-             this.touchStartY = e.touches[0].clientY;
-             this.isDragging = true;
-             this.dragY = 0;
-         },
-         onTouchMove(e) {
-             if (!this.isDragging) return;
-             const delta = e.touches[0].clientY - this.touchStartY;
-             this.dragY = Math.max(0, delta);
-         },
-         onTouchEnd() {
-             if (!this.isDragging) return;
-             this.isDragging = false;
-
-             const shouldClose = this.dragY > 100;
-
-             if (shouldClose) {
-                 this.isAnimating = true;
-                 this.dragY = window.innerHeight;
-
-                 setTimeout(() => {
-                     this.open = false;
-                 }, 150);
-
-                 setTimeout(() => {
-                     this.isAnimating = false;
-                     this.dragY = 0;
-                 }, 350);  // 150ms inline + 200ms Alpine leave
-             } else if (this.dragY > 0) {
-                 this.isAnimating = true;
-                 this.dragY = 0;
-
-                 setTimeout(() => {
-                     this.isAnimating = false;
-                 }, 150);
-             }
          }
      }"
-     @keydown.escape.window="if (open) open = false"
+     @keydown.escape.window="open = false"
      class="relative">
 
     <!-- Hidden input for HTMX (keeps existing integration) -->
@@ -65,7 +23,7 @@
 
     <!-- Trigger button -->
     <button type="button"
-            @click="if (!isAnimating) open = true"
+            @click="open = true"
             class="inline-flex items-center gap-1.5 px-3 py-1 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
         <span class="hidden md:inline">Model:</span>
         <span class="font-medium text-gray-800 md:hidden" x-text="getShortLabel()"></span>
@@ -96,21 +54,12 @@
          x-transition:leave="transition ease-in duration-200"
          x-transition:leave-start="translate-y-0"
          x-transition:leave-end="translate-y-full"
-         :style="(isDragging || isAnimating) ? `transform: translateY(${dragY}px); transition: ${isDragging ? 'none' : 'transform 150ms ease-in'};` : ''"
-         @touchstart="onTouchStart"
-         @touchmove.prevent="onTouchMove"
-         @touchend="onTouchEnd"
          class="md:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 max-h-[80vh] overflow-y-auto"
          @click.stop
          x-cloak>
 
-        <!-- Handle bar -->
-        <div class="flex justify-center py-3">
-            <div class="w-10 h-1 bg-gray-300 rounded-full"></div>
-        </div>
-
         <!-- Header -->
-        <div class="px-5 pb-3 border-b border-gray-100">
+        <div class="px-5 py-4 border-b border-gray-100">
             <h2 class="text-lg font-semibold text-gray-900">Search settings</h2>
         </div>
 
@@ -121,7 +70,6 @@
             <div class="space-y-2">
                 {% for model in embedding_models %}
                 <button type="button"
-                        @touchstart.stop
                         @click="selectModel('{{ model.value }}')"
                         :class="selectedModel === '{{ model.value }}'
                             ? 'bg-blue-50 border-blue-200'
@@ -146,7 +94,6 @@
         <!-- Done button -->
         <div class="p-5 pt-0">
             <button type="button"
-                    @touchstart.stop
                     @click="open = false"
                     class="w-full py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition">
                 Done
