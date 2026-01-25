@@ -276,9 +276,16 @@ title="View on GitHub"
   </div>
 
   <!-- Info hint - shows when metadata is hidden on mobile -->
+  <style>
+    @keyframes subtle-pulse {
+      0%, 32%, 100% { opacity: 0.7; transform: scale(1); }
+      25% { opacity: 1; transform: scale(1.08); }
+    }
+  </style>
   <button x-show="!showInfo"
           @click.stop="showInfo = true"
           class="absolute bottom-4 right-4 lg:hidden bg-white/20 backdrop-blur-sm rounded-full p-2 text-white"
+          style="animation: subtle-pulse 4s ease-in-out infinite;"
           title="Tap for info">
     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
