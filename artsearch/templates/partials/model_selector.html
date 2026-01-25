@@ -10,6 +10,10 @@
              const labels = { auto: 'Auto', clip: 'OpenAI CLIP', jina: 'Jina CLIP v2' };
              return labels[this.selectedModel] || 'Auto';
          },
+         getShortLabel() {
+             const labels = { auto: 'Auto', clip: 'CLIP', jina: 'Jina' };
+             return labels[this.selectedModel] || 'Auto';
+         },
          selectModel(value) {
              this.selectedModel = value;
              this.open = false;
@@ -60,8 +64,9 @@
     <button type="button"
             @click="open = true"
             class="inline-flex items-center gap-1.5 px-3 py-1 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
-        <span>Model:</span>
-        <span class="font-medium text-gray-800" x-text="getLabel()"></span>
+        <span class="hidden md:inline">Model:</span>
+        <span class="font-medium text-gray-800 md:hidden" x-text="getShortLabel()"></span>
+        <span class="font-medium text-gray-800 hidden md:inline" x-text="getLabel()"></span>
         <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
         </svg>
