@@ -1,8 +1,8 @@
 # Responsive breakpoint counts for visible example queries
 EXAMPLE_QUERY_COUNTS = {
-    "sm": 5,  # < 768px
+    "sm": 3,  # < 768px
     "md": 7,  # 768px - 1023px
-    "lg": 12,  # >= 1024px
+    "lg": 11,  # >= 1024px
 }
 
 EXAMPLE_QUERIES: dict[str, list[str]] = {
@@ -15,11 +15,10 @@ EXAMPLE_QUERIES: dict[str, list[str]] = {
         "Orientalism",
         "Blue dress",
         "War",
-        "Male model",
         "Fish still life",
         "Mourning",
-        "Moonlight by the sea",
         "Human anatomy",
+        "Moonlight by the sea",
         "Music",
         "Death",
         "Hindu deity",
