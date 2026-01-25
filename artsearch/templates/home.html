@@ -153,7 +153,9 @@ title="View on GitHub"
   touchStartY: 0,
   dragY: 0,
   isDragging: false,
+  isAnimating: false,
   onTouchStart(e) {
+    if (this.isAnimating) return;
     this.touchStartY = e.touches[0].clientY;
     this.isDragging = true;
     this.dragY = 0;
@@ -166,10 +168,26 @@ title="View on GitHub"
   onTouchEnd() {
     if (!this.isDragging) return;
     this.isDragging = false;
-    if (this.dragY > 100) {
-      this.showInfo = false;
+
+    const shouldClose = this.dragY > 100;
+
+    if (shouldClose) {
+      this.isAnimating = true;
+      this.dragY = window.innerHeight;
+
+      setTimeout(() => {
+        this.isAnimating = false;
+        this.showInfo = false;
+        this.dragY = 0;
+      }, 150);
+    } else if (this.dragY > 0) {
+      this.isAnimating = true;
+      this.dragY = 0;
+
+      setTimeout(() => {
+        this.isAnimating = false;
+      }, 150);
     }
-    this.dragY = 0;
   },
   openWith(data) {
     this.url = data.url;
@@ -282,7 +300,7 @@ title="View on GitHub"
        x-transition:leave-start="opacity-100 translate-y-0 lg:translate-x-0"
        x-transition:leave-end="opacity-0 translate-y-4 lg:translate-x-4"
        class="absolute bottom-0 left-0 right-0 lg:left-auto lg:top-0 lg:bottom-0 lg:w-96 bg-white text-gray-900 border-t lg:border-t-0 lg:border-l border-gray-200 max-h-[45vh] lg:max-h-none overflow-y-auto p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
-       :style="isDragging ? `transform: translateY(${dragY}px); transition: none;` : ''"
+       :style="(isDragging || isAnimating) ? `transform: translateY(${dragY}px); transition: ${isDragging ? 'none' : 'transform 150ms ease-in'};` : ''"
        @touchstart="onTouchStart"
        @touchmove.prevent="onTouchMove"
        @touchend="onTouchEnd"

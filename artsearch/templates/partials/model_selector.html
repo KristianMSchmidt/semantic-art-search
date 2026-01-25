@@ -5,6 +5,7 @@
          touchStartY: 0,
          dragY: 0,
          isDragging: false,
+         isAnimating: false,
          getLabel() {
              const labels = { auto: 'Auto', clip: 'OpenAI CLIP', jina: 'Jina CLIP v2' };
              return labels[this.selectedModel] || 'Auto';
@@ -14,6 +15,7 @@
              this.open = false;
          },
          onTouchStart(e) {
+             if (this.isAnimating) return;
              this.touchStartY = e.touches[0].clientY;
              this.isDragging = true;
              this.dragY = 0;
@@ -26,10 +28,26 @@
          onTouchEnd() {
              if (!this.isDragging) return;
              this.isDragging = false;
-             if (this.dragY > 100) {
-                 this.open = false;
+
+             const shouldClose = this.dragY > 100;
+
+             if (shouldClose) {
+                 this.isAnimating = true;
+                 this.dragY = window.innerHeight;
+
+                 setTimeout(() => {
+                     this.isAnimating = false;
+                     this.open = false;
+                     this.dragY = 0;
+                 }, 150);
+             } else if (this.dragY > 0) {
+                 this.isAnimating = true;
+                 this.dragY = 0;
+
+                 setTimeout(() => {
+                     this.isAnimating = false;
+                 }, 150);
              }
-             this.dragY = 0;
          }
      }"
      @keydown.escape.window="if (open) open = false"
@@ -70,7 +88,7 @@
          x-transition:leave="transition ease-in duration-200"
          x-transition:leave-start="translate-y-0"
          x-transition:leave-end="translate-y-full"
-         :style="isDragging ? `transform: translateY(${dragY}px); transition: none;` : ''"
+         :style="(isDragging || isAnimating) ? `transform: translateY(${dragY}px); transition: ${isDragging ? 'none' : 'transform 150ms ease-in'};` : ''"
          @touchstart="onTouchStart"
          @touchmove.prevent="onTouchMove"
          @touchend="onTouchEnd"
