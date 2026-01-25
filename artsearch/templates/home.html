@@ -81,18 +81,15 @@ title="View on GitHub"
 
     <!-- Example Queries Section -->
     <div class="mb-5">
-        <div class="flex items-center justify-between mb-2">
-            <p class="text-sm text-gray-600">Example queries</p>
-            {% include "partials/model_selector.html" %}
-        </div>
-
-        <!-- Unified Example Queries with responsive defaults -->
-        <div
-            x-data="exampleQueries()"
-            @resize.window.debounce.150ms="if (!showAll) visibleCount = getDefaultCount()"
-            @htmx:after-swap.window="if ($event.detail.target.id === 'search-results' && window.innerWidth < 768) { showAll = false; visibleCount = getDefaultCount(); }"
-        >
-            <div class="flex flex-wrap gap-2">
+        <div class="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
+            <!-- Example queries - order-2 on mobile (below selector), order-1 on desktop (left side) -->
+            <div
+                class="order-2 sm:order-1 flex-grow"
+                x-data="exampleQueries()"
+                @resize.window.debounce.150ms="if (!showAll) visibleCount = getDefaultCount()"
+                @htmx:after-swap.window="if ($event.detail.target.id === 'search-results' && window.innerWidth < 768) { showAll = false; visibleCount = getDefaultCount(); }"
+            >
+                <div class="flex flex-wrap gap-2">
                 {% for example in example_queries %}
                 <button
                     type="button"
@@ -130,6 +127,12 @@ title="View on GitHub"
                 >
                     Less
                 </button>
+                </div>
+            </div>
+
+            <!-- Model selector - order-1 on mobile (above queries, right-aligned), order-2 on desktop (right side) -->
+            <div class="order-1 sm:order-2 self-end sm:self-start flex-shrink-0">
+                {% include "partials/model_selector.html" %}
             </div>
         </div>
     </div>
