@@ -11,8 +11,8 @@ from artsearch.views.context_builders import (
     SearchParams,
 )
 from artsearch.views.log_utils import log_search_query
-from artsearch.src.services import museum_stats_service
 from artsearch.src.services.artwork_description.service import generate_description
+from artsearch.src.cache_registry import clear_all_caches
 from artsearch.src.constants.embedding_models import EMBEDDING_MODELS
 from artsearch.src.constants.ui import EXAMPLE_QUERY_COUNTS
 
@@ -148,15 +148,6 @@ def get_artwork_description_view(request: HttpRequest) -> HttpResponse:
 
 @staff_member_required
 def clear_cache(request):
-    """
-    Admin-only endpoint to clear all LRU caches in museum_stats_service.
-
-    Useful after running load_artwork_stats to refresh stats without restarting the app.
-    """
-    # Clear all cached functions
-    museum_stats_service.get_work_type_names.cache_clear()
-    museum_stats_service.aggregate_work_type_count_for_selected_museums.cache_clear()
-    museum_stats_service.aggregate_museum_count_for_selected_work_types.cache_clear()
-    museum_stats_service.get_total_works_for_filters.cache_clear()
-
-    return HttpResponse("Cache cleared successfully", content_type="text/plain")
+    """Admin-only endpoint to clear all registered LRU caches."""
+    count = clear_all_caches()
+    return HttpResponse(f"Cleared {count} caches successfully", content_type="text/plain")

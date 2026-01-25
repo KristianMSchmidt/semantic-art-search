@@ -42,26 +42,6 @@ def mock_qdrant_service():
         yield mock_service
 
 
-@pytest.fixture(autouse=True)
-def clear_lru_caches():
-    """Clear LRU caches before each test to ensure clean state."""
-    import artsearch.src.services.museum_stats_service as stats_service
-
-    # Clear all cached functions
-    stats_service.get_work_type_names.cache_clear()
-    stats_service.aggregate_work_type_count_for_selected_museums.cache_clear()
-    stats_service.aggregate_museum_count_for_selected_work_types.cache_clear()
-    stats_service.get_total_works_for_filters.cache_clear()
-
-    yield
-
-    # Clear caches after test
-    stats_service.get_work_type_names.cache_clear()
-    stats_service.aggregate_work_type_count_for_selected_museums.cache_clear()
-    stats_service.aggregate_museum_count_for_selected_work_types.cache_clear()
-    stats_service.get_total_works_for_filters.cache_clear()
-
-
 @pytest.mark.integration
 @pytest.mark.django_db
 def test_home_view_loads_successfully(mock_qdrant_service):
@@ -358,7 +338,7 @@ def test_clear_cache_endpoint_clears_caches(mock_qdrant_service):
 
     # Verify response
     assert response.status_code == 200
-    assert response.content == b"Cache cleared successfully"
+    assert b"Cleared" in response.content and b"caches successfully" in response.content
 
     # Verify all caches are cleared
     assert museum_stats_service.get_work_type_names.cache_info().currsize == 0

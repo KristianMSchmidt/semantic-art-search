@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from django.db import connection
 from django.db.models import Count
 from artsearch.models import ArtworkStats
+from artsearch.src.cache_registry import register_cache
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ class MuseumWorkTypeSummary:
     total: int
 
 
+@register_cache
 @lru_cache(maxsize=32)
 def aggregate_work_type_count_for_selected_museums(
     selected_museums: tuple[str],
@@ -102,6 +104,7 @@ def aggregate_work_type_count_for_selected_museums(
     return MuseumWorkTypeSummary(work_types=sorted_work_types, total=total)
 
 
+@register_cache
 @lru_cache(maxsize=256)
 def aggregate_museum_count_for_selected_work_types(
     selected_work_types: tuple[str],
@@ -156,6 +159,7 @@ def aggregate_museum_count_for_selected_work_types(
     return MuseumWorkTypeSummary(work_types=museums, total=total)
 
 
+@register_cache
 @lru_cache(maxsize=1024)
 def get_total_works_for_filters(
     selected_museums: tuple[str], selected_work_types: tuple[str]
@@ -201,6 +205,7 @@ def get_total_works_for_filters(
     return result
 
 
+@register_cache
 @lru_cache(maxsize=1)
 def get_work_type_names() -> list[str]:
     """
