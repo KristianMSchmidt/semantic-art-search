@@ -72,6 +72,11 @@ class SearchParams:
             return existing
         return secrets.token_hex(8)  # 16-char hex string
 
+    @property
+    def has_explicit_work_type_filter(self) -> bool:
+        """True if work_types param is in the URL (user made a choice)."""
+        return bool(self.request.GET.getlist("work_types"))
+
 
 @dataclass
 class FilterContext:
@@ -251,19 +256,26 @@ def build_search_context(params: SearchParams, embedding_model: EmbeddingModelCh
     offset = params.offset
     limit = params.limit
 
+    # Determine if we're in browse mode (no query)
+    is_browse_mode = params.query is None or params.query == ""
+
+    # Default to paintings on initial browse (no explicit filter set)
+    if is_browse_mode and not params.has_explicit_work_type_filter:
+        work_type_prefilter = ["painting"]
+        selected_work_types_for_urls = ["painting"]
+    else:
+        work_type_prefilter = make_prefilter(
+            get_work_type_names(), params.selected_work_types
+        )
+        selected_work_types_for_urls = params.selected_work_types
+
     museum_prefilter = make_prefilter(get_museum_slugs(), params.selected_museums)
-    work_type_prefilter = make_prefilter(
-        get_work_type_names(), params.selected_work_types
-    )
 
     # Get total works count (needed for both search and browse modes)
     total_works = get_total_works_for_filters(
         tuple(params.selected_museums),
         tuple(params.selected_work_types),
     )
-
-    # Determine if we're in browse mode (no query)
-    is_browse_mode = params.query is None or params.query == ""
 
     search_results = handle_search(
         query=params.query,
@@ -282,7 +294,7 @@ def build_search_context(params: SearchParams, embedding_model: EmbeddingModelCh
         query=params.query,
         offset=offset + limit,
         selected_museums=params.selected_museums,
-        selected_work_types=params.selected_work_types,
+        selected_work_types=selected_work_types_for_urls,
         embedding_model=params.selected_embedding_model,
         seed=params.seed if is_browse_mode else None,
     )
