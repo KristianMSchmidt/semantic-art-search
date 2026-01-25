@@ -65,7 +65,7 @@
 
     <!-- Trigger button -->
     <button type="button"
-            @click="open = true"
+            @click="if (!isAnimating) open = true"
             class="inline-flex items-center gap-1.5 px-3 py-1 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
         <span class="hidden md:inline">Model:</span>
         <span class="font-medium text-gray-800 md:hidden" x-text="getShortLabel()"></span>
@@ -121,6 +121,7 @@
             <div class="space-y-2">
                 {% for model in embedding_models %}
                 <button type="button"
+                        @touchstart.stop
                         @click="selectModel('{{ model.value }}')"
                         :class="selectedModel === '{{ model.value }}'
                             ? 'bg-blue-50 border-blue-200'
@@ -145,6 +146,7 @@
         <!-- Done button -->
         <div class="p-5 pt-0">
             <button type="button"
+                    @touchstart.stop
                     @click="open = false"
                     class="w-full py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition">
                 Done
