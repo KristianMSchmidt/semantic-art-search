@@ -2,6 +2,9 @@
      x-data="{
          open: false,
          selectedModel: '{{ selected_model }}',
+         touchStartY: 0,
+         dragY: 0,
+         isDragging: false,
          getLabel() {
              const labels = { auto: 'Auto', clip: 'OpenAI CLIP', jina: 'Jina CLIP v2' };
              return labels[this.selectedModel] || 'Auto';
@@ -9,6 +12,24 @@
          selectModel(value) {
              this.selectedModel = value;
              this.open = false;
+         },
+         onTouchStart(e) {
+             this.touchStartY = e.touches[0].clientY;
+             this.isDragging = true;
+             this.dragY = 0;
+         },
+         onTouchMove(e) {
+             if (!this.isDragging) return;
+             const delta = e.touches[0].clientY - this.touchStartY;
+             this.dragY = Math.max(0, delta);
+         },
+         onTouchEnd() {
+             if (!this.isDragging) return;
+             this.isDragging = false;
+             if (this.dragY > 100) {
+                 this.open = false;
+             }
+             this.dragY = 0;
          }
      }"
      @keydown.escape.window="if (open) open = false"
@@ -49,6 +70,10 @@
          x-transition:leave="transition ease-in duration-200"
          x-transition:leave-start="translate-y-0"
          x-transition:leave-end="translate-y-full"
+         :style="isDragging ? `transform: translateY(${dragY}px); transition: none;` : ''"
+         @touchstart="onTouchStart"
+         @touchmove.prevent="onTouchMove"
+         @touchend="onTouchEnd"
          class="md:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 max-h-[80vh] overflow-y-auto"
          @click.stop
          x-cloak>

@@ -891,6 +891,14 @@ select {
   z-index: 50;
 }
 
+.order-1 {
+  order: 1;
+}
+
+.order-2 {
+  order: 2;
+}
+
 .mx-auto {
   margin-left: auto;
   margin-right: auto;
@@ -934,6 +942,10 @@ select {
 
 .mt-8 {
   margin-top: 2rem;
+}
+
+.-mt-3 {
+  margin-top: -0.75rem;
 }
 
 .block {
@@ -1070,6 +1082,10 @@ select {
 
 .max-w-\[100vw\] {
   max-width: 100vw;
+}
+
+.flex-shrink-0 {
+  flex-shrink: 0;
 }
 
 .flex-grow {
@@ -1211,6 +1227,10 @@ select {
   --tw-space-y-reverse: 0;
   margin-top: calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));
   margin-bottom: calc(0.5rem * var(--tw-space-y-reverse));
+}
+
+.self-end {
+  align-self: flex-end;
 }
 
 .overflow-hidden {
@@ -1866,6 +1886,14 @@ select {
 }
 
 @media (min-width: 640px) {
+  .sm\:order-1 {
+    order: 1;
+  }
+
+  .sm\:order-2 {
+    order: 2;
+  }
+
   .sm\:mb-5 {
     margin-bottom: 1.25rem;
   }
@@ -1894,6 +1922,14 @@ select {
     flex-direction: row;
   }
 
+  .sm\:items-start {
+    align-items: flex-start;
+  }
+
+  .sm\:gap-4 {
+    gap: 1rem;
+  }
+
   .sm\:space-x-2 > :not([hidden]) ~ :not([hidden]) {
     --tw-space-x-reverse: 0;
     margin-right: calc(0.5rem * var(--tw-space-x-reverse));
@@ -1904,6 +1940,10 @@ select {
     --tw-space-y-reverse: 0;
     margin-top: calc(0px * calc(1 - var(--tw-space-y-reverse)));
     margin-bottom: calc(0px * var(--tw-space-y-reverse));
+  }
+
+  .sm\:self-start {
+    align-self: flex-start;
   }
 
   .sm\:pl-4 {
