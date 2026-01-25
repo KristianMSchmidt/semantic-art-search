@@ -81,18 +81,36 @@ title="View on GitHub"
 
     <!-- Example Queries Section -->
     <div class="mb-5">
-        <div class="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-            <!-- Example queries - order-2 on mobile (below selector), order-1 on desktop (left side) -->
+        <div class="flex flex-row items-start gap-2 sm:gap-4">
+            <!-- Example queries (left side) -->
             <div
-                class="order-2 sm:order-1 flex-grow"
+                class="flex-grow"
                 x-data="exampleQueries()"
-                @resize.window.debounce.150ms="visibleCount = getVisibleCount()"
+                @resize.window.debounce.150ms="update()"
             >
                 <div class="flex flex-wrap gap-2">
+                <!-- Short queries for mobile -->
+                {% for example in short_example_queries %}
+                <button
+                    type="button"
+                    x-show="isMobile && {{ forloop.counter0 }} < visibleCount"
+                    x-cloak
+                    class="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onclick="insertQuery('{{ example }}')"
+                    hx-get="{% url 'get-artworks' %}"
+                    hx-target="#search-results"
+                    hx-swap="innerHTML"
+                    hx-include="#search-form, #model-selector"
+                >
+                    {{ example }}
+                </button>
+                {% endfor %}
+
+                <!-- All queries for tablet/desktop -->
                 {% for example in example_queries %}
                 <button
                     type="button"
-                    x-show="{{ forloop.counter0 }} < visibleCount"
+                    x-show="!isMobile && {{ forloop.counter0 }} < visibleCount"
                     x-cloak
                     class="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     onclick="insertQuery('{{ example }}')"
@@ -107,8 +125,8 @@ title="View on GitHub"
                 </div>
             </div>
 
-            <!-- Model selector - order-1 on mobile (above queries, right-aligned), order-2 on desktop (right side) -->
-            <div class="order-1 sm:order-2 self-end sm:self-start flex-shrink-0">
+            <!-- Model selector (right side) -->
+            <div class="flex-shrink-0">
                 {% include "partials/model_selector.html" %}
             </div>
         </div>
@@ -153,7 +171,9 @@ title="View on GitHub"
   touchStartY: 0,
   dragY: 0,
   isDragging: false,
+  isAnimating: false,
   onTouchStart(e) {
+    if (this.isAnimating) return;
     this.touchStartY = e.touches[0].clientY;
     this.isDragging = true;
     this.dragY = 0;
@@ -166,10 +186,26 @@ title="View on GitHub"
   onTouchEnd() {
     if (!this.isDragging) return;
     this.isDragging = false;
-    if (this.dragY > 100) {
-      this.showInfo = false;
+
+    const shouldClose = this.dragY > 100;
+
+    if (shouldClose) {
+      this.isAnimating = true;
+      this.dragY = window.innerHeight;
+
+      setTimeout(() => {
+        this.isAnimating = false;
+        this.showInfo = false;
+        this.dragY = 0;
+      }, 150);
+    } else if (this.dragY > 0) {
+      this.isAnimating = true;
+      this.dragY = 0;
+
+      setTimeout(() => {
+        this.isAnimating = false;
+      }, 150);
     }
-    this.dragY = 0;
   },
   openWith(data) {
     this.url = data.url;
@@ -282,7 +318,7 @@ title="View on GitHub"
        x-transition:leave-start="opacity-100 translate-y-0 lg:translate-x-0"
        x-transition:leave-end="opacity-0 translate-y-4 lg:translate-x-4"
        class="absolute bottom-0 left-0 right-0 lg:left-auto lg:top-0 lg:bottom-0 lg:w-96 bg-white text-gray-900 border-t lg:border-t-0 lg:border-l border-gray-200 max-h-[45vh] lg:max-h-none overflow-y-auto p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
-       :style="isDragging ? `transform: translateY(${dragY}px); transition: none;` : ''"
+       :style="(isDragging || isAnimating) ? `transform: translateY(${dragY}px); transition: ${isDragging ? 'none' : 'transform 150ms ease-in'};` : ''"
        @touchstart="onTouchStart"
        @touchmove.prevent="onTouchMove"
        @touchend="onTouchEnd"
@@ -471,6 +507,7 @@ title="View on GitHub"
     function exampleQueries() {
         return {
             visibleCount: {{ example_query_counts.sm }},
+            isMobile: window.innerWidth < 768,
 
             getVisibleCount() {
                 const width = window.innerWidth;
@@ -479,8 +516,13 @@ title="View on GitHub"
                 return {{ example_query_counts.sm }};
             },
 
-            init() {
+            update() {
                 this.visibleCount = this.getVisibleCount();
+                this.isMobile = window.innerWidth < 768;
+            },
+
+            init() {
+                this.update();
             }
         };
     }

@@ -507,3 +507,108 @@ def test_home_view_handles_no_example_queries(mock_qdrant_service):
     assert response.context["example_queries"] == []
 
 
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_home_view_returns_short_example_queries_for_mobile(mock_qdrant_service):
+    """
+    Test that short_example_queries contains only queries under the length limit.
+
+    This test verifies:
+    - short_example_queries is in context
+    - Only queries shorter than SHORT_QUERY_MAX_LENGTH (13) are included
+    - Longer queries are excluded from short list but included in full list
+
+    Potential bugs this could catch:
+    - Length filtering not applied
+    - Wrong length threshold used
+    - Off-by-one error in length comparison
+    """
+    from artsearch.src.constants.ui import SHORT_QUERY_MAX_LENGTH
+
+    # Create queries of varying lengths
+    short_query = "Cat"  # 3 chars
+    medium_query = "Blue flowers"  # 12 chars (just under limit)
+    long_query = "Impressionism"  # 13 chars (at limit, should be excluded)
+    very_long_query = "Ship in a storm"  # 15 chars
+
+    ExampleQuery.objects.create(query=short_query, is_active=True)
+    ExampleQuery.objects.create(query=medium_query, is_active=True)
+    ExampleQuery.objects.create(query=long_query, is_active=True)
+    ExampleQuery.objects.create(query=very_long_query, is_active=True)
+
+    client = Client()
+    response = client.get(reverse("home"))
+
+    short_queries = response.context["short_example_queries"]
+    all_queries = response.context["example_queries"]
+
+    # Short queries should only include those < 13 chars
+    assert short_query in short_queries
+    assert medium_query in short_queries
+    assert long_query not in short_queries  # 13 chars, at limit
+    assert very_long_query not in short_queries
+
+    # All queries should be in the full list
+    assert len(all_queries) == 4
+
+    # Verify the threshold is what we expect
+    assert SHORT_QUERY_MAX_LENGTH == 13
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_home_view_randomizes_short_example_queries(mock_qdrant_service):
+    """
+    Test that short_example_queries are randomized independently.
+
+    This test verifies:
+    - Short queries are shuffled on each request
+    - Randomization is independent from the full query list
+
+    Potential bugs this could catch:
+    - Short queries always in same order
+    - Randomization not applied to short queries
+    """
+    # Create several short queries
+    for i in range(10):
+        ExampleQuery.objects.create(query=f"Q{i}", is_active=True)  # 2 chars each
+
+    client = Client()
+
+    orderings = []
+    for _ in range(5):
+        response = client.get(reverse("home"))
+        order = tuple(response.context["short_example_queries"])
+        orderings.append(order)
+
+    # At least some orderings should differ
+    assert len(set(orderings)) > 1, "Expected different orderings across requests"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_home_view_handles_no_short_example_queries(mock_qdrant_service):
+    """
+    Test that home page handles case where no queries are short enough.
+
+    This test verifies:
+    - Page loads when all queries exceed the length limit
+    - short_example_queries is an empty list
+    - No errors from random.sample() on empty list
+
+    Potential bugs this could catch:
+    - Crash when no short queries exist
+    - Template rendering errors with empty short list
+    """
+    # Create only long queries
+    ExampleQuery.objects.create(query="Very long query text", is_active=True)
+    ExampleQuery.objects.create(query="Another long query", is_active=True)
+
+    client = Client()
+    response = client.get(reverse("home"))
+
+    assert response.status_code == 200
+    assert response.context["short_example_queries"] == []
+    assert len(response.context["example_queries"]) == 2
+
+
