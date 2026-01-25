@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import SearchLog, ArtworkStats, ArtworkDescription
+from .models import SearchLog, ArtworkStats, ArtworkDescription, ExampleQuery
 
 
 @admin.register(SearchLog)
@@ -52,3 +52,12 @@ class ArtworkDescriptionAdmin(admin.ModelAdmin):
         )
 
     get_description_preview.short_description = "Description Preview"
+
+
+@admin.register(ExampleQuery)
+class ExampleQueryAdmin(admin.ModelAdmin):
+    list_display = ("query", "is_active", "created_at")
+    list_filter = ("is_active",)
+    search_fields = ("query",)
+    ordering = ("query",)
+    list_editable = ("is_active",)

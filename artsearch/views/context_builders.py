@@ -15,7 +15,7 @@ from artsearch.src.services.museum_stats_service import (
 )
 from artsearch.src.services.search_service import handle_search
 from artsearch.src.utils.get_museums import get_museum_slugs
-from artsearch.src.constants.ui import EXAMPLE_QUERIES
+from artsearch.models import ExampleQuery
 from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
 from artsearch.src.constants.embedding_models import (
     EmbeddingModelChoice,
@@ -377,12 +377,22 @@ def build_filter_contexts(params: SearchParams) -> dict[str, FilterContext]:
     }
 
 
+def get_active_example_queries() -> list[str]:
+    """Fetch active example queries from the database."""
+    return list(
+        ExampleQuery.objects.filter(is_active=True).values_list("query", flat=True)
+    )
+
+
 def build_home_context(
-    params: SearchParams, example_queries: list[str] = EXAMPLE_QUERIES["chosen"]
+    params: SearchParams, example_queries: list[str] | None = None
 ) -> dict[str, Any]:
     """
     Build the full context for the search view.
     """
+    if example_queries is None:
+        example_queries = get_active_example_queries()
+
     filter_contexts = build_filter_contexts(params)
 
     return {

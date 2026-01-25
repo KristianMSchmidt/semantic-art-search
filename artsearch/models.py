@@ -85,3 +85,24 @@ class ArtworkDescription(models.Model):
 
     def __str__(self):
         return f"{self.museum_slug}:{self.object_number}"
+
+
+class ExampleQuery(models.Model):
+    """
+    Example search queries displayed on the homepage.
+    Stored in database to allow editing in production without redeployment.
+    """
+
+    query = models.CharField(max_length=200, unique=True)
+    is_active = models.BooleanField(
+        default=True, help_text="Whether this query is shown on the homepage"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["query"]
+        verbose_name = "Example Query"
+        verbose_name_plural = "Example Queries"
+
+    def __str__(self):
+        return self.query
