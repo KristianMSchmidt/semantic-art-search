@@ -40,10 +40,13 @@
                  this.dragY = window.innerHeight;
 
                  setTimeout(() => {
-                     this.isAnimating = false;
                      this.open = false;
-                     this.dragY = 0;
                  }, 150);
+
+                 setTimeout(() => {
+                     this.isAnimating = false;
+                     this.dragY = 0;
+                 }, 350);  // 150ms inline + 200ms Alpine leave
              } else if (this.dragY > 0) {
                  this.isAnimating = true;
                  this.dragY = 0;
