@@ -81,18 +81,36 @@ title="View on GitHub"
 
     <!-- Example Queries Section -->
     <div class="mb-5">
-        <div class="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-            <!-- Example queries - order-2 on mobile (below selector), order-1 on desktop (left side) -->
+        <div class="flex flex-row items-start gap-2 sm:gap-4">
+            <!-- Example queries (left side) -->
             <div
-                class="order-2 sm:order-1 flex-grow"
+                class="flex-grow"
                 x-data="exampleQueries()"
-                @resize.window.debounce.150ms="visibleCount = getVisibleCount()"
+                @resize.window.debounce.150ms="update()"
             >
                 <div class="flex flex-wrap gap-2">
+                <!-- Short queries for mobile -->
+                {% for example in short_example_queries %}
+                <button
+                    type="button"
+                    x-show="isMobile && {{ forloop.counter0 }} < visibleCount"
+                    x-cloak
+                    class="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onclick="insertQuery('{{ example }}')"
+                    hx-get="{% url 'get-artworks' %}"
+                    hx-target="#search-results"
+                    hx-swap="innerHTML"
+                    hx-include="#search-form, #model-selector"
+                >
+                    {{ example }}
+                </button>
+                {% endfor %}
+
+                <!-- All queries for tablet/desktop -->
                 {% for example in example_queries %}
                 <button
                     type="button"
-                    x-show="{{ forloop.counter0 }} < visibleCount"
+                    x-show="!isMobile && {{ forloop.counter0 }} < visibleCount"
                     x-cloak
                     class="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     onclick="insertQuery('{{ example }}')"
@@ -107,8 +125,8 @@ title="View on GitHub"
                 </div>
             </div>
 
-            <!-- Model selector - order-1 on mobile (above queries, right-aligned), order-2 on desktop (right side) -->
-            <div class="order-1 sm:order-2 self-end sm:self-start flex-shrink-0">
+            <!-- Model selector (right side) -->
+            <div class="flex-shrink-0">
                 {% include "partials/model_selector.html" %}
             </div>
         </div>
@@ -489,6 +507,7 @@ title="View on GitHub"
     function exampleQueries() {
         return {
             visibleCount: {{ example_query_counts.sm }},
+            isMobile: window.innerWidth < 768,
 
             getVisibleCount() {
                 const width = window.innerWidth;
@@ -497,8 +516,13 @@ title="View on GitHub"
                 return {{ example_query_counts.sm }};
             },
 
-            init() {
+            update() {
                 this.visibleCount = this.getVisibleCount();
+                this.isMobile = window.innerWidth < 768;
+            },
+
+            init() {
+                this.update();
             }
         };
     }
