@@ -1878,12 +1878,20 @@ select {
     display: inline;
   }
 
+  .sm\:flex {
+    display: flex;
+  }
+
   .sm\:hidden {
     display: none;
   }
 
   .sm\:w-auto {
     width: auto;
+  }
+
+  .sm\:flex-grow {
+    flex-grow: 1;
   }
 
   .sm\:grid-cols-2 {
