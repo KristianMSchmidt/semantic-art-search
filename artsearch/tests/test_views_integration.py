@@ -125,7 +125,7 @@ def test_get_artworks_view_with_empty_query(mock_qdrant_service):
     This test verifies:
     - Endpoint returns 200 OK
     - Correct template rendered
-    - "A glimpse into the archive" text present
+    - No header text on initial load (decluttered UI)
     - Random sample is requested from Qdrant
 
     Potential bugs this could catch:
@@ -146,7 +146,7 @@ def test_get_artworks_view_with_empty_query(mock_qdrant_service):
     # Verify context has expected structure
     assert "results" in response.context
     assert "header_text" in response.context
-    assert response.context["header_text"] == "A glimpse into the archive"
+    assert response.context["header_text"] == ""
     assert response.context["results"] == []  # Mock returns empty list
 
 

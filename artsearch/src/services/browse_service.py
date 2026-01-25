@@ -117,9 +117,9 @@ def handle_browse(
     # Fetch full payloads from Qdrant
     results = qdrant_service.get_items_by_ids(artwork_ids) if artwork_ids else []
 
-    # Header text
+    # Header text - only show for search results, not initial load
     if is_initial_load:
-        header_text = "A glimpse into the archive"
+        header_text = ""
     else:
         header_text = f"Search results ({total_works})"
 

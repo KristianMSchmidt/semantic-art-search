@@ -22,6 +22,8 @@
         <p class="text-sm text-gray-500 mb-2">
             {{ header_text }}
         </p>
+    {% elif is_first_batch %}
+        <div class="h-4"></div>
     {% endif %}
 
     {% if is_first_batch and total_works == 0 %}

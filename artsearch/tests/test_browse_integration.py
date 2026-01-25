@@ -65,19 +65,19 @@ def clear_lru_caches():
 
 @pytest.mark.integration
 @pytest.mark.django_db
-def test_browse_mode_returns_glimpse_into_archive_header(
+def test_browse_mode_returns_no_header_on_initial_load(
     mock_qdrant_service, mock_random_artwork_ids
 ):
     """
-    Test that initial page load (no query param) shows "A glimpse into the archive" header.
+    Test that initial page load (no query param) shows no header text.
 
     This test verifies:
-    - Initial load (query=None) returns browse mode header
+    - Initial load (query=None) returns empty header text
     - Browse mode is triggered when query parameter is absent
 
     Potential bugs this could catch:
     - Browse mode not triggered on initial load
-    - Wrong header text for browse mode
+    - Unwanted header text appearing on initial load
     """
     mock_random_artwork_ids.return_value = []
 
@@ -87,7 +87,7 @@ def test_browse_mode_returns_glimpse_into_archive_header(
     response = client.get(url)
 
     assert response.status_code == 200
-    assert response.context["header_text"] == "A glimpse into the archive"
+    assert response.context["header_text"] == ""
 
 
 @pytest.mark.integration
