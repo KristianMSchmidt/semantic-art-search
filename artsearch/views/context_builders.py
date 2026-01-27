@@ -4,7 +4,6 @@ from typing import Any, Iterable, Literal
 from dataclasses import dataclass
 from urllib.parse import urlencode
 
-from django.db.models.functions import Length
 from django.http import HttpRequest
 from django.urls import reverse
 
@@ -382,15 +381,6 @@ def get_active_example_queries() -> list[str]:
     """Fetch active example queries from the database."""
     return list(
         ExampleQuery.objects.filter(is_active=True).values_list("query", flat=True)
-    )
-
-
-def get_short_example_queries(max_length: int) -> list[str]:
-    """Fetch active example queries shorter than max_length characters."""
-    return list(
-        ExampleQuery.objects.annotate(length=Length("query"))
-        .filter(is_active=True, length__lt=max_length)
-        .values_list("query", flat=True)
     )
 
 
