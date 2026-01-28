@@ -11,14 +11,13 @@ from artsearch.views.context_builders import (
     build_work_type_filter_context,
     build_museum_filter_context,
     get_active_example_queries,
-    get_short_example_queries,
     SearchParams,
 )
 from artsearch.views.log_utils import log_search_query
 from artsearch.src.services.artwork_description.service import generate_description
 from artsearch.src.cache_registry import clear_all_caches
 from artsearch.src.constants.embedding_models import EMBEDDING_MODELS
-from artsearch.src.constants.ui import EXAMPLE_QUERY_COUNTS, SHORT_QUERY_MAX_LENGTH
+from artsearch.src.constants.ui import EXAMPLE_QUERY_COUNTS
 
 
 def get_client_ip(group, request):
@@ -49,11 +48,6 @@ def home_view(request: HttpRequest) -> HttpResponse:
     context["embedding_models"] = EMBEDDING_MODELS
     context["selected_model"] = params.selected_embedding_model
     context["example_query_counts"] = EXAMPLE_QUERY_COUNTS
-
-    # Short queries for mobile (separately shuffled)
-    short_queries = get_short_example_queries(SHORT_QUERY_MAX_LENGTH)
-    shuffled_short = random.sample(short_queries, len(short_queries))
-    context["short_example_queries"] = shuffled_short
 
     return render(request, "home.html", context)
 

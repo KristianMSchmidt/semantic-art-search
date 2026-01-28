@@ -4,7 +4,6 @@ from typing import Any, Iterable, Literal
 from dataclasses import dataclass
 from urllib.parse import urlencode
 
-from django.db.models.functions import Length
 from django.http import HttpRequest
 from django.urls import reverse
 
@@ -385,13 +384,8 @@ def get_active_example_queries() -> list[str]:
     )
 
 
-def get_short_example_queries(max_length: int) -> list[str]:
-    """Fetch active example queries shorter than max_length characters."""
-    return list(
-        ExampleQuery.objects.annotate(length=Length("query"))
-        .filter(is_active=True, length__lt=max_length)
-        .values_list("query", flat=True)
-    )
+SEARCH_HINT_MOBILE = "Find art by subject, theme, style, and more"
+SEARCH_HINT_DESKTOP = "Find art by subject, theme, style, and more"
 
 
 def build_home_context(
@@ -408,4 +402,6 @@ def build_home_context(
     return {
         **filter_contexts,
         "example_queries": example_queries,
+        "search_hint_mobile": SEARCH_HINT_MOBILE,
+        "search_hint_desktop": SEARCH_HINT_DESKTOP,
     }
