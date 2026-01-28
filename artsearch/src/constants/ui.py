@@ -1,6 +1,6 @@
 # Responsive breakpoint counts for visible example queries
 EXAMPLE_QUERY_COUNTS = {
     "sm": 0,  # < 768px (hidden on mobile)
-    "md": 7,  # 768px - 1023px
-    "lg": 11,  # >= 1024px
+    "md": 4,  # 768px - 1023px
+    "lg": 9,  # >= 1024px
 }
