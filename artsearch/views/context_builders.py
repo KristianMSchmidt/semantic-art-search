@@ -384,6 +384,10 @@ def get_active_example_queries() -> list[str]:
     )
 
 
+SEARCH_HINT_MOBILE = "Find art by subject, theme, style, and more"
+SEARCH_HINT_DESKTOP = "Find art by subject, theme, style, and more"
+
+
 def build_home_context(
     params: SearchParams, example_queries: list[str] | None = None
 ) -> dict[str, Any]:
@@ -398,4 +402,6 @@ def build_home_context(
     return {
         **filter_contexts,
         "example_queries": example_queries,
+        "search_hint_mobile": SEARCH_HINT_MOBILE,
+        "search_hint_desktop": SEARCH_HINT_DESKTOP,
     }
