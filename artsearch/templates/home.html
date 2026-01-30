@@ -56,10 +56,10 @@ title="View on GitHub"
                 x-init="init()"
                 :placeholder="isMobile && !isFocused ? 'Try: ' + currentExample : ''"
                 :class="{ 'placeholder-fade': isTransitioning }"
-                @focus="pause()"
-                @blur="resume()"
+                @focus="pause(); $el.style.borderColor='rgb(156 163 175)'"
+                @blur="resume(); $el.style.borderColor='rgb(209 213 219)'"
                 @resize.window.debounce.150ms="checkMobile()"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none transition-colors"
             />
         </div>
 
