@@ -16,6 +16,15 @@ title="View on GitHub"
 
 
 {% block content %}
+<style>
+  #search-input::placeholder {
+    transition: opacity 200ms ease-in-out;
+    color: #8b939e;
+  }
+  #search-input.placeholder-fade::placeholder {
+    opacity: 0;
+  }
+</style>
 <div class="container mx-auto p-4">
 
     <!-- Search Form using HTMX -->
@@ -43,6 +52,13 @@ title="View on GitHub"
                 name="query"
                 value="{{ query|default:'' }}"
                 maxlength="500"
+                x-data="rotatingPlaceholder()"
+                x-init="init()"
+                :placeholder="isMobile && !isFocused ? 'Try: ' + currentExample : ''"
+                :class="{ 'placeholder-fade': isTransitioning }"
+                @focus="pause()"
+                @blur="resume()"
+                @resize.window.debounce.150ms="checkMobile()"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors"
             />
         </div>
@@ -513,6 +529,58 @@ title="View on GitHub"
 
             init() {
                 this.update();
+            }
+        };
+    }
+
+    function rotatingPlaceholder() {
+        return {
+            examples: [{% for q in example_queries %}'{{ q }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+            currentIndex: 0,
+            currentExample: '',
+            isMobile: false,
+            isFocused: false,
+            isTransitioning: false,
+            intervalId: null,
+
+            init() {
+                this.checkMobile();
+                if (this.examples.length > 0) {
+                    this.currentExample = this.examples[0];
+                    this.startRotation();
+                }
+            },
+
+            checkMobile() {
+                this.isMobile = window.innerWidth < 640;
+            },
+
+            startRotation() {
+                if (this.intervalId) clearInterval(this.intervalId);
+                this.intervalId = setInterval(() => {
+                    this.isTransitioning = true;
+                    setTimeout(() => {
+                        this.currentIndex = (this.currentIndex + 1) % this.examples.length;
+                        this.currentExample = this.examples[this.currentIndex];
+                        this.isTransitioning = false;
+                    }, 200);
+                }, 3000);
+            },
+
+            pause() {
+                this.isFocused = true;
+                if (this.intervalId) {
+                    clearInterval(this.intervalId);
+                    this.intervalId = null;
+                }
+            },
+
+            resume() {
+                this.isFocused = false;
+                const input = document.getElementById('search-input');
+                if (!input.value) {
+                    this.startRotation();
+                }
             }
         };
     }
