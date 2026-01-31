@@ -360,9 +360,9 @@ title="View on GitHub"
     </div>
 
     <!-- Museum link and Find similar button -->
-    <div class="flex flex-wrap gap-3 mt-4">
+    <div class="mt-4 space-y-2">
       <!-- Museum link -->
-      <p x-show="museum && sourceUrl">
+      <div x-show="museum && sourceUrl">
         <a :href="sourceUrl"
            target="_blank"
            rel="noopener noreferrer"
@@ -375,7 +375,7 @@ title="View on GitHub"
                   d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6m5-5h5m0 0v5m0-5L10 14" />
           </svg>
         </a>
-      </p>
+      </div>
 
       <!-- Find similar button -->
       <div x-show="showFindSimilar">

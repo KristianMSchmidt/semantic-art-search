@@ -1192,10 +1192,6 @@ select {
   gap: 0.5rem;
 }
 
-.gap-3 {
-  gap: 0.75rem;
-}
-
 .gap-4 {
   gap: 1rem;
 }
@@ -1760,11 +1756,6 @@ select {
 
 .hover\:bg-white\/20:hover {
   background-color: rgb(255 255 255 / 0.2);
-}
-
-.hover\:bg-gray-300:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(209 213 219 / var(--tw-bg-opacity, 1));
 }
 
 .hover\:from-blue-600:hover {
