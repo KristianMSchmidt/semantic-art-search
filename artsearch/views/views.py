@@ -157,3 +157,9 @@ def clear_cache(request):
     """Admin-only endpoint to clear all registered LRU caches."""
     count = clear_all_caches()
     return HttpResponse(f"Cleared {count} caches successfully", content_type="text/plain")
+
+
+@staff_member_required
+def sentry_test(request):
+    """Admin-only endpoint to test Sentry error reporting."""
+    raise Exception("Sentry test error - this is intentional")

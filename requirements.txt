@@ -28,6 +28,9 @@ xmltodict==0.14.2
 # Web Server
 gunicorn==23.0.0
 
+# Error Monitoring
+sentry-sdk[django]==2.51.0
+
 # Testing (dev dependencies)
 pytest==8.4.2
 pytest-django==4.11.1

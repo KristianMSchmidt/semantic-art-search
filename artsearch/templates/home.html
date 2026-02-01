@@ -56,10 +56,10 @@ title="View on GitHub"
                 x-init="init()"
                 :placeholder="isMobile && !isFocused ? 'Try: ' + currentExample : ''"
                 :class="{ 'placeholder-fade': isTransitioning }"
-                @focus="pause()"
-                @blur="resume()"
+                @focus="pause(); $el.style.borderColor='rgb(156 163 175)'"
+                @blur="resume(); $el.style.borderColor='rgb(209 213 219)'"
                 @resize.window.debounce.150ms="checkMobile()"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none transition-colors"
             />
         </div>
 
@@ -360,13 +360,13 @@ title="View on GitHub"
     </div>
 
     <!-- Museum link and Find similar button -->
-    <div class="flex flex-wrap gap-3 mt-4">
+    <div class="mt-4 space-y-2">
       <!-- Museum link -->
-      <p x-show="museum && sourceUrl">
+      <div x-show="museum && sourceUrl">
         <a :href="sourceUrl"
            target="_blank"
            rel="noopener noreferrer"
-           class="text-sm text-gray-600 inline-flex items-center gap-1 underline hover:text-blue-500"
+           class="text-sm text-gray-500 inline-flex items-center gap-1 hover:text-blue-500 transition-colors"
            :title="'View this artwork on the ' + museum + ' website'">
           <span x-text="museum"></span>
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
@@ -375,13 +375,13 @@ title="View on GitHub"
                   d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6m5-5h5m0 0v5m0-5L10 14" />
           </svg>
         </a>
-      </p>
+      </div>
 
       <!-- Find similar button -->
       <div x-show="showFindSimilar">
         <button
           type="button"
-          class="text-sm text-gray-600 hover:text-blue-500 underline"
+          class="text-sm text-gray-500 hover:text-blue-500 transition-colors"
           @click="insertQuery(findSimilarQuery); close()"
           hx-get="{% url 'get-artworks' %}"
           hx-target="#search-results"
