@@ -446,7 +446,7 @@ def test_home_view_returns_only_active_example_queries(mock_qdrant_service):
     queries = response.context["example_queries"]
 
     assert len(queries) == 1
-    assert queries[0] == "Active query"
+    assert queries[0]["query"] == "Active query"
 
 
 @pytest.mark.integration
@@ -474,7 +474,7 @@ def test_home_view_randomizes_example_queries(mock_qdrant_service):
     orderings = []
     for _ in range(5):
         response = client.get(reverse("home"))
-        order = tuple(response.context["example_queries"])
+        order = tuple(q["query"] for q in response.context["example_queries"])
         orderings.append(order)
 
     # At least some orderings should differ (statistically very likely with 10 items)

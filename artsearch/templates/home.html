@@ -118,13 +118,13 @@ title="View on GitHub"
                     x-show="{{ forloop.counter0 }} < visibleCount"
                     x-cloak
                     class="bg-gray-100 text-gray-600 border border-gray-200 px-3 py-1 rounded-full text-sm hover:bg-gray-200 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-                    onclick="insertQuery('{{ example }}')"
+                    onclick="insertQuery('{{ example.query }}', {{ example.all_work_types|yesno:'true,false' }})"
                     hx-get="{% url 'get-artworks' %}"
                     hx-target="#search-results"
                     hx-swap="innerHTML"
                     hx-include="#search-form, #model-selector"
                 >
-                    {{ example }}
+                    {{ example.query }}
                 </button>
                 {% endfor %}
                 </div>
@@ -468,8 +468,15 @@ title="View on GitHub"
         return true;
     }
 
-    function insertQuery(query) {
+    function insertQuery(query, allWorkTypes) {
         document.getElementById('search-input').value = query;
+        if (allWorkTypes !== undefined) {
+            const el = document.querySelector('#work-type-container [x-data]');
+            if (el) {
+                const data = Alpine.$data(el);
+                data.selectedItems = allWorkTypes ? [...data.allItems] : ['painting'];
+            }
+        }
     }
 
     function dropdownComponent({ items, selected, labelName }) {
@@ -547,7 +554,7 @@ title="View on GitHub"
 
     function rotatingPlaceholder() {
         return {
-            examples: [{% for q in example_queries %}'{{ q }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+            examples: [{% for q in example_queries %}'{{ q.query }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
             currentIndex: 0,
             currentExample: '',
             isMobile: false,

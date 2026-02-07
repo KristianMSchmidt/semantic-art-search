@@ -56,8 +56,8 @@ class ArtworkDescriptionAdmin(admin.ModelAdmin):
 
 @admin.register(ExampleQuery)
 class ExampleQueryAdmin(admin.ModelAdmin):
-    list_display = ("query", "is_active", "created_at")
+    list_display = ("query", "is_active", "all_work_types", "created_at")
     list_filter = ("is_active",)
     search_fields = ("query",)
     ordering = ("query",)
-    list_editable = ("is_active",)
+    list_editable = ("is_active", "all_work_types")

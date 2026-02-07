@@ -110,4 +110,5 @@ Users select via radio button UI:
   - `make test-etl` after ETL changes
   - `make test-app` after artsearch view/service changes
   - `make test` after architectural changes
+  - **After creating a migration**, the test DB must be recreated: run tests with `--create-db` flag (e.g., `docker compose -f docker-compose.dev.yml exec web pytest artsearch/tests --create-db`). The `pytest-django` test DB is cached and won't pick up new migrations automatically.
 - Run `make tailwind-start` when working on frontend templates
