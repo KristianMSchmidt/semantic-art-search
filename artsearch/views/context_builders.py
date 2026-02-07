@@ -22,7 +22,7 @@ from artsearch.src.constants.embedding_models import (
     validate_embedding_model,
     EMBEDDING_MODELS,
 )
-from artsearch.src.constants.search import MAX_QUERY_LENGTH
+from artsearch.src.constants.search import MAX_QUERY_LENGTH, DEFAULT_WORK_TYPE_FILTER
 
 
 RESULTS_PER_PAGE = 24
@@ -53,9 +53,10 @@ class SearchParams:
     @property
     def selected_work_types(self) -> list[str]:
         work_type_names = get_work_type_names()
-        # Default to paintings if no explicit filter set
         if not self.has_explicit_work_type_filter:
-            return ["painting"]
+            if DEFAULT_WORK_TYPE_FILTER is None:
+                return list(work_type_names)
+            return DEFAULT_WORK_TYPE_FILTER
         return retrieve_selected(work_type_names, self.request, "work_types")
 
     @property

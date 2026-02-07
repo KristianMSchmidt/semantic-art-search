@@ -6,9 +6,8 @@ Tests the ability to choose between CLIP and Jina embedding models for search.
 
 import pytest
 from unittest.mock import patch, MagicMock
-from django.test import Client
+from django.test import Client, RequestFactory
 from django.urls import reverse
-from django.http import QueryDict
 
 from artsearch.src.constants.embedding_models import (
     EMBEDDING_MODELS,
@@ -166,19 +165,6 @@ def test_is_art_historical_query_returns_false(query):
 # =============================================================================
 
 
-class MockRequest:
-    """Simple mock request with GET parameters."""
-
-    def __init__(self, get_params: dict | None = None):
-        self.GET = QueryDict(mutable=True)
-        if get_params:
-            for key, value in get_params.items():
-                if isinstance(value, list):
-                    self.GET.setlist(key, value)
-                else:
-                    self.GET[key] = value
-
-
 @pytest.mark.unit
 @pytest.mark.parametrize(
     "model_param,expected",
@@ -190,8 +176,8 @@ class MockRequest:
 )
 def test_search_params_selected_embedding_model_valid_values(model_param, expected):
     """Test that SearchParams correctly extracts valid model values from query params."""
-    request = MockRequest({"model": model_param})
-    params = SearchParams(request=request)  # type: ignore
+    request = RequestFactory().get("/", {"model": model_param})
+    params = SearchParams(request=request)
     assert params.selected_embedding_model == expected
 
 
@@ -207,8 +193,8 @@ def test_search_params_selected_embedding_model_invalid_defaults_to_auto(
     get_params, expected
 ):
     """Test that invalid or missing model param defaults to 'auto'."""
-    request = MockRequest(get_params)
-    params = SearchParams(request=request)  # type: ignore
+    request = RequestFactory().get("/", get_params)
+    params = SearchParams(request=request)
     assert params.selected_embedding_model == expected
 
 
@@ -497,3 +483,53 @@ def test_similarity_search_uses_jina_with_auto(mock_qdrant_service):
     mock_qdrant_service.search_similar_images.assert_called_once()
     _, kwargs = mock_qdrant_service.search_similar_images.call_args
     assert kwargs["embedding_model"] == "jina"
+
+
+# =============================================================================
+# Unit Tests: SearchParams.selected_work_types with DEFAULT_WORK_TYPE_FILTER
+# =============================================================================
+
+
+@pytest.mark.unit
+def test_search_params_selected_work_types_uses_default_when_no_url_param():
+    """Test that selected_work_types uses DEFAULT_WORK_TYPE_FILTER when no work_types in URL."""
+    with patch(
+        "artsearch.views.context_builders.get_work_type_names",
+        return_value=["painting", "drawing", "print"],
+    ), patch(
+        "artsearch.views.context_builders.DEFAULT_WORK_TYPE_FILTER",
+        ["painting"],
+    ):
+        request = RequestFactory().get("/")
+        params = SearchParams(request=request)
+        assert params.selected_work_types == ["painting"]
+
+
+@pytest.mark.unit
+def test_search_params_selected_work_types_returns_all_when_default_is_none():
+    """Test that selected_work_types returns all work types when DEFAULT_WORK_TYPE_FILTER is None."""
+    with patch(
+        "artsearch.views.context_builders.get_work_type_names",
+        return_value=["painting", "drawing", "print"],
+    ), patch(
+        "artsearch.views.context_builders.DEFAULT_WORK_TYPE_FILTER",
+        None,
+    ):
+        request = RequestFactory().get("/")
+        params = SearchParams(request=request)
+        assert params.selected_work_types == ["painting", "drawing", "print"]
+
+
+@pytest.mark.unit
+def test_search_params_selected_work_types_uses_url_param_when_present():
+    """Test that URL work_types param overrides DEFAULT_WORK_TYPE_FILTER."""
+    with patch(
+        "artsearch.views.context_builders.get_work_type_names",
+        return_value=["painting", "drawing", "print"],
+    ), patch(
+        "artsearch.views.context_builders.DEFAULT_WORK_TYPE_FILTER",
+        ["painting"],
+    ):
+        request = RequestFactory().get("/", {"work_types": ["drawing", "print"]})
+        params = SearchParams(request=request)
+        assert params.selected_work_types == ["drawing", "print"]
