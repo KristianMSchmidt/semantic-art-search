@@ -180,13 +180,19 @@ title="View on GitHub"
   onTouchStart(e) {
     if (this.isAnimating) return;
     this.touchStartY = e.touches[0].clientY;
-    this.isDragging = true;
+    // Check if drawer is at the top when touch starts
+    this.scrollTopAtStart = e.currentTarget.scrollTop;
+    this.isDragging = false;
     this.dragY = 0;
   },
   onTouchMove(e) {
-    if (!this.isDragging) return;
     const delta = e.touches[0].clientY - this.touchStartY;
-    this.dragY = Math.max(0, delta);
+    // Only start swipe-to-dismiss if at scroll top and dragging down
+    if (this.scrollTopAtStart === 0 && delta > 0) {
+      this.isDragging = true;
+      this.dragY = delta;
+      e.preventDefault();
+    }
   },
   onTouchEnd() {
     if (!this.isDragging) return;
@@ -328,7 +334,7 @@ title="View on GitHub"
        class="absolute bottom-0 left-0 right-0 lg:left-auto lg:top-0 lg:bottom-0 lg:w-96 bg-white text-gray-900 border-t lg:border-t-0 lg:border-l border-gray-200 max-h-[45vh] lg:max-h-none overflow-y-auto p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
        :style="(isDragging || isAnimating) ? `transform: translateY(${dragY}px); transition: ${isDragging ? 'none' : 'transform 150ms ease-in'};` : ''"
        @touchstart="onTouchStart"
-       @touchmove.prevent="onTouchMove"
+       @touchmove="onTouchMove"
        @touchend="onTouchEnd"
        @click.stop>
 
