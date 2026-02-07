@@ -392,10 +392,10 @@ def build_filter_contexts(params: SearchParams) -> dict[str, FilterContext]:
     }
 
 
-def get_active_example_queries() -> list[str]:
+def get_active_example_queries() -> list[dict[str, Any]]:
     """Fetch active example queries from the database."""
     return list(
-        ExampleQuery.objects.filter(is_active=True).values_list("query", flat=True)
+        ExampleQuery.objects.filter(is_active=True).values("query", "all_work_types")
     )
 
 
@@ -404,7 +404,7 @@ SEARCH_HINT_DESKTOP = "Find art by subject, theme, style, and more"
 
 
 def build_home_context(
-    params: SearchParams, example_queries: list[str] | None = None
+    params: SearchParams, example_queries: list[dict[str, Any]] | None = None
 ) -> dict[str, Any]:
     """
     Build the full context for the search view.

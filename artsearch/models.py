@@ -97,6 +97,10 @@ class ExampleQuery(models.Model):
     is_active = models.BooleanField(
         default=True, help_text="Whether this query is shown on the homepage"
     )
+    all_work_types = models.BooleanField(
+        default=False,
+        help_text="If true, select all work types when clicked. If false, select only paintings.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
