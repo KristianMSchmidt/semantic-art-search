@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from artsearch.src.config import config
+import sentry_sdk
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -186,3 +187,10 @@ else:
         "https://semantic-art-search.com",
     ]
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+    # Sentry error monitoring
+    if config.sentry_dsn:
+        sentry_sdk.init(
+            dsn=config.sentry_dsn,
+            send_default_pii=False,  # Don't send personally identifiable information
+        )

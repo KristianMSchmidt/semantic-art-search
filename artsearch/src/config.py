@@ -42,6 +42,9 @@ class Config(BaseModel):
     # Jina API
     jina_api_key: str
 
+    # Sentry (optional, for production error monitoring)
+    sentry_dsn: str | None = None
+
 
 def create_config():
     env_files = [".env.dev", ".env.prod"]
@@ -81,6 +84,9 @@ def create_config():
 
     # Jina API
     jina_api_key = os.getenv("JINA_API_KEY")
+
+    # Sentry (optional)
+    sentry_dsn = os.getenv("SENTRY_DSN")
 
     if not qdrant_url:
         raise ValueError("QDRANT_URL is not set")
@@ -143,6 +149,7 @@ def create_config():
         image_jpeg_quality=image_jpeg_quality,
         openai_api_key=openai_api_key,
         jina_api_key=jina_api_key,
+        sentry_dsn=sentry_dsn,
     )
 
 

@@ -360,9 +360,9 @@ title="View on GitHub"
     </div>
 
     <!-- Museum link and Find similar button -->
-    <div class="flex flex-wrap gap-3 mt-4">
+    <div class="mt-4 space-y-2">
       <!-- Museum link -->
-      <p x-show="museum && sourceUrl">
+      <div x-show="museum && sourceUrl">
         <a :href="sourceUrl"
            target="_blank"
            rel="noopener noreferrer"
@@ -375,21 +375,18 @@ title="View on GitHub"
                   d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6m5-5h5m0 0v5m0-5L10 14" />
           </svg>
         </a>
-      </p>
+      </div>
 
       <!-- Find similar button -->
       <div x-show="showFindSimilar">
         <button
           type="button"
-          class="text-sm text-gray-500 inline-flex items-center gap-1 hover:text-blue-500 transition-colors"
+          class="text-sm text-gray-500 hover:text-blue-500 transition-colors"
           @click="insertQuery(findSimilarQuery); close()"
           hx-get="{% url 'get-artworks' %}"
           hx-target="#search-results"
           hx-swap="innerHTML"
           hx-include="#search-form, #model-selector">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-          </svg>
           Find similar
         </button>
       </div>
