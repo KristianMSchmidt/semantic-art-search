@@ -472,11 +472,12 @@ title="View on GitHub"
         document.getElementById('search-input').value = query;
     }
 
-    function dropdownComponent({ selected, all, labelName }) {
+    function dropdownComponent({ items, selected, labelName }) {
         return {
             open: false,
             selectedItems: [...selected],
-            allItems: [...all],
+            allItems: items.map(i => i.value),
+            itemLabels: Object.fromEntries(items.map(i => [i.value, i.label])),
 
             toggleSelectAll() {
                 if (this.selectedItems.length === this.allItems.length) {
@@ -490,6 +491,11 @@ title="View on GitHub"
                 if (this.selectedItems.length === 0 || this.selectedItems.length === this.allItems.length) {
                     return `All ${labelName}s`;
                 } else if (this.selectedItems.length === 1) {
+                    const value = this.selectedItems[0];
+                    const label = this.itemLabels[value];
+                    if (label) {
+                        return label.charAt(0).toUpperCase() + label.slice(1);
+                    }
                     return `1 ${labelName}`;
                 } else {
                     return `${this.selectedItems.length} ${labelName}s`;

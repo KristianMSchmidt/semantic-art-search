@@ -22,7 +22,7 @@ from artsearch.src.constants.embedding_models import (
     validate_embedding_model,
     EMBEDDING_MODELS,
 )
-from artsearch.src.constants.search import MAX_QUERY_LENGTH
+from artsearch.src.constants.search import MAX_QUERY_LENGTH, DEFAULT_WORK_TYPE_FILTER
 
 
 RESULTS_PER_PAGE = 24
@@ -53,6 +53,10 @@ class SearchParams:
     @property
     def selected_work_types(self) -> list[str]:
         work_type_names = get_work_type_names()
+        if not self.has_explicit_work_type_filter:
+            if DEFAULT_WORK_TYPE_FILTER is None:
+                return list(work_type_names)
+            return DEFAULT_WORK_TYPE_FILTER
         return retrieve_selected(work_type_names, self.request, "work_types")
 
     @property
@@ -85,7 +89,7 @@ class FilterContext:
     dropdown_items: list[dict[str, Any]]
     selected_items: list[str]
     label_name: str
-    all_items_json: str
+    items_json: str  # [{value, label}, ...] for JavaScript
     selected_items_json: str
     total_work_count: int
 
@@ -179,13 +183,23 @@ def prepare_museums_for_dropdown(
     return museums_for_dropdown
 
 
+def prepare_items_json(dropdown_items: list[dict]) -> str:
+    """Prepare minimal JSON with value/label pairs for JavaScript."""
+    return json.dumps([
+        {"value": item["value"], "label": item["label"]}
+        for item in dropdown_items
+    ])
+
+
 def prepare_initial_label(
     selected_items: list[str],
     all_items: list[str],
     label_type: Literal["work_types", "museums"],
+    dropdown_items: list[dict[str, Any]] | None = None,
 ) -> str:
     """
     Prepare the initial label for the dropdowns based on selected items.
+    When exactly one item is selected, shows the item's label instead of "1 X".
     """
     if label_type == "work_types":
         name = "Work Type"
@@ -194,6 +208,10 @@ def prepare_initial_label(
     if not selected_items or len(selected_items) == len(all_items):
         return f"All {name}s"
     elif len(selected_items) == 1:
+        if dropdown_items:
+            labels = {item["value"]: item["label"] for item in dropdown_items}
+            if selected_items[0] in labels:
+                return labels[selected_items[0]].capitalize()
         return f"1 {name}"
     else:
         return f"{len(selected_items)} {name}s"
@@ -259,15 +277,10 @@ def build_search_context(params: SearchParams, embedding_model: EmbeddingModelCh
     # Determine if we're in browse mode (no query)
     is_browse_mode = params.query is None or params.query == ""
 
-    # Default to paintings on initial browse (no explicit filter set)
-    if is_browse_mode and not params.has_explicit_work_type_filter:
-        work_type_prefilter = ["painting"]
-        selected_work_types_for_urls = ["painting"]
-    else:
-        work_type_prefilter = make_prefilter(
-            get_work_type_names(), params.selected_work_types
-        )
-        selected_work_types_for_urls = params.selected_work_types
+    work_type_prefilter = make_prefilter(
+        get_work_type_names(), params.selected_work_types
+    )
+    selected_work_types_for_urls = params.selected_work_types
 
     museum_prefilter = make_prefilter(get_museum_slugs(), params.selected_museums)
 
@@ -322,8 +335,9 @@ def build_work_type_filter_context(params: SearchParams) -> FilterContext:
         tuple(selected_museums)
     )
     prepared_work_types = prepare_work_types_for_dropdown(work_type_summary.work_types)
+
     initial_work_types_label = prepare_initial_label(
-        selected_work_types, work_type_names, "work_types"
+        selected_work_types, work_type_names, "work_types", prepared_work_types
     )
 
     return FilterContext(
@@ -332,7 +346,7 @@ def build_work_type_filter_context(params: SearchParams) -> FilterContext:
         dropdown_items=prepared_work_types,
         selected_items=selected_work_types,
         total_work_count=work_type_summary.total,
-        all_items_json=json.dumps(work_type_names),
+        items_json=prepare_items_json(prepared_work_types),
         selected_items_json=json.dumps(selected_work_types),
         label_name="Work Type",
     )
@@ -351,8 +365,9 @@ def build_museum_filter_context(params: SearchParams) -> FilterContext:
         tuple(selected_work_types)
     )
     prepared_museums = prepare_museums_for_dropdown(museum_summary.work_types)
+
     initial_museums_label = prepare_initial_label(
-        selected_museums, museum_names, "museums"
+        selected_museums, museum_names, "museums", prepared_museums
     )
 
     return FilterContext(
@@ -361,7 +376,7 @@ def build_museum_filter_context(params: SearchParams) -> FilterContext:
         dropdown_items=prepared_museums,
         selected_items=selected_museums,
         total_work_count=museum_summary.total,
-        all_items_json=json.dumps(museum_names),
+        items_json=prepare_items_json(prepared_museums),
         selected_items_json=json.dumps(selected_museums),
         label_name="Museum",
     )
