@@ -86,10 +86,11 @@ class SearchParams:
 class FilterContext:
     dropdown_name: str
     initial_button_label: str
+    initial_button_label_short: str
     dropdown_items: list[dict[str, Any]]
     selected_items: list[str]
     label_name: str
-    items_json: str  # [{value, label}, ...] for JavaScript
+    items_json: str  # [{value, label, short_label?}, ...] for JavaScript
     selected_items_json: str
     total_work_count: int
 
@@ -184,11 +185,14 @@ def prepare_museums_for_dropdown(
 
 
 def prepare_items_json(dropdown_items: list[dict]) -> str:
-    """Prepare minimal JSON with value/label pairs for JavaScript."""
-    return json.dumps([
-        {"value": item["value"], "label": item["label"]}
-        for item in dropdown_items
-    ])
+    """Prepare minimal JSON with value/label/short_label for JavaScript."""
+    items = []
+    for item in dropdown_items:
+        entry: dict[str, str] = {"value": item["value"], "label": item["label"]}
+        if "short_label" in item:
+            entry["short_label"] = item["short_label"]
+        items.append(entry)
+    return json.dumps(items)
 
 
 def prepare_initial_label(
@@ -196,25 +200,33 @@ def prepare_initial_label(
     all_items: list[str],
     label_type: Literal["work_types", "museums"],
     dropdown_items: list[dict[str, Any]] | None = None,
-) -> str:
+) -> tuple[str, str]:
     """
     Prepare the initial label for the dropdowns based on selected items.
     When exactly one item is selected, shows the item's label instead of "1 X".
+    Returns (label, short_label) tuple. short_label uses short_label from
+    dropdown_items when available, otherwise same as label.
     """
     if label_type == "work_types":
         name = "Work Type"
     elif label_type == "museums":
         name = "Museum"
     if not selected_items or len(selected_items) == len(all_items):
-        return f"All {name}s"
+        label = f"All {name}s"
+        return label, label
     elif len(selected_items) == 1:
         if dropdown_items:
-            labels = {item["value"]: item["label"] for item in dropdown_items}
-            if selected_items[0] in labels:
-                return labels[selected_items[0]].capitalize()
-        return f"1 {name}"
+            items_by_value = {item["value"]: item for item in dropdown_items}
+            item = items_by_value.get(selected_items[0])
+            if item:
+                label = item["label"].capitalize()
+                short_label = item.get("short_label", item["label"]).capitalize()
+                return label, short_label
+        fallback = f"1 {name}"
+        return fallback, fallback
     else:
-        return f"{len(selected_items)} {name}s"
+        label = f"{len(selected_items)} {name}s"
+        return label, label
 
 
 def make_url_with_params(
@@ -336,13 +348,14 @@ def build_work_type_filter_context(params: SearchParams) -> FilterContext:
     )
     prepared_work_types = prepare_work_types_for_dropdown(work_type_summary.work_types)
 
-    initial_work_types_label = prepare_initial_label(
+    label, short_label = prepare_initial_label(
         selected_work_types, work_type_names, "work_types", prepared_work_types
     )
 
     return FilterContext(
         dropdown_name="work_types",
-        initial_button_label=initial_work_types_label,
+        initial_button_label=label,
+        initial_button_label_short=short_label,
         dropdown_items=prepared_work_types,
         selected_items=selected_work_types,
         total_work_count=work_type_summary.total,
@@ -366,13 +379,14 @@ def build_museum_filter_context(params: SearchParams) -> FilterContext:
     )
     prepared_museums = prepare_museums_for_dropdown(museum_summary.work_types)
 
-    initial_museums_label = prepare_initial_label(
+    label, short_label = prepare_initial_label(
         selected_museums, museum_names, "museums", prepared_museums
     )
 
     return FilterContext(
         dropdown_name="museums",
-        initial_button_label=initial_museums_label,
+        initial_button_label=label,
+        initial_button_label_short=short_label,
         dropdown_items=prepared_museums,
         selected_items=selected_museums,
         total_work_count=museum_summary.total,

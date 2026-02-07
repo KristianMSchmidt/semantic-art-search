@@ -9,9 +9,8 @@
         @click="open = !open"
         class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none flex items-center justify-center space-x-2 hover:bg-gray-100 hover:border-gray-400"
     >
-        <span x-text="buttonLabel">
-            {{ filter_ctx.initial_button_label }}
-        </span>
+        <span class="sm:hidden" x-text="buttonLabelShort">{{ filter_ctx.initial_button_label_short }}</span>
+        <span class="hidden sm:inline" x-text="buttonLabel">{{ filter_ctx.initial_button_label }}</span>
     </button>
 
     <!-- Dropdown -->
