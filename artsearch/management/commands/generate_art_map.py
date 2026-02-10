@@ -33,8 +33,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--n-neighbors",
             type=int,
-            default=30,
-            help="UMAP n_neighbors (default: 30)",
+            default=15,
+            help="UMAP n_neighbors (default: 15)",
         )
         parser.add_argument(
             "--min-dist",
