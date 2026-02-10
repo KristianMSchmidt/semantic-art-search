@@ -87,6 +87,28 @@ class ArtworkDescription(models.Model):
         return f"{self.museum_slug}:{self.object_number}"
 
 
+class ArtMapData(models.Model):
+    """
+    Stores pre-computed UMAP 2D coordinates for the art map visualization.
+    One row per generation run. Latest row is served to the frontend.
+    Stored in PostgreSQL so data persists across deploys (unlike static files).
+    """
+
+    data = models.TextField(help_text="Raw JSON string of map data")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    @property
+    def version(self):
+        return self.created_at.strftime("%Y%m%d%H%M%S")
+
+    def __str__(self):
+        size_kb = len(self.data) / 1024
+        return f"ArtMapData ({size_kb:.0f} KB, {self.created_at.strftime('%Y-%m-%d %H:%M')})"
+
+
 class ExampleQuery(models.Model):
     """
     Example search queries displayed on the homepage.

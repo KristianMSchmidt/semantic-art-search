@@ -15,7 +15,7 @@ from unittest.mock import patch, MagicMock
 from django.test import Client
 from django.urls import reverse
 
-from artsearch.models import ExampleQuery
+from artsearch.models import ExampleQuery, ArtMapData
 
 
 @pytest.fixture
@@ -507,3 +507,77 @@ def test_home_view_handles_no_example_queries(mock_qdrant_service):
     assert response.context["example_queries"] == []
 
 
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_art_map_data_view_returns_json_with_cache_headers(mock_qdrant_service):
+    """
+    Test that /map/data/ returns stored JSON with Cache-Control headers.
+
+    Potential bugs this could catch:
+    - Wrong content type
+    - Missing Cache-Control header
+    - Data not served correctly from database
+    """
+    ArtMapData.objects.create(data='{"count":1,"x":[0.5],"y":[0.5]}')
+
+    client = Client()
+    response = client.get(reverse("art-map-data"))
+
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/json"
+    assert response["Cache-Control"] == "public, max-age=86400"
+    assert response.content == b'{"count":1,"x":[0.5],"y":[0.5]}'
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_art_map_data_view_returns_404_when_no_data(mock_qdrant_service):
+    """
+    Test that /map/data/ returns 404 when no map data exists.
+
+    Potential bugs this could catch:
+    - Server error instead of clean 404
+    - Wrong error message format
+    """
+    client = Client()
+    response = client.get(reverse("art-map-data"))
+
+    assert response.status_code == 404
+    assert response.json() == {"error": "No map data available"}
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_art_map_view_passes_version_to_template(mock_qdrant_service):
+    """
+    Test that /map/ passes map_data_version to the template for cache-busting.
+
+    Potential bugs this could catch:
+    - Missing version in template context
+    - Version format incorrect
+    """
+    map_data = ArtMapData.objects.create(data='{"count":0}')
+
+    client = Client()
+    response = client.get(reverse("art-map"))
+
+    assert response.status_code == 200
+    assert response.context["map_data_version"] == map_data.version
+    assert len(response.context["map_data_version"]) == 14  # YYYYMMDDHHmmss
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_art_map_view_handles_no_data(mock_qdrant_service):
+    """
+    Test that /map/ renders correctly when no map data exists.
+
+    Potential bugs this could catch:
+    - Server error when no ArtMapData rows exist
+    - Template crash on empty version string
+    """
+    client = Client()
+    response = client.get(reverse("art-map"))
+
+    assert response.status_code == 200
+    assert response.context["map_data_version"] == ""

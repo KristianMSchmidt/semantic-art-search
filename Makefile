@@ -82,6 +82,15 @@ prod_djangoshell:  ## [PROD] Open django shell in running docker production cont
 	docker compose -f docker-compose.prod.yml exec web python manage.py shell
 
 
+# ---------- Art Map ---------- #
+
+art-map: ## Generate UMAP 2D map data (saves to PostgreSQL)
+	docker compose -f docker-compose.dev.yml run --rm web sh -c "pip install umap-learn==0.5.11 && python manage.py generate_art_map"
+
+prod_art-map: ## [PROD] Generate UMAP 2D map data on production (saves to PostgreSQL)
+	docker compose -f docker-compose.prod.yml run --rm --no-deps web sh -c "pip install umap-learn==0.5.11 && python manage.py generate_art_map"
+
+
 # ---------- Data / Reporting ---------- #
 
 stats: ## Get work type stats

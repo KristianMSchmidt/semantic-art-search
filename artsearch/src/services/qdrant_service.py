@@ -366,7 +366,7 @@ class QdrantService:
         self,
         next_page_token: PointId | None,
         limit: int = 1000,
-        with_vectors: bool = False,
+        with_vectors: bool | list[str] = False,
         with_payload: bool | list[str] = True,
     ) -> tuple[list[models.Record], PointId | None]:
         """Fetch points from a Qdrant collection with pagination."""

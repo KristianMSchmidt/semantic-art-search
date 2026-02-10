@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block nav_links %}
+<a href="{% url 'home' %}"
+   class="text-blue-100 hover:text-blue-50 text-sm font-medium">
+    Search
+</a>
+<a href="https://github.com/KristianMSchmidt/semantic-art-search/blob/master/README.md"
+   target="_blank" rel="noopener noreferrer"
+   class="text-blue-100 hover:text-blue-50"
+   title="View on GitHub">
+    <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.207 11.387.6.11.793-.26.793-.577v-2.234c-3.338.724-4.033-1.61-4.033-1.61-.547-1.387-1.335-1.756-1.335-1.756-1.092-.746.083-.731.083-.731 1.206.084 1.84 1.238 1.84 1.238 1.073 1.837 2.812 1.306 3.497.998.11-.777.42-1.305.763-1.605-2.665-.305-5.466-1.332-5.466-5.931 0-1.31.467-2.381 1.235-3.221-.124-.303-.535-1.527.117-3.176 0 0 1.008-.322 3.3 1.23.957-.266 1.984-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.29-1.552 3.296-1.23 3.296-1.23.653 1.649.242 2.873.118 3.176.77.84 1.233 1.911 1.233 3.221 0 4.61-2.804 5.624-5.475 5.921.43.372.814 1.102.814 2.222v3.293c0 .32.192.694.8.576C20.565 21.796 24 17.297 24 12c0-6.63-5.37-12-12-12z"/>
+    </svg>
+</a>
+{% endblock %}
+
+{% block content %}
+<div x-data="artMap()" x-init="init()" class="relative" style="height: calc(100vh - 64px);">
+
+    <!-- Loading spinner -->
+    <div x-show="loading" class="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+        <div class="text-center">
+            <svg class="animate-spin h-10 w-10 text-blue-500 mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-gray-600 text-sm">Loading art map...</p>
+        </div>
+    </div>
+
+    <!-- Error state -->
+    <div x-show="error" x-cloak class="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+        <div class="text-center max-w-md px-4">
+            <p class="text-red-600 text-sm" x-text="error"></p>
+        </div>
+    </div>
+
+    <!-- deck.gl canvas -->
+    <canvas id="deck-canvas" class="w-full h-full"></canvas>
+
+    <!-- Hover tooltip -->
+    <div x-show="tooltip.visible" x-cloak
+         class="fixed pointer-events-none z-30 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+         style="width: 400px;"
+         :style="`left: ${tooltip.x + 12}px; top: ${tooltip.y + 12}px;`">
+        <div class="bg-gray-100 flex items-center justify-center" style="height: 280px;">
+            <img x-show="tooltip.imageUrl"
+                 :src="tooltip.imageUrl"
+                 alt=""
+                 style="max-width: 400px; max-height: 280px; object-fit: contain;"
+                 @error="$el.style.display='none'">
+        </div>
+        <div class="px-3 py-2">
+            <p class="text-sm font-semibold text-gray-800 truncate" x-text="tooltip.title"></p>
+            <p class="text-xs text-gray-500 truncate" x-text="tooltip.artist"></p>
+            <p class="text-xs text-gray-400" x-text="tooltip.museum"></p>
+        </div>
+    </div>
+
+    <!-- Click detail panel -->
+    <div x-show="detail.visible" x-cloak
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 translate-y-2"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 translate-y-2"
+         class="absolute bottom-4 left-4 z-20 bg-white rounded-lg shadow-xl border border-gray-200 w-72 overflow-hidden"
+         @click.outside="detail.visible = false">
+        <!-- Thumbnail -->
+        <div class="relative bg-gray-100">
+            <img :src="detail.imageUrl"
+                 :alt="detail.title"
+                 class="w-full h-48 object-contain"
+                 @error="$el.style.display='none'">
+            <button @click="detail.visible = false"
+                    class="absolute top-2 right-2 bg-black/40 hover:bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs transition">
+                &times;
+            </button>
+        </div>
+        <!-- Info -->
+        <div class="p-3 space-y-1">
+            <h3 class="text-sm font-semibold text-gray-800 leading-snug" x-text="detail.title"></h3>
+            <p class="text-xs text-gray-500" x-text="detail.artist"></p>
+            <div class="flex items-center gap-2 text-xs text-gray-400">
+                <span x-text="detail.productionDate"></span>
+                <span>&middot;</span>
+                <span x-text="detail.museum"></span>
+            </div>
+            <div class="pt-1">
+                <a :href="'/?query=' + encodeURIComponent(detail.museumSlug + ':' + detail.objectNumber)"
+                   class="text-xs text-blue-500 hover:text-blue-700 transition-colors">
+                    Find similar &rarr;
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Zoom controls -->
+    <div class="absolute bottom-4 right-4 z-20 flex flex-col gap-1">
+        <button @click="zoomIn()"
+                class="bg-white/90 backdrop-blur-sm shadow border border-gray-200 rounded-lg w-9 h-9 flex items-center justify-center text-gray-600 hover:bg-gray-100 text-lg font-bold transition">+</button>
+        <button @click="zoomOut()"
+                class="bg-white/90 backdrop-blur-sm shadow border border-gray-200 rounded-lg w-9 h-9 flex items-center justify-center text-gray-600 hover:bg-gray-100 text-lg font-bold transition">&minus;</button>
+    </div>
+
+    <!-- Legend -->
+    <div class="absolute z-20 bg-white/90 backdrop-blur-sm rounded-lg shadow border border-gray-200 px-4" style="left: 1rem; top: 1rem; padding-top: 0.75rem; padding-bottom: 0.75rem;">
+        <!-- Toggle -->
+        <div class="flex gap-1 mb-2 text-xs">
+            <button @click="setColorMode('museum')"
+                    :class="colorMode === 'museum' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    class="px-2 py-0.5 rounded transition-colors">Museum</button>
+            <button @click="setColorMode('work_type')"
+                    :class="colorMode === 'work_type' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    class="px-2 py-0.5 rounded transition-colors">Work type</button>
+        </div>
+        <!-- Legend items -->
+        <template x-for="(item, i) in legendItems" :key="colorMode + '-' + i">
+            <div class="flex items-center gap-2 py-0.5">
+                <span class="inline-block w-3 h-3 rounded-full" :style="`background: rgb(${item.color[0]}, ${item.color[1]}, ${item.color[2]})`"></span>
+                <span class="text-xs text-gray-600" x-text="item.label"></span>
+            </div>
+        </template>
+    </div>
+</div>
+
+<script src="https://unpkg.com/deck.gl@9.1/dist.min.js"></script>
+<script>
+function artMap() {
+    const BUCKET_REGION = '{{ bucket_region }}';
+    const BUCKET_NAME = '{{ bucket_name }}';
+
+    return {
+        loading: true,
+        error: null,
+        mapData: null,
+        deckgl: null,
+        colorMode: 'museum',
+
+        museumColors: [
+            [231, 76, 60],    // smk - red
+            [46, 134, 193],   // cma - blue
+            [243, 156, 18],   // rma - orange
+            [39, 174, 96],    // met - green
+            [142, 68, 173],   // aic - purple
+        ],
+        workTypeColors: [
+            [231, 76, 60],    // painting - red
+            [46, 134, 193],   // print - blue
+            [39, 174, 96],    // drawing - green
+            [52, 152, 219],   // watercolor - light blue
+            [243, 156, 18],   // design - orange
+            [149, 165, 166],  // other - gray
+        ],
+
+        // Pre-built color arrays (filled in createDeck)
+        _museumColorArray: null,
+        _workTypeColorArray: null,
+        _positions: null,
+        _count: 0,
+        _data: null,
+
+        get legendItems() {
+            if (this.colorMode === 'museum') {
+                return (this.mapData?.museum_names || []).map((name, i) => ({ label: name, color: this.museumColors[i] }));
+            }
+            return (this.mapData?.work_type_labels || []).map((label, i) => ({
+                label: label.charAt(0).toUpperCase() + label.slice(1),
+                color: this.workTypeColors[i],
+            }));
+        },
+
+        tooltip: { visible: false, x: 0, y: 0, title: '', artist: '', museum: '', imageUrl: '' },
+        detail: { visible: false, imageUrl: '', title: '', artist: '', productionDate: '', museum: '', museumSlug: '', objectNumber: '' },
+
+        _currentZoom: -0.5,
+
+        zoomIn() {
+            this._currentZoom = Math.min(this._currentZoom + 0.5, 10);
+            this.deckgl.setProps({ initialViewState: { target: this._viewTarget || [500, 500], zoom: this._currentZoom, transitionDuration: 200 } });
+        },
+
+        zoomOut() {
+            this._currentZoom = Math.max(this._currentZoom - 0.5, -3);
+            this.deckgl.setProps({ initialViewState: { target: this._viewTarget || [500, 500], zoom: this._currentZoom, transitionDuration: 200 } });
+        },
+
+        setColorMode(mode) {
+            this.colorMode = mode;
+            if (!this.deckgl || !this.mapData) return;
+            const colorArray = mode === 'museum' ? this._museumColorArray : this._workTypeColorArray;
+            this.deckgl.setProps({
+                layers: [this._buildLayer(colorArray, mode)],
+            });
+        },
+
+        _imageUrl(slug, objectNumber) {
+            return `https://${BUCKET_REGION}.linodeobjects.com/${BUCKET_NAME}/${slug}_${objectNumber}.jpg`;
+        },
+
+        _buildLayer(colorArray, colorMode) {
+            const { deck } = window;
+            const self = this;
+            const positions = this._positions;
+            return new deck.ScatterplotLayer({
+                id: 'artworks',
+                data: this._data,
+                getPosition: (_, { index }) => [positions[index * 2], positions[index * 2 + 1]],
+                getFillColor: (_, { index }) => [colorArray[index * 3], colorArray[index * 3 + 1], colorArray[index * 3 + 2], 200],
+                updateTriggers: { getFillColor: colorMode },
+                radiusMinPixels: 1.5,
+                radiusMaxPixels: 6,
+                radiusUnits: 'pixels',
+                getRadius: 3,
+                pickable: true,
+                onHover: (info) => self._onHover(info),
+                onClick: (info) => self._onClick(info),
+            });
+        },
+
+        _onHover(info) {
+            const d = this.mapData;
+            if (info.index >= 0) {
+                const idx = info.index;
+                const slug = d.museum_slugs[d.museum[idx]];
+                this.tooltip = {
+                    visible: true,
+                    x: info.x,
+                    y: info.y,
+                    title: d.title[idx] || 'Untitled',
+                    artist: d.artist[idx] || 'Unknown',
+                    museum: d.museum_names[d.museum[idx]],
+                    imageUrl: this._imageUrl(slug, d.object_number[idx]),
+                };
+            } else {
+                this.tooltip.visible = false;
+            }
+        },
+
+        _onClick(info) {
+            const d = this.mapData;
+            if (info.index >= 0) {
+                const idx = info.index;
+                const museumSlug = d.museum_slugs[d.museum[idx]];
+                const objNum = d.object_number[idx];
+                this.detail = {
+                    visible: true,
+                    imageUrl: this._imageUrl(museumSlug, objNum),
+                    title: d.title[idx] || 'Untitled',
+                    artist: d.artist[idx] || 'Unknown',
+                    productionDate: d.production_date[idx] || '',
+                    museum: d.museum_names[d.museum[idx]],
+                    museumSlug,
+                    objectNumber: objNum,
+                };
+            }
+        },
+
+        async init() {
+            try {
+                const resp = await fetch('{% url "art-map-data" %}?v={{ map_data_version }}');
+                if (!resp.ok) throw new Error('Map data not found. Run: make art-map');
+                this.mapData = await resp.json();
+                this.loading = false;
+                this.$nextTick(() => this.createDeck());
+            } catch (e) {
+                this.error = e.message;
+                this.loading = false;
+            }
+        },
+
+        createDeck() {
+            const { deck } = window;
+            const d = this.mapData;
+            const self = this;
+            const count = d.count;
+            this._count = count;
+
+            // Pre-build position array
+            const positions = new Float32Array(count * 2);
+            for (let i = 0; i < count; i++) {
+                positions[i * 2] = d.x[i] * 1000;
+                positions[i * 2 + 1] = d.y[i] * 1000;
+            }
+            this._positions = positions;
+
+            // Pre-build museum color array
+            const museumCA = new Uint8Array(count * 3);
+            for (let i = 0; i < count; i++) {
+                const c = this.museumColors[d.museum[i]];
+                museumCA[i * 3] = c[0];
+                museumCA[i * 3 + 1] = c[1];
+                museumCA[i * 3 + 2] = c[2];
+            }
+            this._museumColorArray = museumCA;
+
+            // Pre-build work type color array
+            const wtCA = new Uint8Array(count * 3);
+            const hasWorkTypes = d.work_type && d.work_type.length === count;
+            for (let i = 0; i < count; i++) {
+                const wtIdx = hasWorkTypes ? d.work_type[i] : (this.workTypeColors.length - 1);
+                const c = this.workTypeColors[wtIdx] || this.workTypeColors[this.workTypeColors.length - 1];
+                wtCA[i * 3] = c[0];
+                wtCA[i * 3 + 1] = c[1];
+                wtCA[i * 3 + 2] = c[2];
+            }
+            this._workTypeColorArray = wtCA;
+
+            const colorArray = this._museumColorArray;
+
+            this._data = { length: count };
+
+            this.deckgl = new deck.Deck({
+                canvas: 'deck-canvas',
+                views: new deck.OrthographicView(),
+                initialViewState: {
+                    target: [500, 500],
+                    zoom: -0.5,
+                },
+                controller: true,
+                layers: [this._buildLayer(colorArray, 'museum')],
+                getTooltip: () => null,
+                onViewStateChange: ({ viewState }) => {
+                    self._currentZoom = viewState.zoom;
+                    self._viewTarget = viewState.target;
+                },
+            });
+        },
+    };
+}
+</script>
+{% endblock content %}

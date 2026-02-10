@@ -10,7 +10,9 @@ WORKDIR /code
 
 # Install dependencies
 COPY requirements.txt /code/
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN echo 'setuptools<82' > /tmp/build-constraints.txt && \
+    PIP_CONSTRAINT=/tmp/build-constraints.txt pip install --upgrade pip && \
+    PIP_CONSTRAINT=/tmp/build-constraints.txt pip install -r requirements.txt
 
 
 # Install Node.js and npm

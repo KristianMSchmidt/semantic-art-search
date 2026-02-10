@@ -21,11 +21,12 @@ Semantic Art Search is a Django-based web application that uses CLIP to enable s
 
 ### Museum Integration
 
-Four museums via their open APIs:
+Five museums via their open APIs:
 - **SMK**: Statens Museum for Kunst (Denmark)
 - **CMA**: Cleveland Museum of Art
 - **RMA**: Rijksmuseum Amsterdam
 - **MET**: Metropolitan Museum of Art
+- **AIC**: Art Institute of Chicago
 
 Each museum has a client in `artsearch/src/services/museum_clients/`
 
@@ -70,7 +71,7 @@ See `.claude/rules/etl-pipeline.md` for ETL command patterns (`*-force`, `*-retr
 
 ### Filtering
 
-- Filter by museum (SMK, CMA, RMA, MET)
+- Filter by museum (SMK, CMA, RMA, MET, AIC)
 - Filter by work type (painting, print, drawing, etc.)
 - Paginated (20 items per page)
 
