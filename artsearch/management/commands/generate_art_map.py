@@ -16,7 +16,7 @@ MUSEUM_SLUG_TO_INDEX = {slug: i for i, slug in enumerate(MUSEUM_SLUGS)}
 
 PAYLOAD_FIELDS = ["museum", "object_number", "title", "artists", "production_date", "searchable_work_types"]
 
-WORK_TYPE_LABELS = ["painting", "print", "drawing", "watercolor", "design", "other"]
+WORK_TYPE_LABELS = ["painting", "print", "drawing", "watercolor", "design", "bust", "pastel", "aquatint", "guache", "miniature", "other"]
 WORK_TYPE_TO_INDEX = {wt: i for i, wt in enumerate(WORK_TYPE_LABELS)}
 OTHER_INDEX = WORK_TYPE_LABELS.index("other")
 
