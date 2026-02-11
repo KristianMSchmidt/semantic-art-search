@@ -1,6 +1,8 @@
+import json
 import random
+from functools import lru_cache
 
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
 from django_ratelimit.decorators import ratelimit
@@ -15,9 +17,11 @@ from artsearch.views.context_builders import (
 )
 from artsearch.views.log_utils import log_search_query
 from artsearch.src.services.artwork_description.service import generate_description
-from artsearch.src.cache_registry import clear_all_caches
+from artsearch.src.cache_registry import clear_all_caches, register_cache
+from artsearch.src.config import config
 from artsearch.src.constants.embedding_models import EMBEDDING_MODELS
 from artsearch.src.constants.ui import EXAMPLE_QUERY_COUNTS
+from artsearch.models import ArtMapData
 
 
 def get_client_ip(group, request):
@@ -152,11 +156,66 @@ def get_artwork_description_view(request: HttpRequest) -> HttpResponse:
     return render(request, "partials/artwork_description.html", context)
 
 
+def art_map_view(request: HttpRequest) -> HttpResponse:
+    from artsearch.src.constants.museums import (
+        MUSEUM_SLUGS,
+        MUSEUM_NAMES,
+        WORK_TYPE_LABELS,
+    )
+
+    map_data = ArtMapData.objects.first()
+    context = {
+        "bucket_region": config.aws_bucket_region,
+        "bucket_name": config.bucket_name_app,
+        "map_data_version": map_data.version if map_data else "",
+        "museum_slugs_json": json.dumps(MUSEUM_SLUGS),
+        "museum_names_json": json.dumps(MUSEUM_NAMES),
+        "work_type_labels_json": json.dumps(WORK_TYPE_LABELS),
+    }
+    return render(request, "map.html", context)
+
+
+@register_cache
+@lru_cache(maxsize=1)
+def _get_map_geometry() -> bytes | None:
+    map_data = ArtMapData.objects.first()
+    return bytes(map_data.geometry) if map_data and map_data.geometry else None
+
+
+@register_cache
+@lru_cache(maxsize=1)
+def _get_map_metadata() -> str | None:
+    map_data = ArtMapData.objects.first()
+    return map_data.metadata if map_data else None
+
+
+def art_map_geometry_view(request: HttpRequest) -> HttpResponse:
+    data = _get_map_geometry()
+    if data is None:
+        return JsonResponse({"error": "No map data available"}, status=404)
+
+    response = HttpResponse(data, content_type="application/octet-stream")
+    response["Cache-Control"] = "public, max-age=86400"
+    return response
+
+
+def art_map_data_view(request: HttpRequest) -> HttpResponse:
+    data = _get_map_metadata()
+    if data is None:
+        return JsonResponse({"error": "No map data available"}, status=404)
+
+    response = HttpResponse(data, content_type="application/json")
+    response["Cache-Control"] = "public, max-age=86400"
+    return response
+
+
 @staff_member_required
 def clear_cache(request):
     """Admin-only endpoint to clear all registered LRU caches."""
     count = clear_all_caches()
-    return HttpResponse(f"Cleared {count} caches successfully", content_type="text/plain")
+    return HttpResponse(
+        f"Cleared {count} caches successfully", content_type="text/plain"
+    )
 
 
 @staff_member_required
