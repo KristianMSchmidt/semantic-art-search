@@ -132,13 +132,20 @@
 function artMap() {
     const BUCKET_REGION = '{{ bucket_region }}';
     const BUCKET_NAME = '{{ bucket_name }}';
+    const MUSEUM_SLUGS = {{ museum_slugs_json|safe }};
+    const MUSEUM_NAMES = {{ museum_names_json|safe }};
+    const WORK_TYPE_LABELS = {{ work_type_labels_json|safe }};
 
     return {
         loading: true,
         error: null,
-        mapData: null,
         deckgl: null,
         colorMode: 'museum',
+
+        // Lazy-loaded metadata (titles, artists, etc.)
+        _metadata: null,
+        // Museum indices from geometry (for hover/click before metadata loads)
+        _museumIndices: null,
 
         museumColors: [
             [231, 76, 60],    // smk - red
@@ -165,14 +172,13 @@ function artMap() {
         _museumColorArray: null,
         _workTypeColorArray: null,
         _positions: null,
-        _count: 0,
         _data: null,
 
         get legendItems() {
             if (this.colorMode === 'museum') {
-                return (this.mapData?.museum_names || []).map((name, i) => ({ label: name, color: this.museumColors[i] }));
+                return MUSEUM_NAMES.map((name, i) => ({ label: name, color: this.museumColors[i] }));
             }
-            return (this.mapData?.work_type_labels || []).map((label, i) => ({
+            return WORK_TYPE_LABELS.map((label, i) => ({
                 label: label.charAt(0).toUpperCase() + label.slice(1),
                 color: this.workTypeColors[i],
             }));
@@ -195,7 +201,7 @@ function artMap() {
 
         setColorMode(mode) {
             this.colorMode = mode;
-            if (!this.deckgl || !this.mapData) return;
+            if (!this.deckgl) return;
             const colorArray = mode === 'museum' ? this._museumColorArray : this._workTypeColorArray;
             this.deckgl.setProps({
                 layers: [this._buildLayer(colorArray, mode)],
@@ -227,75 +233,113 @@ function artMap() {
         },
 
         _onHover(info) {
-            const d = this.mapData;
             if (info.index >= 0) {
                 const idx = info.index;
-                const slug = d.museum_slugs[d.museum[idx]];
-                this.tooltip = {
-                    visible: true,
-                    x: info.x,
-                    y: info.y,
-                    title: d.title[idx] || 'Untitled',
-                    artist: d.artist[idx] || 'Unknown',
-                    museum: d.museum_names[d.museum[idx]],
-                    imageUrl: this._imageUrl(slug, d.object_number[idx]),
-                };
+                const museumIdx = this._museumIndices[idx];
+                const slug = MUSEUM_SLUGS[museumIdx];
+                const m = this._metadata;
+                if (m) {
+                    this.tooltip = {
+                        visible: true,
+                        x: info.x,
+                        y: info.y,
+                        title: m.title[idx] || 'Untitled',
+                        artist: m.artist[idx] || 'Unknown',
+                        museum: MUSEUM_NAMES[museumIdx],
+                        imageUrl: this._imageUrl(slug, m.object_number[idx]),
+                    };
+                } else {
+                    this.tooltip = {
+                        visible: true,
+                        x: info.x,
+                        y: info.y,
+                        title: 'Loading...',
+                        artist: '',
+                        museum: MUSEUM_NAMES[museumIdx],
+                        imageUrl: '',
+                    };
+                }
             } else {
                 this.tooltip.visible = false;
             }
         },
 
         _onClick(info) {
-            const d = this.mapData;
-            if (info.index >= 0) {
-                const idx = info.index;
-                const museumSlug = d.museum_slugs[d.museum[idx]];
-                const objNum = d.object_number[idx];
-                this.detail = {
-                    visible: true,
-                    imageUrl: this._imageUrl(museumSlug, objNum),
-                    title: d.title[idx] || 'Untitled',
-                    artist: d.artist[idx] || 'Unknown',
-                    productionDate: d.production_date[idx] || '',
-                    museum: d.museum_names[d.museum[idx]],
-                    museumSlug,
-                    objectNumber: objNum,
-                };
+            if (info.index < 0 || !this._metadata) return;
+            const idx = info.index;
+            const m = this._metadata;
+            const museumIdx = this._museumIndices[idx];
+            const museumSlug = MUSEUM_SLUGS[museumIdx];
+            const objNum = m.object_number[idx];
+            this.detail = {
+                visible: true,
+                imageUrl: this._imageUrl(museumSlug, objNum),
+                title: m.title[idx] || 'Untitled',
+                artist: m.artist[idx] || 'Unknown',
+                productionDate: m.production_date[idx] || '',
+                museum: MUSEUM_NAMES[museumIdx],
+                museumSlug,
+                objectNumber: objNum,
+            };
+        },
+
+        _parseGeometry(buffer) {
+            const count = new DataView(buffer).getUint32(0, true);
+            const x = new Float32Array(buffer, 4, count);
+            const y = new Float32Array(buffer, 4 + count * 4, count);
+            const museum = new Uint8Array(buffer, 4 + count * 8, count);
+            const workType = new Uint8Array(buffer, 4 + count * 9, count);
+            return { count, x, y, museum, workType };
+        },
+
+        async _loadMetadata() {
+            try {
+                const resp = await fetch('{% url "art-map-data" %}?v={{ map_data_version }}');
+                if (resp.ok) {
+                    this._metadata = await resp.json();
+                }
+            } catch (e) {
+                // Metadata is non-critical; tooltips will show "Loading..."
             }
         },
 
         async init() {
             try {
-                const resp = await fetch('{% url "art-map-data" %}?v={{ map_data_version }}');
+                const resp = await fetch('{% url "art-map-geometry" %}?v={{ map_data_version }}');
                 if (!resp.ok) throw new Error('Map data not found. Run: make art-map');
-                this.mapData = await resp.json();
+                const buffer = await resp.arrayBuffer();
+                const geo = this._parseGeometry(buffer);
+
+                this._museumIndices = geo.museum;
+
                 this.loading = false;
-                this.$nextTick(() => this.createDeck());
+                this.$nextTick(() => this.createDeck(geo));
+
+                // Fire-and-forget metadata load
+                this._loadMetadata();
             } catch (e) {
                 this.error = e.message;
                 this.loading = false;
             }
         },
 
-        createDeck() {
+        createDeck(geo) {
             const { deck } = window;
-            const d = this.mapData;
             const self = this;
-            const count = d.count;
-            this._count = count;
+            const count = geo.count;
 
-            // Pre-build position array
+            // Build interleaved positions (coordinates are pre-scaled)
             const positions = new Float32Array(count * 2);
             for (let i = 0; i < count; i++) {
-                positions[i * 2] = d.x[i] * 1000;
-                positions[i * 2 + 1] = d.y[i] * 1000;
+                positions[i * 2] = geo.x[i];
+                positions[i * 2 + 1] = geo.y[i];
             }
             this._positions = positions;
 
             // Pre-build museum color array
             const museumCA = new Uint8Array(count * 3);
             for (let i = 0; i < count; i++) {
-                const c = this.museumColors[d.museum[i]];
+                const c = this.museumColors[geo.museum[i]];
                 museumCA[i * 3] = c[0];
                 museumCA[i * 3 + 1] = c[1];
                 museumCA[i * 3 + 2] = c[2];
@@ -304,17 +348,13 @@ function artMap() {
 
             // Pre-build work type color array
             const wtCA = new Uint8Array(count * 3);
-            const hasWorkTypes = d.work_type && d.work_type.length === count;
             for (let i = 0; i < count; i++) {
-                const wtIdx = hasWorkTypes ? d.work_type[i] : (this.workTypeColors.length - 1);
-                const c = this.workTypeColors[wtIdx] || this.workTypeColors[this.workTypeColors.length - 1];
+                const c = this.workTypeColors[geo.workType[i]] || this.workTypeColors[this.workTypeColors.length - 1];
                 wtCA[i * 3] = c[0];
                 wtCA[i * 3 + 1] = c[1];
                 wtCA[i * 3 + 2] = c[2];
             }
             this._workTypeColorArray = wtCA;
-
-            const colorArray = this._museumColorArray;
 
             this._data = { length: count };
 
@@ -326,7 +366,7 @@ function artMap() {
                     zoom: -0.5,
                 },
                 controller: true,
-                layers: [this._buildLayer(colorArray, 'museum')],
+                layers: [this._buildLayer(museumCA, 'museum')],
                 getTooltip: () => null,
                 onViewStateChange: ({ viewState }) => {
                     self._currentZoom = viewState.zoom;

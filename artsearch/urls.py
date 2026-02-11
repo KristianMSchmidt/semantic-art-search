@@ -14,6 +14,7 @@ urlpatterns = [
     path("htmx/update-museums/", views.update_museums, name="update-museums"),
     path("map/", views.art_map_view, name="art-map"),
     path("map/data/", views.art_map_data_view, name="art-map-data"),
+    path("map/data/geometry/", views.art_map_geometry_view, name="art-map-geometry"),
     path("clear-cache/", views.clear_cache, name="clear-cache"),
     path("sentry-test/", views.sentry_test, name="sentry-test"),
 ]

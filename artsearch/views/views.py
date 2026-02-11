@@ -1,3 +1,4 @@
+import json
 import random
 from functools import lru_cache
 
@@ -156,24 +157,50 @@ def get_artwork_description_view(request: HttpRequest) -> HttpResponse:
 
 
 def art_map_view(request: HttpRequest) -> HttpResponse:
+    from artsearch.src.constants.museums import (
+        MUSEUM_SLUGS,
+        MUSEUM_NAMES,
+        WORK_TYPE_LABELS,
+    )
+
     map_data = ArtMapData.objects.first()
     context = {
         "bucket_region": config.aws_bucket_region,
         "bucket_name": config.bucket_name_app,
         "map_data_version": map_data.version if map_data else "",
+        "museum_slugs_json": json.dumps(MUSEUM_SLUGS),
+        "museum_names_json": json.dumps(MUSEUM_NAMES),
+        "work_type_labels_json": json.dumps(WORK_TYPE_LABELS),
     }
     return render(request, "map.html", context)
 
 
 @register_cache
 @lru_cache(maxsize=1)
-def _get_map_data() -> str | None:
+def _get_map_geometry() -> bytes | None:
     map_data = ArtMapData.objects.first()
-    return map_data.data if map_data else None
+    return bytes(map_data.geometry) if map_data and map_data.geometry else None
+
+
+@register_cache
+@lru_cache(maxsize=1)
+def _get_map_metadata() -> str | None:
+    map_data = ArtMapData.objects.first()
+    return map_data.metadata if map_data else None
+
+
+def art_map_geometry_view(request: HttpRequest) -> HttpResponse:
+    data = _get_map_geometry()
+    if data is None:
+        return JsonResponse({"error": "No map data available"}, status=404)
+
+    response = HttpResponse(data, content_type="application/octet-stream")
+    response["Cache-Control"] = "public, max-age=86400"
+    return response
 
 
 def art_map_data_view(request: HttpRequest) -> HttpResponse:
-    data = _get_map_data()
+    data = _get_map_metadata()
     if data is None:
         return JsonResponse({"error": "No map data available"}, status=404)
 

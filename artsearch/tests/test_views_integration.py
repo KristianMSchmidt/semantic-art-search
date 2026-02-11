@@ -10,6 +10,9 @@ Following CLAUDE.md test principles:
 - Mock expensive dependencies: Mock Qdrant, not views/URLs
 """
 
+import json
+import struct
+
 import pytest
 from unittest.mock import patch, MagicMock
 from django.test import Client
@@ -511,14 +514,15 @@ def test_home_view_handles_no_example_queries(mock_qdrant_service):
 @pytest.mark.django_db
 def test_art_map_data_view_returns_json_with_cache_headers(mock_qdrant_service):
     """
-    Test that /map/data/ returns stored JSON with Cache-Control headers.
+    Test that /map/data/ returns stored metadata JSON with Cache-Control headers.
 
     Potential bugs this could catch:
     - Wrong content type
     - Missing Cache-Control header
     - Data not served correctly from database
     """
-    ArtMapData.objects.create(data='{"count":1,"x":[0.5],"y":[0.5]}')
+    metadata = '{"count":1,"object_number":["X1"],"title":["T"],"artist":["A"],"production_date":["2000"]}'
+    ArtMapData.objects.create(metadata=metadata)
 
     client = Client()
     response = client.get(reverse("art-map-data"))
@@ -526,7 +530,7 @@ def test_art_map_data_view_returns_json_with_cache_headers(mock_qdrant_service):
     assert response.status_code == 200
     assert response["Content-Type"] == "application/json"
     assert response["Cache-Control"] == "public, max-age=86400"
-    assert response.content == b'{"count":1,"x":[0.5],"y":[0.5]}'
+    assert response.content == metadata.encode()
 
 
 @pytest.mark.integration
@@ -548,15 +552,62 @@ def test_art_map_data_view_returns_404_when_no_data(mock_qdrant_service):
 
 @pytest.mark.integration
 @pytest.mark.django_db
+def test_art_map_geometry_view_returns_binary(mock_qdrant_service):
+    """
+    Test that /map/data/geometry/ returns packed binary with correct headers.
+
+    Potential bugs this could catch:
+    - Wrong content type for binary data
+    - Missing Cache-Control header
+    - Binary data not served correctly
+    """
+    count = 2
+    geometry = (
+        struct.pack("<I", count)
+        + struct.pack("<2f", 100.0, 200.0)   # x values
+        + struct.pack("<2f", 300.0, 400.0)   # y values
+        + bytes([0, 1])                       # museum indices
+        + bytes([0, 1])                       # work_type indices
+    )
+    ArtMapData.objects.create(geometry=geometry, metadata='{"count":2}')
+
+    client = Client()
+    response = client.get(reverse("art-map-geometry"))
+
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/octet-stream"
+    assert response["Cache-Control"] == "public, max-age=86400"
+    assert response.content == geometry
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_art_map_geometry_view_returns_404_when_no_data(mock_qdrant_service):
+    """
+    Test that /map/data/geometry/ returns 404 when no map data exists.
+
+    Potential bugs this could catch:
+    - Server error instead of clean 404
+    """
+    client = Client()
+    response = client.get(reverse("art-map-geometry"))
+
+    assert response.status_code == 404
+    assert response.json() == {"error": "No map data available"}
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
 def test_art_map_view_passes_version_to_template(mock_qdrant_service):
     """
-    Test that /map/ passes map_data_version to the template for cache-busting.
+    Test that /map/ passes map_data_version and legend constants to the template.
 
     Potential bugs this could catch:
     - Missing version in template context
     - Version format incorrect
+    - Missing legend constants for frontend rendering
     """
-    map_data = ArtMapData.objects.create(data='{"count":0}')
+    map_data = ArtMapData.objects.create(metadata='{"count":0}')
 
     client = Client()
     response = client.get(reverse("art-map"))
@@ -564,6 +615,49 @@ def test_art_map_view_passes_version_to_template(mock_qdrant_service):
     assert response.status_code == 200
     assert response.context["map_data_version"] == map_data.version
     assert len(response.context["map_data_version"]) == 14  # YYYYMMDDHHmmss
+
+    museum_slugs = json.loads(response.context["museum_slugs_json"])
+    museum_names = json.loads(response.context["museum_names_json"])
+    work_type_labels = json.loads(response.context["work_type_labels_json"])
+    assert len(museum_slugs) > 0
+    assert len(museum_slugs) == len(museum_names)
+    assert len(work_type_labels) > 0
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_art_map_geometry_returns_404_when_row_exists_without_geometry(mock_qdrant_service):
+    """
+    Test that /map/data/geometry/ returns 404 when ArtMapData row exists but geometry is null.
+
+    Potential bugs this could catch:
+    - Server error when geometry field is None
+    - Serving empty/null binary data instead of clean 404
+    """
+    ArtMapData.objects.create(metadata='{"count":0}')
+
+    client = Client()
+    response = client.get(reverse("art-map-geometry"))
+
+    assert response.status_code == 404
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_art_map_metadata_still_works_when_geometry_is_null(mock_qdrant_service):
+    """
+    Test that /map/data/ returns metadata even when geometry is null.
+
+    Potential bugs this could catch:
+    - Both endpoints failing when only geometry is missing
+    """
+    ArtMapData.objects.create(metadata='{"count":0}')
+
+    client = Client()
+    response = client.get(reverse("art-map-data"))
+
+    assert response.status_code == 200
+    assert response.json() == {"count": 0}
 
 
 @pytest.mark.integration

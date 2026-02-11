@@ -92,9 +92,16 @@ class ArtMapData(models.Model):
     Stores pre-computed UMAP 2D coordinates for the art map visualization.
     One row per generation run. Latest row is served to the frontend.
     Stored in PostgreSQL so data persists across deploys (unlike static files).
+
+    Two payloads:
+    - geometry: packed binary (float32 x/y, uint8 museum/work_type indices)
+    - metadata: JSON string (object_number, title, artist, production_date)
     """
 
-    data = models.TextField(help_text="Raw JSON string of map data")
+    geometry = models.BinaryField(
+        null=True, blank=True, help_text="Packed binary geometry data"
+    )
+    metadata = models.TextField(help_text="JSON string of metadata (titles, artists, etc.)")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -105,8 +112,9 @@ class ArtMapData(models.Model):
         return self.created_at.strftime("%Y%m%d%H%M%S")
 
     def __str__(self):
-        size_kb = len(self.data) / 1024
-        return f"ArtMapData ({size_kb:.0f} KB, {self.created_at.strftime('%Y-%m-%d %H:%M')})"
+        meta_kb = len(self.metadata) / 1024 if self.metadata else 0
+        geo_kb = len(self.geometry) / 1024 if self.geometry else 0
+        return f"ArtMapData (geo {geo_kb:.0f} KB + meta {meta_kb:.0f} KB, {self.created_at.strftime('%Y-%m-%d %H:%M')})"
 
 
 class ExampleQuery(models.Model):

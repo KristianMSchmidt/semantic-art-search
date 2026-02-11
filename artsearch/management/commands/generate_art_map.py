@@ -1,4 +1,5 @@
 import json
+import struct
 import time
 
 import numpy as np
@@ -6,23 +7,19 @@ from django.core.management.base import BaseCommand, CommandError
 
 from artsearch.models import ArtMapData
 from artsearch.src.config import config
-from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
+from artsearch.src.constants.museums import (
+    MUSEUM_SLUG_TO_INDEX,
+    WORK_TYPE_TO_INDEX,
+    OTHER_WORK_TYPE_INDEX,
+)
 from artsearch.src.services.qdrant_service import QdrantService
 
 
-MUSEUM_SLUGS = [m["slug"] for m in SUPPORTED_MUSEUMS]
-MUSEUM_NAMES = [m["full_name"] for m in SUPPORTED_MUSEUMS]
-MUSEUM_SLUG_TO_INDEX = {slug: i for i, slug in enumerate(MUSEUM_SLUGS)}
-
 PAYLOAD_FIELDS = ["museum", "object_number", "title", "artists", "production_date", "searchable_work_types"]
-
-WORK_TYPE_LABELS = ["painting", "print", "drawing", "watercolor", "design", "bust", "pastel", "aquatint", "guache", "miniature", "other"]
-WORK_TYPE_TO_INDEX = {wt: i for i, wt in enumerate(WORK_TYPE_LABELS)}
-OTHER_INDEX = WORK_TYPE_LABELS.index("other")
 
 
 class Command(BaseCommand):
-    help = "Generate UMAP 2D coordinates for all artworks and write to JSON"
+    help = "Generate UMAP 2D coordinates for all artworks (binary geometry + metadata JSON)"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -99,7 +96,7 @@ class Command(BaseCommand):
                 production_dates.append(payload.get("production_date", ""))
 
                 swt = payload.get("searchable_work_types", [])
-                wt_idx = OTHER_INDEX
+                wt_idx = OTHER_WORK_TYPE_INDEX
                 for wt in swt:
                     if wt in WORK_TYPE_TO_INDEX:
                         wt_idx = WORK_TYPE_TO_INDEX[wt]
@@ -154,30 +151,39 @@ class Command(BaseCommand):
         coords[:, 0] = (coords[:, 0] - x_min) / (x_max - x_min)
         coords[:, 1] = (coords[:, 1] - y_min) / (y_max - y_min)
 
-        # Build output
-        data = {
-            "museum_slugs": MUSEUM_SLUGS,
-            "museum_names": MUSEUM_NAMES,
-            "work_type_labels": WORK_TYPE_LABELS,
-            "count": len(museums),
-            "x": [round(float(c), 5) for c in coords[:, 0]],
-            "y": [round(float(c), 5) for c in coords[:, 1]],
-            "museum": museums,
-            "work_type": work_types,
+        # Build binary geometry payload
+        count = len(museums)
+        x_scaled = (coords[:, 0] * 1000).astype(np.float32)
+        y_scaled = (coords[:, 1] * 1000).astype(np.float32)
+        museum_arr = np.array(museums, dtype=np.uint8)
+        work_type_arr = np.array(work_types, dtype=np.uint8)
+
+        geometry_blob = (
+            struct.pack("<I", count)
+            + x_scaled.tobytes()
+            + y_scaled.tobytes()
+            + museum_arr.tobytes()
+            + work_type_arr.tobytes()
+        )
+
+        # Build metadata-only JSON
+        metadata = {
+            "count": count,
             "object_number": object_numbers,
             "title": titles,
             "artist": artists,
             "production_date": production_dates,
         }
+        metadata_json = json.dumps(metadata, separators=(",", ":"))
 
         self.stdout.write("Saving to database...")
-        json_str = json.dumps(data, separators=(",", ":"))
-        ArtMapData.objects.create(data=json_str)
+        ArtMapData.objects.create(geometry=geometry_blob, metadata=metadata_json)
 
-        size_mb = len(json_str) / (1024 * 1024)
+        geo_mb = len(geometry_blob) / (1024 * 1024)
+        meta_mb = len(metadata_json) / (1024 * 1024)
         self.stdout.write(
             self.style.SUCCESS(
-                f"Done! Saved {data['count']:,} artworks to database "
-                f"({size_mb:.1f} MB)"
+                f"Done! Saved {count:,} artworks to database "
+                f"(geometry: {geo_mb:.1f} MB, metadata: {meta_mb:.1f} MB)"
             )
         )

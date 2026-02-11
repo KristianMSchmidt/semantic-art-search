@@ -57,26 +57,40 @@ class ArtworkDescriptionAdmin(admin.ModelAdmin):
 
 @admin.register(ArtMapData)
 class ArtMapDataAdmin(admin.ModelAdmin):
-    list_display = ("__str__", "created_at", "get_data_size")
+    list_display = ("__str__", "created_at", "get_geometry_size", "get_metadata_size")
     ordering = ("-created_at",)
-    fields = ("created_at", "get_data_size", "get_data_preview")
-    readonly_fields = ("created_at", "get_data_size", "get_data_preview")
+    fields = ("created_at", "get_geometry_size", "get_metadata_size", "get_metadata_preview")
+    readonly_fields = ("created_at", "get_geometry_size", "get_metadata_size", "get_metadata_preview")
 
-    def get_data_size(self, obj):
-        size_kb = len(obj.data) / 1024
+    def get_geometry_size(self, obj):
+        if not obj.geometry:
+            return "—"
+        size_kb = len(obj.geometry) / 1024
         if size_kb >= 1024:
             return f"{size_kb / 1024:.1f} MB"
         return f"{size_kb:.0f} KB"
 
-    get_data_size.short_description = "Data Size"
+    get_geometry_size.short_description = "Geometry Size"
 
-    def get_data_preview(self, obj):
-        preview = obj.data[:2000]
-        if len(obj.data) > 2000:
+    def get_metadata_size(self, obj):
+        if not obj.metadata:
+            return "—"
+        size_kb = len(obj.metadata) / 1024
+        if size_kb >= 1024:
+            return f"{size_kb / 1024:.1f} MB"
+        return f"{size_kb:.0f} KB"
+
+    get_metadata_size.short_description = "Metadata Size"
+
+    def get_metadata_preview(self, obj):
+        if not obj.metadata:
+            return "—"
+        preview = obj.metadata[:2000]
+        if len(obj.metadata) > 2000:
             preview += "..."
         return format_html("<pre style='max-height:300px;overflow:auto;white-space:pre-wrap'>{}</pre>", preview)
 
-    get_data_preview.short_description = "Data (preview)"
+    get_metadata_preview.short_description = "Metadata (preview)"
 
     def has_add_permission(self, request):
         return False
