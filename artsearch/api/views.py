@@ -1,12 +1,13 @@
 from django.http import JsonResponse
+from django_ratelimit.decorators import ratelimit
 
 from artsearch.src.config import config
+from artsearch.src.constants.embedding_models import validate_embedding_model
+from artsearch.src.constants.search import MAX_QUERY_LENGTH
 from artsearch.src.services.qdrant_service import QdrantService
-from artsearch.src.services.museum_clients.utils import (
-    get_museum_page_url,
-    get_museum_api_url,
-)
-from etl.services.bucket_service import get_bucket_image_url
+from artsearch.src.services.search_service import handle_search
+from artsearch.src.utils.qdrant_formatting import format_payload
+from artsearch.views.views import get_client_ip
 
 
 qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
@@ -28,17 +29,57 @@ def artwork_detail_view(request, museum_slug: str, object_number: str):
     if payload is None:
         return JsonResponse({"error": "Artwork not found"}, status=404)
 
-    return JsonResponse(
-        {
-            **payload,
-            "thumbnail_url": get_bucket_image_url(
-                museum_slug, object_number, use_etl_bucket=False
-            ),
-            "source_url": get_museum_page_url(
-                museum_slug, object_number, payload["museum_db_id"]
-            ),
-            "api_url": get_museum_api_url(
-                museum_slug, object_number, payload["museum_db_id"]
-            ),
-        }
+    return JsonResponse(format_payload(payload))
+
+
+@ratelimit(key=get_client_ip, rate="30/m", method="GET", block=False)
+@ratelimit(key=get_client_ip, rate="200/h", method="GET", block=False)
+def search_view(request):
+    if getattr(request, "limited", False):
+        return JsonResponse(
+            {"error": "Too many requests. Please try again later."}, status=429
+        )
+
+    query = request.GET.get("query", "").strip()
+    if not query:
+        return JsonResponse({"error": "query parameter is required"}, status=400)
+
+    if len(query) > MAX_QUERY_LENGTH:
+        return JsonResponse(
+            {"error": f"Query too long (max {MAX_QUERY_LENGTH} characters)"},
+            status=400,
+        )
+
+    try:
+        offset = int(request.GET.get("offset", 0))
+    except (ValueError, TypeError):
+        offset = 0
+
+    try:
+        limit = min(int(request.GET.get("limit", 24)), 24)
+    except (ValueError, TypeError):
+        limit = 24
+
+    museums = request.GET.getlist("museums") or None
+    work_types = request.GET.getlist("work_types") or None
+    model = validate_embedding_model(request.GET.get("model", "auto"))
+
+    search_results = handle_search(
+        query=query,
+        offset=offset,
+        limit=limit,
+        museums=museums,
+        work_types=work_types,
+        embedding_model=model,
     )
+
+    if search_results["error_message"]:
+        return JsonResponse({"error": search_results["error_message"]}, status=400)
+
+    return JsonResponse({
+        "results": search_results["results"],
+        "total_works": search_results["total_works"],
+        "query": query,
+        "offset": offset,
+        "limit": limit,
+    })

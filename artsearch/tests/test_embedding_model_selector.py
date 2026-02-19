@@ -284,7 +284,7 @@ def test_get_artworks_view_auto_resolves_to_jina_for_regular_query(mock_qdrant_s
     url = reverse("get-artworks") + "?query=cat&model=auto"
 
     with patch(
-        "artsearch.views.context_builders.get_total_works_for_filters",
+        "artsearch.src.services.search_service.get_total_works_for_filters",
         return_value=10,
     ):
         client.get(url)
@@ -303,7 +303,7 @@ def test_get_artworks_view_auto_resolves_to_clip_for_art_historical_query(mock_q
     url = reverse("get-artworks") + "?query=impressionism&model=auto"
 
     with patch(
-        "artsearch.views.context_builders.get_total_works_for_filters",
+        "artsearch.src.services.search_service.get_total_works_for_filters",
         return_value=10,
     ):
         client.get(url)
@@ -323,7 +323,7 @@ def test_get_artworks_view_passes_explicit_model_to_search(mock_qdrant_service, 
     url = reverse("get-artworks") + f"?query=landscape&model={model}"
 
     with patch(
-        "artsearch.views.context_builders.get_total_works_for_filters",
+        "artsearch.src.services.search_service.get_total_works_for_filters",
         return_value=10,
     ):
         client.get(url)
@@ -474,7 +474,7 @@ def test_similarity_search_uses_jina_with_auto(mock_qdrant_service):
     url = reverse("get-artworks") + "?query=smk:KMS1&model=auto"
 
     with patch(
-        "artsearch.views.context_builders.get_total_works_for_filters",
+        "artsearch.src.services.search_service.get_total_works_for_filters",
         return_value=10,
     ):
         client.get(url)

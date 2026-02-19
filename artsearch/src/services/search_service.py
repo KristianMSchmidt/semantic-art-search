@@ -1,11 +1,15 @@
 import traceback
-from typing import Any
+from typing import Any, Iterable
 from dataclasses import dataclass
 from artsearch.src.services.qdrant_service import (
     QdrantService,
     SearchFunctionArguments,
 )
 from artsearch.src.services.browse_service import handle_browse
+from artsearch.src.services.museum_stats_service import (
+    get_total_works_for_filters,
+    get_work_type_names,
+)
 from artsearch.src.utils.get_museums import get_museum_full_name, get_museum_slugs
 from artsearch.src.config import config
 from artsearch.src.constants.embedding_models import (
@@ -85,36 +89,68 @@ def analyze_query(
         )
 
 
+def make_prefilter(
+    all_items: Iterable[str],
+    selected_items: list[str],
+) -> list[str] | None:
+    """
+    Generalized prefilter function for work types and museums.
+    If all items are selected, or none are selected, return None.
+    """
+    if not selected_items or len(selected_items) == len(list(all_items)):
+        return None
+    return selected_items
+
+
 def handle_search(
     query: str | None,
     offset: int,
     limit: int,
-    museum_prefilter: list[str] | None,
-    work_type_prefilter: list[str] | None,
-    total_works: int | None = None,
-    museum_slugs: list[str] = get_museum_slugs(),
+    museums: list[str] | None = None,
+    work_types: list[str] | None = None,
     embedding_model: EmbeddingModelChoice = "auto",
     seed: str | None = None,
 ) -> dict[Any, Any]:
     """
     Handle the search logic based on the provided query and filters.
 
+    Args:
+        museums: Selected museum slugs, or None for all museums.
+        work_types: Selected work types, or None for all work types.
+
     For browsing (no query), delegates to handle_browse which uses PostgreSQL
     for deterministic random ordering with proper pagination support.
     """
+    # Resolve None → all items
+    all_museum_slugs = get_museum_slugs()
+    all_work_type_names = get_work_type_names()
+    selected_museums = museums if museums else all_museum_slugs
+    selected_work_types = work_types if work_types else all_work_type_names
+
+    # Build prefilters (None means "all selected")
+    museum_prefilter = make_prefilter(all_museum_slugs, selected_museums)
+    work_type_prefilter = make_prefilter(all_work_type_names, selected_work_types)
+
+    # Compute total works for the current filters
+    total_works = get_total_works_for_filters(
+        tuple(selected_museums),
+        tuple(selected_work_types),
+    )
+
     # Browsing mode (no query) - delegate to browse handler
     if query is None or query == "":
         if seed is None:
             raise ValueError("seed is required for browsing mode (no query)")
-        return handle_browse(
+        browse_result = handle_browse(
             offset=offset,
             limit=limit,
             museum_prefilter=museum_prefilter,
             work_type_prefilter=work_type_prefilter,
             seed=seed,
-            total_works=total_works or 0,
+            total_works=total_works,
             is_initial_load=(query is None),
         )
+        return {**browse_result, "total_works": total_works}
 
     # Search mode (has query)
     qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
@@ -124,7 +160,6 @@ def handle_search(
     error_message = None
     error_type = None
 
-    # The user submitted a query.
     search_arguments = SearchFunctionArguments(
         query=query,
         limit=limit,
@@ -133,7 +168,7 @@ def handle_search(
         museum_prefilter=museum_prefilter,
     )
     try:
-        query_analysis = analyze_query(query, museum_slugs)
+        query_analysis = analyze_query(query, all_museum_slugs)
 
         # Resolve embedding model with context
         resolved_model = resolve_embedding_model(
@@ -152,7 +187,6 @@ def handle_search(
             results = qdrant_service.search_text(
                 search_arguments, embedding_model=resolved_model
             )
-        assert total_works is not None
         works_text = f"({total_works} works)"
         header_text = (
             f"Search results {works_text}".strip() if total_works > 0 else None
@@ -170,4 +204,5 @@ def handle_search(
         "header_text": header_text,
         "error_message": error_message,
         "error_type": error_type,
+        "total_works": total_works,
     }

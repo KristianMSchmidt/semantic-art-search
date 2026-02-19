@@ -165,7 +165,7 @@ def test_get_artworks_view_with_text_query_and_results(mock_qdrant_service):
 
     # Mock that there are 42 total works matching the filters
     with patch(
-        "artsearch.views.context_builders.get_total_works_for_filters",
+        "artsearch.src.services.search_service.get_total_works_for_filters",
         return_value=42,
     ):
         response = client.get(url)
@@ -199,7 +199,7 @@ def test_get_artworks_view_with_text_query_no_results(mock_qdrant_service):
 
     # Mock that there are 0 total works matching the filters
     with patch(
-        "artsearch.views.context_builders.get_total_works_for_filters",
+        "artsearch.src.services.search_service.get_total_works_for_filters",
         return_value=0,
     ):
         response = client.get(url)

@@ -121,7 +121,7 @@ def handle_browse(
     if is_initial_load:
         header_text = ""
     else:
-        header_text = f"Search results ({total_works})"
+        header_text = f"Search results ({total_works} works)"
 
     elapsed = (time.time() - start_time) * 1000
     logger.info(

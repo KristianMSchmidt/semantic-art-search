@@ -94,13 +94,13 @@ def test_empty_query_returns_search_results_header(
     url = reverse("get-artworks") + "?query="
 
     with patch(
-        "artsearch.views.context_builders.get_total_works_for_filters",
+        "artsearch.src.services.search_service.get_total_works_for_filters",
         return_value=42,
     ):
         response = client.get(url)
 
     assert response.status_code == 200
-    assert response.context["header_text"] == "Search results (42)"
+    assert response.context["header_text"] == "Search results (42 works)"
 
 
 @pytest.mark.integration
@@ -159,7 +159,7 @@ def test_seed_not_included_in_pagination_urls_for_search_mode(
     url = reverse("get-artworks") + "?query=landscape&seed=test123"
 
     with patch(
-        "artsearch.views.context_builders.get_total_works_for_filters",
+        "artsearch.src.services.search_service.get_total_works_for_filters",
         return_value=10,
     ):
         response = client.get(url)
@@ -315,8 +315,8 @@ def test_browse_mode_requires_seed():
             query=None,  # Browse mode (no query)
             offset=0,
             limit=25,
-            museum_prefilter=None,
-            work_type_prefilter=None,
+            museums=None,
+            work_types=None,
             seed=None,  # Missing seed - should raise
         )
 

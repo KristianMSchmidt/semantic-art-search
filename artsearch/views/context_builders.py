@@ -11,7 +11,6 @@ from artsearch.src.services.museum_stats_service import (
     get_work_type_names,
     aggregate_work_type_count_for_selected_museums,
     aggregate_museum_count_for_selected_work_types,
-    get_total_works_for_filters,
 )
 from artsearch.src.services.search_service import handle_search
 from artsearch.src.utils.get_museums import get_museum_slugs
@@ -119,19 +118,6 @@ def retrieve_selected(
     # If no items are selected, return all items
     if not selected_items:
         return list(all_items)
-    return selected_items
-
-
-def make_prefilter(
-    all_items: Iterable[str],
-    selected_items: list[str],
-) -> list[str] | None:
-    """
-    Generalized prefilter function for work types and museums.
-    If all items are selected, or none are selected, return None.
-    """
-    if not selected_items or len(selected_items) == len(list(all_items)):
-        return None
     return selected_items
 
 
@@ -289,26 +275,12 @@ def build_search_context(params: SearchParams, embedding_model: EmbeddingModelCh
     # Determine if we're in browse mode (no query)
     is_browse_mode = params.query is None or params.query == ""
 
-    work_type_prefilter = make_prefilter(
-        get_work_type_names(), params.selected_work_types
-    )
-    selected_work_types_for_urls = params.selected_work_types
-
-    museum_prefilter = make_prefilter(get_museum_slugs(), params.selected_museums)
-
-    # Get total works count (needed for both search and browse modes)
-    total_works = get_total_works_for_filters(
-        tuple(params.selected_museums),
-        tuple(params.selected_work_types),
-    )
-
     search_results = handle_search(
         query=params.query,
         offset=offset,
         limit=limit,
-        museum_prefilter=museum_prefilter,
-        work_type_prefilter=work_type_prefilter,
-        total_works=total_works,
+        museums=params.selected_museums,
+        work_types=params.selected_work_types,
         embedding_model=embedding_model,
         seed=params.seed if is_browse_mode else None,
     )
@@ -319,7 +291,7 @@ def build_search_context(params: SearchParams, embedding_model: EmbeddingModelCh
         query=params.query,
         offset=offset + limit,
         selected_museums=params.selected_museums,
-        selected_work_types=selected_work_types_for_urls,
+        selected_work_types=params.selected_work_types,
         embedding_model=params.selected_embedding_model,
         seed=params.seed if is_browse_mode else None,
     )
@@ -328,7 +300,6 @@ def build_search_context(params: SearchParams, embedding_model: EmbeddingModelCh
         **search_results,
         "query": params.query,
         "is_first_batch": offset == 0,
-        "total_works": total_works,
         "urls": urls,
         "selected_model": embedding_model,
         "embedding_models": EMBEDDING_MODELS,
