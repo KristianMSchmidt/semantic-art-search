@@ -5,15 +5,20 @@ Uses PostgreSQL for deterministic random ordering (via seed) and pagination,
 then fetches full payloads from Qdrant for display.
 """
 
+from __future__ import annotations
+
 import time
 import logging
-from typing import Any
+from typing import TYPE_CHECKING
 
 from django.db.models.expressions import RawSQL
 
 from artsearch.models import ArtworkStats
 from artsearch.src.services.qdrant_service import QdrantService
 from artsearch.src.config import config
+
+if TYPE_CHECKING:
+    from artsearch.src.services.search_service import SearchResult
 
 logger = logging.getLogger(__name__)
 
@@ -83,24 +88,12 @@ def handle_browse(
     seed: str,
     total_works: int,
     is_initial_load: bool,
-) -> dict[str, Any]:
+) -> SearchResult:
     """
     Handle browsing (no query) with proper pagination.
 
     Fetches random artwork IDs from PostgreSQL, then retrieves full payloads
     from Qdrant for display.
-
-    Args:
-        offset: Number of results to skip
-        limit: Number of results to return
-        museum_prefilter: Museum filter or None for all
-        work_type_prefilter: Work type filter or None for all
-        seed: Random seed for deterministic ordering
-        total_works: Total count of matching artworks (for header)
-        is_initial_load: True if this is the initial page load (query=None)
-
-    Returns:
-        Dict with results, header_text, error_message, error_type
     """
     start_time = time.time()
     qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
@@ -134,4 +127,5 @@ def handle_browse(
         "header_text": header_text,
         "error_message": None,
         "error_type": None,
+        "total_works": total_works,
     }
