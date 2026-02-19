@@ -13,6 +13,30 @@ from artsearch.views.views import get_client_ip
 qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
 
 
+def _parse_search_params(request) -> dict:
+    """Parse query parameters shared by search endpoints.
+
+    Returns a dict whose keys match handle_search kwargs.
+    """
+    try:
+        offset = int(request.GET.get("offset", 0))
+    except (ValueError, TypeError):
+        offset = 0
+
+    try:
+        limit = min(int(request.GET.get("limit", 24)), 24)
+    except (ValueError, TypeError):
+        limit = 24
+
+    return {
+        "offset": offset,
+        "limit": limit,
+        "museums": request.GET.getlist("museums") or None,
+        "work_types": request.GET.getlist("work_types") or None,
+        "embedding_model": validate_embedding_model(request.GET.get("model", "auto")),
+    }
+
+
 def artwork_detail_view(request, museum_slug: str, object_number: str):
     items = qdrant_service.get_items_by_object_number(
         object_number=object_number,
@@ -34,6 +58,35 @@ def artwork_detail_view(request, museum_slug: str, object_number: str):
 
 @ratelimit(key=get_client_ip, rate="30/m", method="GET", block=False)
 @ratelimit(key=get_client_ip, rate="200/h", method="GET", block=False)
+def similar_view(request, museum_slug: str, object_number: str):
+    if getattr(request, "limited", False):
+        return JsonResponse(
+            {"error": "Too many requests. Please try again later."}, status=429
+        )
+
+    params = _parse_search_params(request)
+
+    search_results = handle_search(
+        query=f"{museum_slug}:{object_number}",
+        **params,
+    )
+
+    if search_results["error_message"]:
+        status = 404 if "No artworks found" in search_results["error_message"] else 400
+        return JsonResponse({"error": search_results["error_message"]}, status=status)
+
+    return JsonResponse({
+        "results": search_results["results"],
+        "total_works": search_results["total_works"],
+        "museum_slug": museum_slug,
+        "object_number": object_number,
+        "offset": params["offset"],
+        "limit": params["limit"],
+    })
+
+
+@ratelimit(key=get_client_ip, rate="30/m", method="GET", block=False)
+@ratelimit(key=get_client_ip, rate="200/h", method="GET", block=False)
 def search_view(request):
     if getattr(request, "limited", False):
         return JsonResponse(
@@ -50,28 +103,9 @@ def search_view(request):
             status=400,
         )
 
-    try:
-        offset = int(request.GET.get("offset", 0))
-    except (ValueError, TypeError):
-        offset = 0
+    params = _parse_search_params(request)
 
-    try:
-        limit = min(int(request.GET.get("limit", 24)), 24)
-    except (ValueError, TypeError):
-        limit = 24
-
-    museums = request.GET.getlist("museums") or None
-    work_types = request.GET.getlist("work_types") or None
-    model = validate_embedding_model(request.GET.get("model", "auto"))
-
-    search_results = handle_search(
-        query=query,
-        offset=offset,
-        limit=limit,
-        museums=museums,
-        work_types=work_types,
-        embedding_model=model,
-    )
+    search_results = handle_search(query=query, **params)
 
     if search_results["error_message"]:
         return JsonResponse({"error": search_results["error_message"]}, status=400)
@@ -80,6 +114,6 @@ def search_view(request):
         "results": search_results["results"],
         "total_works": search_results["total_works"],
         "query": query,
-        "offset": offset,
-        "limit": limit,
+        "offset": params["offset"],
+        "limit": params["limit"],
     })

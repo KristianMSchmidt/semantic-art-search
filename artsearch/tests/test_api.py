@@ -289,3 +289,123 @@ def test_search_limit_capped_at_24(mock_search_deps):
     data = response.json()
 
     assert data["limit"] == 24
+
+
+# ---- Similar Artworks Tests ----
+
+
+SAMPLE_SIMILAR_RESULTS = {
+    "results": [FORMATTED_SEARCH_RESULT],
+    "header_text": "Search results (125 works)",
+    "error_message": None,
+    "error_type": None,
+    "total_works": 125,
+}
+
+
+@pytest.fixture
+def mock_similar_deps():
+    """Mock all similar view dependencies."""
+    with patch(
+        "artsearch.api.views.handle_search",
+        return_value=SAMPLE_SIMILAR_RESULTS,
+    ) as mock_search:
+        yield {"handle_search": mock_search}
+
+
+@pytest.mark.integration
+def test_similar_returns_results(mock_similar_deps):
+    client = Client()
+    response = client.get("/api/artworks/smk/KMS1/similar/")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["museum_slug"] == "smk"
+    assert data["object_number"] == "KMS1"
+    assert data["total_works"] == 125
+    assert data["offset"] == 0
+    assert data["limit"] == 24
+    assert len(data["results"]) == 1
+    assert data["results"][0]["score"] == 0.85
+
+
+@pytest.mark.integration
+def test_similar_calls_handle_search_with_correct_query(mock_similar_deps):
+    client = Client()
+    client.get("/api/artworks/smk/KMS1/similar/")
+
+    mock_similar_deps["handle_search"].assert_called_once_with(
+        query="smk:KMS1",
+        offset=0,
+        limit=24,
+        museums=None,
+        work_types=None,
+        embedding_model="auto",
+    )
+
+
+@pytest.mark.integration
+def test_similar_passes_filters(mock_similar_deps):
+    client = Client()
+    client.get("/api/artworks/smk/KMS1/similar/?museums=met&work_types=painting")
+
+    mock_similar_deps["handle_search"].assert_called_once_with(
+        query="smk:KMS1",
+        offset=0,
+        limit=24,
+        museums=["met"],
+        work_types=["painting"],
+        embedding_model="auto",
+    )
+
+
+@pytest.mark.integration
+def test_similar_passes_offset_and_limit(mock_similar_deps):
+    client = Client()
+    response = client.get("/api/artworks/smk/KMS1/similar/?offset=10&limit=5")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["offset"] == 10
+    assert data["limit"] == 5
+
+    call_kwargs = mock_similar_deps["handle_search"].call_args[1]
+    assert call_kwargs["offset"] == 10
+    assert call_kwargs["limit"] == 5
+
+
+@pytest.mark.integration
+def test_similar_limit_capped_at_24(mock_similar_deps):
+    client = Client()
+    response = client.get("/api/artworks/smk/KMS1/similar/?limit=100")
+
+    assert response.status_code == 200
+    assert response.json()["limit"] == 24
+
+
+@pytest.mark.integration
+def test_similar_returns_404_when_artwork_not_found(mock_similar_deps):
+    mock_similar_deps["handle_search"].return_value = {
+        "results": [],
+        "header_text": None,
+        "error_message": "No artworks found in the database from Statens Museum for Kunst with the inventory number NONEXISTENT.",
+        "error_type": "warning",
+        "total_works": 0,
+    }
+
+    client = Client()
+    response = client.get("/api/artworks/smk/NONEXISTENT/similar/")
+
+    assert response.status_code == 404
+    assert "No artworks found" in response.json()["error"]
+
+
+@pytest.mark.integration
+def test_similar_rate_limited(mock_similar_deps):
+    client = Client()
+    with patch("django_ratelimit.decorators.is_ratelimited", return_value=True):
+        response = client.get("/api/artworks/smk/KMS1/similar/")
+
+    assert response.status_code == 429
+    assert "too many" in response.json()["error"].lower()
