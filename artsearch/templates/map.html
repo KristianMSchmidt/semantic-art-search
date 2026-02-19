@@ -136,6 +136,8 @@ function artMap() {
     const MUSEUM_NAMES = {{ museum_names_json|safe }};
     const WORK_TYPE_LABELS = {{ work_type_labels_json|safe }};
 
+    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
     return {
         loading: true,
         error: null,
@@ -233,6 +235,7 @@ function artMap() {
         },
 
         _onHover(info) {
+            if (isTouch) return;
             if (info.index >= 0) {
                 const idx = info.index;
                 const museumIdx = this._museumIndices[idx];
@@ -366,6 +369,7 @@ function artMap() {
                     zoom: -0.5,
                 },
                 controller: true,
+                pickingRadius: isTouch ? 25 : 0,
                 layers: [this._buildLayer(museumCA, 'museum')],
                 getTooltip: () => null,
                 onViewStateChange: ({ viewState }) => {
