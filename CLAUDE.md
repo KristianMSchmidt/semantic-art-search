@@ -93,6 +93,23 @@ Users select via radio button UI:
 - `artsearch/src/services/jina_embedder.py`: Jina embedder (API)
 - `artsearch/src/services/qdrant_service.py`: Vector search with model selection
 
+## REST API
+
+JSON API at `/api/`. Code in `artsearch/api/views.py` and `artsearch/api/urls.py`.
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/museums/` | List museums (`slug`, `full_name`) |
+| `GET /api/work-types/` | List searchable work types |
+| `GET /api/search/?query=...` | Semantic search across artworks |
+| `GET /api/random/` | Random artworks (optional `seed` for reproducibility) |
+| `GET /api/artworks/<museum_slug>/<object_number>/` | Single artwork detail |
+| `GET /api/artworks/<museum_slug>/<object_number>/similar/` | Visually similar artworks |
+
+**Common query parameters** (search, random, similar): `offset`, `limit` (max 24), `museums` (repeatable), `work_types` (repeatable), `model` (`auto`/`clip`/`jina`).
+
+Search, similar, and random endpoints are **rate-limited** (30/min, 200/hour per IP).
+
 ## Coding Conventions
 
 - **Prefer simple, functional code** over complex OOP patterns
