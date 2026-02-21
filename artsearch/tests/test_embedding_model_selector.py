@@ -123,6 +123,12 @@ def test_resolve_embedding_model_auto_non_art_uses_jina():
         # Style patterns - "in the style of"
         "in the style of Monet",
         "painting in the style of the Dutch masters",
+        # Style patterns - *ist (adjective forms of movements)
+        "impressionist bridge",
+        "cubist portrait",
+        "surrealist dream",
+        "realist landscape",
+        "expressionist painting",
         # Style patterns - *istic
         "expressionistic brushwork",
         "impressionistic landscape",
@@ -148,6 +154,9 @@ def test_is_art_historical_query_returns_true(query):
         "portrait of a woman",
         "flowers in a vase",
         "landscape with mountains",
+        # Words ending in -ist that aren't art movements
+        "list of paintings",
+        "misty morning",
         # Words that shouldn't trigger detection (-esque excluded words)
         "a picturesque village",  # "picturesque" is excluded
         "grotesque monster",  # "grotesque" is excluded

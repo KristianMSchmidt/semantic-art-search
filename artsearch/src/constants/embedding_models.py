@@ -80,6 +80,14 @@ def is_art_historical_query(query: str) -> bool:
     if "in the style of" in query_lower:
         return True
 
+    # Check for *ist pattern (e.g., "impressionist", "cubist", "surrealist")
+    # by verifying the corresponding *ism form is a known art movement
+    ist_matches = re.findall(r'\b(\w+ist)\b', query_lower)
+    for match in ist_matches:
+        ism_form = match[:-3] + "ism"
+        if ism_form in ART_MOVEMENTS:
+            return True
+
     # Check for *istic pattern (e.g., "expressionistic", "impressionistic")
     istic_matches = re.findall(r'\b\w+istic\b', query_lower)
     if istic_matches:
