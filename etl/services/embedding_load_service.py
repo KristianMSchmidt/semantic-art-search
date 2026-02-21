@@ -10,6 +10,7 @@ from etl.models import TransformedData
 from etl.services.bucket_service import get_bucket_image_url
 from etl.utils import generate_uuid5
 from artsearch.src.services.clip_embedder import get_clip_embedder
+from artsearch.src.services.jina_embedder import get_jina_embedder
 from artsearch.src.services.qdrant_service import QdrantService
 from artsearch.src.config import config
 
@@ -90,7 +91,7 @@ def is_retryable_error(error: Exception) -> bool:
 
 
 # Active vector types configuration - easy to expand later
-ACTIVE_VECTOR_TYPES = ["image_clip", "image_jina"]
+ACTIVE_VECTOR_TYPES = ["image_clip", "image_jina", "text_jina"]
 
 # Vector type to database field mapping
 VECTOR_TYPE_TO_FIELD = {
@@ -346,8 +347,6 @@ class EmbeddingLoadService:
             )
 
         elif vector_type == "image_jina":
-            from artsearch.src.services.jina_embedder import get_jina_embedder
-
             bucket_url = get_bucket_image_url(
                 record.museum_slug, record.object_number, use_etl_bucket=True
             )
@@ -356,9 +355,12 @@ class EmbeddingLoadService:
             return embedding
 
         elif vector_type == "text_jina":
-            raise NotImplementedError(
-                "text_jina vector calculation not yet implemented"
-            )
+            title = record.get_primary_title()
+            if title == "Untitled":
+                raise ValueError("Skipping 'Untitled' artwork - no semantic value")
+            jina_embedder = get_jina_embedder()
+            embedding = jina_embedder.generate_text_embedding(title)
+            return embedding
 
         else:
             raise ValueError(f"Unknown vector type: {vector_type}")
