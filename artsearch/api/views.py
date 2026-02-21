@@ -3,7 +3,9 @@ from django_ratelimit.decorators import ratelimit
 
 from artsearch.src.config import config
 from artsearch.src.constants.embedding_models import validate_embedding_model
+from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
 from artsearch.src.constants.search import MAX_QUERY_LENGTH
+from artsearch.src.constants.work_types import SEARCHABLE_WORK_TYPES
 from artsearch.src.services.qdrant_service import QdrantService
 from artsearch.src.services.search_service import handle_search
 from artsearch.src.utils.qdrant_formatting import format_payload
@@ -11,6 +13,21 @@ from artsearch.views.views import get_client_ip
 
 
 qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
+
+
+def museums_view(request):
+    return JsonResponse({
+        "museums": [
+            {"slug": m["slug"], "full_name": m["full_name"]}
+            for m in SUPPORTED_MUSEUMS
+        ],
+    })
+
+
+def work_types_view(request):
+    return JsonResponse({
+        "work_types": sorted(SEARCHABLE_WORK_TYPES),
+    })
 
 
 def _parse_search_params(request) -> dict:

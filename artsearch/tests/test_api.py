@@ -7,6 +7,63 @@ from unittest.mock import patch, MagicMock
 from django.test import Client
 from qdrant_client import models
 
+from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
+from artsearch.src.constants.work_types import SEARCHABLE_WORK_TYPES
+
+
+# ---- Museums Endpoint Tests ----
+
+
+@pytest.mark.integration
+def test_museums_returns_all_museums():
+    client = Client()
+    response = client.get("/api/museums/")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data["museums"]) == len(SUPPORTED_MUSEUMS)
+    for museum in data["museums"]:
+        assert "slug" in museum
+        assert "full_name" in museum
+        assert len(museum) == 2  # only slug and full_name, no short_name
+
+
+@pytest.mark.integration
+def test_museums_contains_expected_slugs():
+    client = Client()
+    response = client.get("/api/museums/")
+
+    slugs = [m["slug"] for m in response.json()["museums"]]
+    assert "smk" in slugs
+    assert "met" in slugs
+
+
+# ---- Work Types Endpoint Tests ----
+
+
+@pytest.mark.integration
+def test_work_types_returns_all_searchable_types():
+    client = Client()
+    response = client.get("/api/work-types/")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert set(data["work_types"]) == SEARCHABLE_WORK_TYPES
+
+
+@pytest.mark.integration
+def test_work_types_returns_sorted():
+    client = Client()
+    response = client.get("/api/work-types/")
+
+    work_types = response.json()["work_types"]
+    assert work_types == sorted(work_types)
+
+
+# ---- Artwork Detail Tests ----
+
 
 SAMPLE_PAYLOAD = {
     "museum": "smk",
