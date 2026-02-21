@@ -215,6 +215,12 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
     assert "title" in payload, "Payload should have title"
     assert "artists" in payload, "Payload should have artists"
     assert "production_date" in payload, "Payload should have production_date"
+    assert "production_date_start" in payload, (
+        "Payload should have production_date_start"
+    )
+    assert "production_date_end" in payload, (
+        "Payload should have production_date_end"
+    )
     assert "work_types" in payload, "Payload should have work_types"
     assert "searchable_work_types" in payload, (
         "Payload should have searchable_work_types"

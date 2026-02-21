@@ -64,6 +64,8 @@ sys.path.insert(0, project_root)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "djangoconfig.settings")
 django.setup()
 
+from qdrant_client.models import PayloadSchemaType
+
 from artsearch.src.services.qdrant_service import QdrantService
 from etl.models import TransformedData
 
@@ -74,37 +76,54 @@ logging.basicConfig(
 )
 
 
-def adhoc_update_payload(old_payload: dict) -> dict:
+def build_production_year_lookup() -> dict[tuple[str, str], tuple[int | None, int | None]]:
+    """Build a lookup dict from PostgreSQL: (museum_slug, object_number) -> (start, end)."""
+    rows = TransformedData.objects.values_list(
+        "museum_slug", "object_number", "production_date_start", "production_date_end"
+    )
+    return {
+        (museum_slug, object_number): (start, end)
+        for museum_slug, object_number, start, end in rows
+    }
+
+
+def adhoc_update_payload(
+    old_payload: dict,
+    year_lookup: dict[tuple[str, str], tuple[int | None, int | None]],
+) -> dict:
     """
     Define your custom payload update logic here.
 
     Args:
         old_payload: The existing payload dict from Qdrant
+        year_lookup: Maps (museum_slug, object_number) to (start_year, end_year)
 
     Returns:
         The updated payload dict
-
-    Example:
-        # Add a new field
-        new_payload = old_payload.copy()
-        new_payload["credit_line"] = "Museum Purchase"
-        return new_payload
-
-        # Update existing field
-        new_payload = old_payload.copy()
-        new_payload["title"] = new_payload["title"].upper()
-        return new_payload
     """
     new_payload = old_payload.copy()
 
     ##### MODIFY THIS SECTION WITH YOUR UPDATE LOGIC #####
-    # Delete the old "artist" field (replaced by "artists" list)
-    if "artists" in new_payload:
-        if "artist" in new_payload:
-            del new_payload["artist"]
+    museum = old_payload.get("museum")
+    object_number = old_payload.get("object_number")
+    if museum and object_number:
+        start, end = year_lookup.get((museum, object_number), (None, None))
+        new_payload["production_date_start"] = start
+        new_payload["production_date_end"] = end
     #######################################################
 
     return new_payload
+
+
+def create_year_payload_indexes(qdrant_client, collection_name: str):
+    """Create integer payload indexes for efficient year range filtering."""
+    for field in ("production_date_start", "production_date_end"):
+        qdrant_client.create_payload_index(
+            collection_name=collection_name,
+            field_name=field,
+            field_schema=PayloadSchemaType.INTEGER,
+        )
+        logging.info(f"Created payload index for '{field}'")
 
 
 def main_upsert_bulk(
@@ -112,6 +131,10 @@ def main_upsert_bulk(
     batch_size: int = 500,
     dry_run: bool = True,
 ):
+    logging.info("Building production year lookup from PostgreSQL...")
+    year_lookup = build_production_year_lookup()
+    logging.info(f"Loaded {len(year_lookup)} records from TransformedData")
+
     qdrant = QdrantService(collection_name).qdrant_client
     next_offset = None
     total_processed = 0
@@ -136,7 +159,7 @@ def main_upsert_bulk(
 
         for p in points:
             assert p.payload is not None
-            final_payload = adhoc_update_payload(p.payload)
+            final_payload = adhoc_update_payload(p.payload, year_lookup)
             assert final_payload
 
             # Only upsert if payload changed
@@ -174,6 +197,10 @@ def main_upsert_bulk(
         f"Summary: {total_processed} total processed, "
         f"{total_updated} updated, {total_unchanged} unchanged"
     )
+
+    if not dry_run:
+        logging.info("Creating payload indexes for year fields...")
+        create_year_payload_indexes(qdrant, collection_name)
 
 
 if __name__ == "__main__":

@@ -303,6 +303,8 @@ class EmbeddingLoadService:
             "title": record.get_primary_title(),
             "artists": record.artists,
             "production_date": record.get_period(),
+            "production_date_start": record.production_date_start,
+            "production_date_end": record.production_date_end,
             "work_types": record.work_types,
             "searchable_work_types": record.searchable_work_types,
         }
