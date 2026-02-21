@@ -110,12 +110,12 @@
     <div class="absolute z-20 bg-white/90 backdrop-blur-sm rounded-lg shadow border border-gray-200 px-4" style="left: 1rem; top: 1rem; padding-top: 0.75rem; padding-bottom: 0.75rem;">
         <!-- Toggle -->
         <div class="flex gap-1 mb-2 text-xs">
-            <button @click="setColorMode('museum')"
-                    :class="colorMode === 'museum' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-                    class="px-2 py-0.5 rounded transition-colors">Museum</button>
             <button @click="setColorMode('work_type')"
                     :class="colorMode === 'work_type' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
                     class="px-2 py-0.5 rounded transition-colors">Work type</button>
+            <button @click="setColorMode('museum')"
+                    :class="colorMode === 'museum' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    class="px-2 py-0.5 rounded transition-colors">Museum</button>
         </div>
         <!-- Legend items -->
         <template x-for="(item, i) in legendItems" :key="colorMode + '-' + i">
