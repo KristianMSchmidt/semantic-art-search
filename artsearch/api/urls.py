@@ -3,6 +3,7 @@ from django.urls import path
 from artsearch.api.views import (
     artwork_detail_view,
     museums_view,
+    random_view,
     search_view,
     similar_view,
     work_types_view,
@@ -17,4 +18,5 @@ urlpatterns = [
         similar_view,
     ),
     path("search/", search_view),
+    path("random/", random_view),
 ]

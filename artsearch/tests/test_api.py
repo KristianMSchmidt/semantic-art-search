@@ -466,3 +466,104 @@ def test_similar_rate_limited(mock_similar_deps):
 
     assert response.status_code == 429
     assert "too many" in response.json()["error"].lower()
+
+
+# ---- Random Artworks Tests ----
+
+
+SAMPLE_RANDOM_RESULTS = {
+    "results": [FORMATTED_SEARCH_RESULT],
+    "header_text": "Browsing 125 works",
+    "error_message": None,
+    "error_type": None,
+    "total_works": 125,
+}
+
+
+@pytest.fixture
+def mock_random_deps():
+    """Mock all random view dependencies."""
+    with patch(
+        "artsearch.api.views.handle_search",
+        return_value=SAMPLE_RANDOM_RESULTS,
+    ) as mock_search:
+        yield {"handle_search": mock_search}
+
+
+@pytest.mark.integration
+def test_random_returns_results(mock_random_deps):
+    client = Client()
+    response = client.get("/api/random/")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["total_works"] == 125
+    assert data["offset"] == 0
+    assert data["limit"] == 24
+    assert "seed" in data
+    assert len(data["results"]) == 1
+
+
+@pytest.mark.integration
+def test_random_uses_provided_seed(mock_random_deps):
+    client = Client()
+    response = client.get("/api/random/?seed=test123")
+
+    assert response.status_code == 200
+    assert response.json()["seed"] == "test123"
+
+    mock_random_deps["handle_search"].assert_called_once_with(
+        query="",
+        seed="test123",
+        offset=0,
+        limit=24,
+        museums=None,
+        work_types=None,
+    )
+
+
+@pytest.mark.integration
+def test_random_generates_seed_when_not_provided(mock_random_deps):
+    client = Client()
+    response = client.get("/api/random/")
+
+    assert response.status_code == 200
+    seed = response.json()["seed"]
+    assert len(seed) == 16  # secrets.token_hex(8) produces 16 hex chars
+
+
+@pytest.mark.integration
+def test_random_passes_filters(mock_random_deps):
+    client = Client()
+    client.get("/api/random/?seed=abc&museums=smk&museums=met&work_types=painting")
+
+    mock_random_deps["handle_search"].assert_called_once_with(
+        query="",
+        seed="abc",
+        offset=0,
+        limit=24,
+        museums=["smk", "met"],
+        work_types=["painting"],
+    )
+
+
+@pytest.mark.integration
+def test_random_passes_offset_and_limit(mock_random_deps):
+    client = Client()
+    response = client.get("/api/random/?seed=abc&offset=10&limit=5")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["offset"] == 10
+    assert data["limit"] == 5
+
+
+@pytest.mark.integration
+def test_random_rate_limited(mock_random_deps):
+    client = Client()
+    with patch("django_ratelimit.decorators.is_ratelimited", return_value=True):
+        response = client.get("/api/random/")
+
+    assert response.status_code == 429
+    assert "too many" in response.json()["error"].lower()

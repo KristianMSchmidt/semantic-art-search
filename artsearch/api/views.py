@@ -1,3 +1,5 @@
+import secrets
+
 from django.http import JsonResponse
 from django_ratelimit.decorators import ratelimit
 
@@ -97,6 +99,38 @@ def similar_view(request, museum_slug: str, object_number: str):
         "total_works": search_results["total_works"],
         "museum_slug": museum_slug,
         "object_number": object_number,
+        "offset": params["offset"],
+        "limit": params["limit"],
+    })
+
+
+@ratelimit(key=get_client_ip, rate="30/m", method="GET", block=False)
+@ratelimit(key=get_client_ip, rate="200/h", method="GET", block=False)
+def random_view(request):
+    if getattr(request, "limited", False):
+        return JsonResponse(
+            {"error": "Too many requests. Please try again later."}, status=429
+        )
+
+    params = _parse_search_params(request)
+    seed = request.GET.get("seed") or secrets.token_hex(8)
+
+    search_results = handle_search(
+        query="",
+        seed=seed,
+        offset=params["offset"],
+        limit=params["limit"],
+        museums=params["museums"],
+        work_types=params["work_types"],
+    )
+
+    if search_results["error_message"]:
+        return JsonResponse({"error": search_results["error_message"]}, status=400)
+
+    return JsonResponse({
+        "results": search_results["results"],
+        "total_works": search_results["total_works"],
+        "seed": seed,
         "offset": params["offset"],
         "limit": params["limit"],
     })
