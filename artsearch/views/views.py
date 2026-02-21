@@ -176,21 +176,22 @@ def art_map_view(request: HttpRequest) -> HttpResponse:
 
 
 @register_cache
-@lru_cache(maxsize=1)
-def _get_map_geometry() -> bytes | None:
+@lru_cache(maxsize=2)
+def _get_map_geometry(version: str = "") -> bytes | None:
     map_data = ArtMapData.objects.first()
     return bytes(map_data.geometry) if map_data and map_data.geometry else None
 
 
 @register_cache
-@lru_cache(maxsize=1)
-def _get_map_metadata() -> str | None:
+@lru_cache(maxsize=2)
+def _get_map_metadata(version: str = "") -> str | None:
     map_data = ArtMapData.objects.first()
     return map_data.metadata if map_data else None
 
 
 def art_map_geometry_view(request: HttpRequest) -> HttpResponse:
-    data = _get_map_geometry()
+    version = request.GET.get("v", "")
+    data = _get_map_geometry(version)
     if data is None:
         return JsonResponse({"error": "No map data available"}, status=404)
 
@@ -200,7 +201,8 @@ def art_map_geometry_view(request: HttpRequest) -> HttpResponse:
 
 
 def art_map_data_view(request: HttpRequest) -> HttpResponse:
-    data = _get_map_metadata()
+    version = request.GET.get("v", "")
+    data = _get_map_metadata(version)
     if data is None:
         return JsonResponse({"error": "No map data available"}, status=404)
 
