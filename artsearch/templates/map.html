@@ -46,11 +46,11 @@
          style="width: 400px;"
          :style="`left: ${tooltip.x + 12}px; top: ${tooltip.y + 12}px;`">
         <div class="bg-gray-100 flex items-center justify-center" style="height: 280px;">
-            <img x-show="tooltip.imageUrl"
+            <img x-show="tooltip.imageUrl && !tooltip.imageError"
                  :src="tooltip.imageUrl"
                  alt=""
                  style="max-width: 400px; max-height: 280px; object-fit: contain;"
-                 @error="$el.style.display='none'">
+                 @error="tooltip.imageError = true">
         </div>
         <div class="px-3 py-2">
             <p class="text-sm font-semibold text-gray-800 truncate" x-text="tooltip.title"></p>
@@ -71,10 +71,11 @@
          @click.outside="detail.visible = false">
         <!-- Thumbnail -->
         <div class="relative bg-gray-100">
-            <img :src="detail.imageUrl"
+            <img x-show="detail.imageUrl && !detail.imageError"
+                 :src="detail.imageUrl"
                  :alt="detail.title"
                  class="w-full h-48 object-contain"
-                 @error="$el.style.display='none'">
+                 @error="detail.imageError = true">
             <button @click="detail.visible = false"
                     class="absolute top-2 right-2 bg-black/40 hover:bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs transition">
                 &times;
@@ -88,12 +89,6 @@
                 <span x-text="detail.productionDate"></span>
                 <span>&middot;</span>
                 <span x-text="detail.museum"></span>
-            </div>
-            <div class="pt-1">
-                <a :href="'/?query=' + encodeURIComponent(detail.museumSlug + ':' + detail.objectNumber)"
-                   class="text-xs text-blue-500 hover:text-blue-700 transition-colors">
-                    Find similar &rarr;
-                </a>
             </div>
         </div>
     </div>
@@ -142,7 +137,7 @@ function artMap() {
         loading: true,
         error: null,
         deckgl: null,
-        colorMode: 'museum',
+        colorMode: 'work_type',
 
         // Lazy-loaded metadata (titles, artists, etc.)
         _metadata: null,
@@ -186,8 +181,8 @@ function artMap() {
             }));
         },
 
-        tooltip: { visible: false, x: 0, y: 0, title: '', artist: '', museum: '', imageUrl: '' },
-        detail: { visible: false, imageUrl: '', title: '', artist: '', productionDate: '', museum: '', museumSlug: '', objectNumber: '' },
+        tooltip: { visible: false, x: 0, y: 0, title: '', artist: '', museum: '', imageUrl: '', imageError: false },
+        detail: { visible: false, imageUrl: '', title: '', artist: '', productionDate: '', museum: '', museumSlug: '', objectNumber: '', imageError: false },
 
         _currentZoom: -0.5,
 
@@ -244,6 +239,7 @@ function artMap() {
                 if (m) {
                     this.tooltip = {
                         visible: true,
+                        imageError: false,
                         x: info.x,
                         y: info.y,
                         title: m.title[idx] || 'Untitled',
@@ -254,6 +250,7 @@ function artMap() {
                 } else {
                     this.tooltip = {
                         visible: true,
+                        imageError: false,
                         x: info.x,
                         y: info.y,
                         title: 'Loading...',
@@ -276,6 +273,7 @@ function artMap() {
             const objNum = m.object_number[idx];
             this.detail = {
                 visible: true,
+                imageError: false,
                 imageUrl: this._imageUrl(museumSlug, objNum),
                 title: m.title[idx] || 'Untitled',
                 artist: m.artist[idx] || 'Unknown',
@@ -370,7 +368,7 @@ function artMap() {
                 },
                 controller: true,
                 pickingRadius: isTouch ? 25 : 0,
-                layers: [this._buildLayer(museumCA, 'museum')],
+                layers: [this._buildLayer(wtCA, 'work_type')],
                 getTooltip: () => null,
                 onViewStateChange: ({ viewState }) => {
                     self._currentZoom = viewState.zoom;
