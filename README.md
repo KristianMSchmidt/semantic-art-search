@@ -32,13 +32,13 @@ When you search:
 
 Each artwork links to its page at the source museum, so you can dive deeper and explore the full context.
 
-### 🔧 Embedding Model Selection
+### 🔧 Search Mode
 
-You can choose between two embedding models:
+You can choose how artworks are matched to your query:
 
-- **Auto** (default): Automatically selects the best model based on your query
-- **CLIP**: OpenAI's original model, strong on art-historical terms and styles
-- **Jina**: Multilingual model with broad language understanding
+- **Auto** (default): Combines visual and title search for the best overall results
+- **Visual**: Matches by visual appearance — finds artworks that *look* like your query
+- **By title**: Matches by title — finds artworks that are *named* like your query
 
 Jina supports queries in multiple languages, so you can search in your native language.
 
@@ -48,7 +48,9 @@ Jina supports queries in multiple languages, so you can search in your native la
 
 Traditional art search engines often rely on *exact keyword matches* in stored metadata such as titles, descriptions, and tags. If you search for "cat", such engines will return artworks that explicitly mention "cat" in their metadata. While this kind of search has its merits, it also has clear limitations. For example, a painting might depict a cat without mentioning it in the title or description, or the title might contain the word "cat" in another language. In these cases, you would get no results, even though the painting is relevant to your search.
 
-Semantic Art Search helps you discover works that match the intent of your query by disregarding the metadata and instead finding meaning *directly in the image*. If there's a cat somewhere in the painting, there's a good chance that this work will be found, even if the word "cat" does not appear in the metadata. Being natural language based, the semantic search engine also understands abstract concepts and phrases like "war", "ancient Rome", or "shipwreck in a storm", allowing you to search in a very flexible and intuitive way.
+Semantic Art Search helps you discover works that match the intent of your query. In **Visual** mode, it finds meaning *directly in the image* — if there's a cat somewhere in the painting, there's a good chance that this work will be found, even if the word "cat" does not appear in the metadata. In **By title** mode, it matches semantically against artwork titles — understanding that "feline" and "cat" are related concepts, not just exact words. The default **Auto** mode combines both signals.
+
+Being natural language based, the semantic search engine also understands abstract concepts and phrases like "war", "ancient Rome", or "shipwreck in a storm", allowing you to search in a very flexible and intuitive way.
 
 > 📝 *Note: Filters such as work type and museum still use metadata — but search relevance is driven by visual and semantic similarity.*
 
@@ -56,7 +58,7 @@ Semantic Art Search helps you discover works that match the intent of your query
 
 ## 🧠 Behind The Scenes
 
-The system uses *CLIP-based models* (multimodal neural networks) to embed both images and search queries into a shared vector space. It then performs vector-based nearest neighbor search to rank artworks by semantic or stylistic relevance to the query.
+The system uses *Jina CLIP v2* (a multimodal neural network) to embed both images and search queries into a shared vector space. It then performs vector-based nearest neighbor search to rank artworks by semantic or visual relevance to the query. In Auto mode, image and title embeddings are searched in parallel and merged using Reciprocal Rank Fusion (RRF).
 
 ## 🎨 Artwork Coverage
 
