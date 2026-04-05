@@ -48,7 +48,9 @@ Jina supports queries in multiple languages, so you can search in your native la
 
 Traditional art search engines often rely on *exact keyword matches* in stored metadata such as titles, descriptions, and tags. If you search for "cat", such engines will return artworks that explicitly mention "cat" in their metadata. While this kind of search has its merits, it also has clear limitations. For example, a painting might depict a cat without mentioning it in the title or description, or the title might contain the word "cat" in another language. In these cases, you would get no results, even though the painting is relevant to your search.
 
-Semantic Art Search helps you discover works that match the intent of your query by disregarding the metadata and instead finding meaning *directly in the image*. If there's a cat somewhere in the painting, there's a good chance that this work will be found, even if the word "cat" does not appear in the metadata. Being natural language based, the semantic search engine also understands abstract concepts and phrases like "war", "ancient Rome", or "shipwreck in a storm", allowing you to search in a very flexible and intuitive way.
+Semantic Art Search helps you discover works that match the intent of your query. In **Visual** mode, it finds meaning *directly in the image* — if there's a cat somewhere in the painting, there's a good chance that this work will be found, even if the word "cat" does not appear in the metadata. In **By title** mode, it matches semantically against artwork titles — understanding that "feline" and "cat" are related concepts, not just exact words. The default **Auto** mode combines both signals.
+
+Being natural language based, the semantic search engine also understands abstract concepts and phrases like "war", "ancient Rome", or "shipwreck in a storm", allowing you to search in a very flexible and intuitive way.
 
 > 📝 *Note: Filters such as work type and museum still use metadata — but search relevance is driven by visual and semantic similarity.*
 
