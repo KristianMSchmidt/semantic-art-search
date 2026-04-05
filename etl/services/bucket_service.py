@@ -7,7 +7,10 @@ from botocore.exceptions import ClientError
 from io import BytesIO
 from PIL import Image
 from artsearch.src.config import config
-from artsearch.src.services.clip_embedder import get_image_response
+
+
+def get_image_response(url: str) -> requests.Response:
+    return requests.get(url, timeout=10)
 
 
 def resize_image_with_aspect_ratio(

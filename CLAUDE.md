@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## Project Overview
 
-Semantic Art Search is a Django-based web application that uses CLIP to enable semantic search of artwork collections from multiple museums. Users search artworks using natural language and find visually or thematically similar pieces.
+Semantic Art Search is a Django-based web application that uses Jina CLIP v2 to enable semantic search of artwork collections from multiple museums. Users search artworks using natural language and find visually or thematically similar pieces.
 
 ### Core Applications
 
@@ -16,7 +16,7 @@ Semantic Art Search is a Django-based web application that uses CLIP to enable s
 ### Data Flow
 
 1. **ETL Pipeline**: Museum APIs → Raw metadata (PostgreSQL) → Transformed data → Images (S3) → Embeddings (Qdrant)
-2. **Search Pipeline**: User query → Text embedding (CLIP or Jina) → Qdrant vector search → Results
+2. **Search Pipeline**: User query → Text embedding (Jina) → Qdrant vector search → Results
 3. **Similar Image Search**: Object number → Retrieve image embedding → Vector similarity search
 
 ### Museum Integration
@@ -39,7 +39,7 @@ This project requires unique public artwork identifiers. They must be public-fac
 
 - **Config**: `artsearch/src/config.py` (Pydantic-based)
 - **Env files**: `.env.dev` (local) or `.env.prod` (server) - never commit these
-- **Dependencies**: Qdrant, PostgreSQL, Linode Object Storage (S3-compatible), CLIP model
+- **Dependencies**: Qdrant, PostgreSQL, Linode Object Storage (S3-compatible), Jina API
 
 ### Docker
 
@@ -75,23 +75,21 @@ See `.claude/rules/etl-pipeline.md` for ETL command patterns (`*-force`, `*-retr
 - Filter by work type (painting, print, drawing, etc.)
 - Paginated (20 items per page)
 
-### Embedding Model Selection
+### Search Mode Selection
 
 Users select via radio button UI:
-- **Auto**: Smart selection based on query type
-- **CLIP**: OpenAI CLIP (ViT-L/14) - 768d, local model
-- **Jina**: Jina CLIP v2 - 256d, API-based
+- **Auto**: Hybrid search combining visual and title signals via Qdrant RRF fusion
+- **Visual** (`image`): Searches `image_jina` vectors — finds visually similar artworks
+- **By title** (`title`): Searches `text_jina` vectors — finds artworks by title/description match
 
-**Smart Auto Selection:**
-- Similarity search → Jina
-- Art historical queries (movements, styles) → CLIP
-- General text → Jina
+All modes use Jina CLIP v2 (256d) for text embedding. Similarity search always uses `image_jina`.
 
 **Key Files:**
-- `artsearch/src/constants/embedding_models.py`: Model definitions, resolution logic
-- `artsearch/src/services/clip_embedder.py`: CLIP embedder (singleton)
+- `artsearch/src/constants/search_modes.py`: Mode definitions and vector name mapping
 - `artsearch/src/services/jina_embedder.py`: Jina embedder (API)
-- `artsearch/src/services/qdrant_service.py`: Vector search with model selection
+- `artsearch/src/services/qdrant_service.py`: Vector search, including `_search_hybrid()` for auto mode
+
+**Qdrant vectors per artwork:** `image_jina` (256d), `text_jina` (256d), `image_clip` (768d, zeros — deprecated), `text_clip` (768d, zeros — unused)
 
 ## REST API
 
@@ -106,7 +104,7 @@ JSON API at `/api/`. Code in `artsearch/api/views.py` and `artsearch/api/urls.py
 | `GET /api/artworks/<museum_slug>/<object_number>/` | Single artwork detail |
 | `GET /api/artworks/<museum_slug>/<object_number>/similar/` | Visually similar artworks |
 
-**Common query parameters** (search, random, similar): `offset`, `limit` (max 24), `museums` (repeatable), `work_types` (repeatable), `model` (`auto`/`clip`/`jina`).
+**Common query parameters** (search, random, similar): `offset`, `limit` (max 24), `museums` (repeatable), `work_types` (repeatable), `model` (`auto`/`image`/`title`).
 
 Search, similar, and random endpoints are **rate-limited** (30/min, 200/hour per IP).
 

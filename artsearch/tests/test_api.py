@@ -295,12 +295,12 @@ def test_search_no_filters_passes_none(mock_search_deps):
 @pytest.mark.integration
 def test_search_passes_model_param(mock_search_deps):
     client = Client()
-    response = client.get("/api/search/?query=landscape&model=clip")
+    response = client.get("/api/search/?query=landscape&model=image")
 
     assert response.status_code == 200
 
     call_kwargs = mock_search_deps["handle_search"].call_args[1]
-    assert call_kwargs["embedding_model"] == "clip"
+    assert call_kwargs["embedding_model"] == "image"
 
 
 @pytest.mark.integration

@@ -32,13 +32,13 @@ When you search:
 
 Each artwork links to its page at the source museum, so you can dive deeper and explore the full context.
 
-### 🔧 Embedding Model Selection
+### 🔧 Search Mode
 
-You can choose between two embedding models:
+You can choose how artworks are matched to your query:
 
-- **Auto** (default): Automatically selects the best model based on your query
-- **CLIP**: OpenAI's original model, strong on art-historical terms and styles
-- **Jina**: Multilingual model with broad language understanding
+- **Auto** (default): Combines visual and title search for the best overall results
+- **Visual**: Matches by visual appearance — finds artworks that *look* like your query
+- **By title**: Matches by title — finds artworks that are *named* like your query
 
 Jina supports queries in multiple languages, so you can search in your native language.
 
@@ -56,7 +56,7 @@ Semantic Art Search helps you discover works that match the intent of your query
 
 ## 🧠 Behind The Scenes
 
-The system uses *CLIP-based models* (multimodal neural networks) to embed both images and search queries into a shared vector space. It then performs vector-based nearest neighbor search to rank artworks by semantic or stylistic relevance to the query.
+The system uses *Jina CLIP v2* (a multimodal neural network) to embed both images and search queries into a shared vector space. It then performs vector-based nearest neighbor search to rank artworks by semantic or visual relevance to the query. In Auto mode, image and title embeddings are searched in parallel and merged using Reciprocal Rank Fusion (RRF).
 
 ## 🎨 Artwork Coverage
 
