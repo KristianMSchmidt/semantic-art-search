@@ -24,6 +24,11 @@ SUPPORTED_MUSEUMS = [
         "full_name": "Art Institute of Chicago",
         "short_name": "Art Institute of Chicago",
     },
+    {
+        "slug": "nga",
+        "full_name": "National Gallery of Art, Washington",
+        "short_name": "National Gallery of Art",
+    },
 ]
 
 # Derived lists used by art map (views + management command)

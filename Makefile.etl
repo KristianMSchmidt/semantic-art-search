@@ -28,6 +28,9 @@ extract-met: ## [DEV] Extract raw data from MET
 extract-aic: ## [DEV] Extract raw data from AIC
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract -m aic
 
+extract-nga: ## [DEV] Extract raw data from NGA
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract -m nga
+
 extract-all: ## [DEV] Extract raw data from ALL museums
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py extract --all
 
@@ -50,6 +53,9 @@ prod_extract-met: ## [PROD] Extract raw data from MET
 
 prod_extract-aic: ## [PROD] Extract raw data from AIC
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py extract -m aic
+
+prod_extract-nga: ## [PROD] Extract raw data from NGA
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py extract -m nga
 
 prod_extract-all: ## [PROD] Extract raw data from ALL museums
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py extract --all
@@ -77,6 +83,9 @@ transform-met:  ## [DEV] Transform all records for MET museum only
 transform-aic:  ## [DEV] Transform all records for AIC museum only
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py transform --museum aic --batch-size 100
 
+transform-nga:  ## [DEV] Transform all records for NGA museum only
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py transform --museum nga --batch-size 100
+
 # ---------- ETL Transform [PROD] ---------- #
 
 prod_transform:  ## [PROD] Transform all records for all museums
@@ -97,6 +106,9 @@ prod_transform-met:  ## [PROD] Transform all records for MET museum only
 prod_transform-aic:  ## [PROD] Transform all records for AIC museum only
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py transform --museum aic --batch-size 100
 
+prod_transform-nga:  ## [PROD] Transform all records for NGA museum only
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py transform --museum nga --batch-size 100
+
 # ---------- ETL Load Images ---------- #
 
 load-images-smk:  ## [DEV] Load thumbnail images for SMK museum
@@ -113,6 +125,9 @@ load-images-met:  ## [DEV] Load thumbnail images for MET museum
 
 load-images-aic:  ## [DEV] Load thumbnail images for AIC museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum aic --batch-size 50 --delay 0.2 --batch-delay 5
+
+load-images-nga:  ## [DEV] Load thumbnail images for NGA museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum nga --batch-size 50 --delay 0.2 --batch-delay 5
 
 load-images-all:  ## [DEV] Load thumbnail images for all museums
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --batch-size 100 --delay 0.2 --batch-delay 5
@@ -133,6 +148,9 @@ load-images-met-force:  ## [DEV] Force reload all thumbnail images for MET museu
 
 load-images-aic-force:  ## [DEV] Force reload all thumbnail images for AIC museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum aic --force --batch-size 50 --delay 0.2 --batch-delay 5
+
+load-images-nga-force:  ## [DEV] Force reload all thumbnail images for NGA museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --museum nga --force --batch-size 50 --delay 0.2 --batch-delay 5
 
 load-images-all-force:  ## [DEV] Force reload all thumbnail images for all museums
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_images --force --batch-size 100 --delay 0.2 --batch-delay 5
@@ -159,6 +177,9 @@ prod_load-images-met:  ## [PROD] Load thumbnail images for MET museum
 prod_load-images-aic:  ## [PROD] Load thumbnail images for AIC museum
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --museum aic --batch-size 50 --delay 0.2 --batch-delay 5
 
+prod_load-images-nga:  ## [PROD] Load thumbnail images for NGA museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --museum nga --batch-size 50 --delay 0.2 --batch-delay 5
+
 prod_load-images-all:  ## [PROD] Load thumbnail images for all museums
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --batch-size 100 --delay 0.2 --batch-delay 5
 
@@ -178,6 +199,9 @@ prod_load-images-met-force:  ## [PROD] Force reload all thumbnail images for MET
 
 prod_load-images-aic-force:  ## [PROD] Force reload all thumbnail images for AIC museum
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --museum aic --force --batch-size 50 --delay 0.2 --batch-delay 5
+
+prod_load-images-nga-force:  ## [PROD] Force reload all thumbnail images for NGA museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --museum nga --force --batch-size 50 --delay 0.2 --batch-delay 5
 
 prod_load-images-all-force:  ## [PROD] Force reload all thumbnail images for all museums
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_images --force --batch-size 100 --delay 0.2 --batch-delay 5
@@ -204,6 +228,9 @@ load-embeddings-met:  ## [DEV] Generate CLIP embeddings for MET museum
 load-embeddings-aic:  ## [DEV] Generate CLIP embeddings for AIC museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum aic --batch-size 50 --delay 0.1 --batch-delay 2
 
+load-embeddings-nga:  ## [DEV] Generate CLIP embeddings for NGA museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum nga --batch-size 50 --delay 0.1 --batch-delay 2
+
 load-embeddings-all:  ## [DEV] Generate CLIP embeddings for all museums
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --batch-size 100 --delay 0.1 --batch-delay 2
 
@@ -223,6 +250,9 @@ load-embeddings-met-force:  ## [DEV] Force regenerate embeddings for MET museum
 
 load-embeddings-aic-force:  ## [DEV] Force regenerate embeddings for AIC museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum aic --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+load-embeddings-nga-force:  ## [DEV] Force regenerate embeddings for NGA museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum nga --force --batch-size 50 --delay 0.1 --batch-delay 2
 
 load-embeddings-all-force:  ## [DEV] Force regenerate embeddings for all museums
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --force --batch-size 100 --delay 0.1 --batch-delay 2
@@ -247,6 +277,9 @@ load-embeddings-met-retry-failed:  ## [DEV] Retry previously failed embeddings f
 load-embeddings-aic-retry-failed:  ## [DEV] Retry previously failed embeddings for AIC museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --retry-failed --museum aic --batch-size 50 --delay 0.1 --batch-delay 2
 
+load-embeddings-nga-retry-failed:  ## [DEV] Retry previously failed embeddings for NGA museum
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --retry-failed --museum nga --batch-size 50 --delay 0.1 --batch-delay 2
+
 # ---------- ETL Load Embeddings [PROD] ---------- #
 
 prod_load-embeddings-smk:  ## [PROD] Generate CLIP embeddings for SMK museum
@@ -263,6 +296,9 @@ prod_load-embeddings-met:  ## [PROD] Generate CLIP embeddings for MET museum
 
 prod_load-embeddings-aic:  ## [PROD] Generate CLIP embeddings for AIC museum
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum aic --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-nga:  ## [PROD] Generate CLIP embeddings for NGA museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum nga --batch-size 50 --delay 0.1 --batch-delay 2
 
 prod_load-embeddings-all:  ## [PROD] Generate CLIP embeddings for all museums
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --batch-size 100 --delay 0.1 --batch-delay 2
@@ -283,6 +319,9 @@ prod_load-embeddings-met-force:  ## [PROD] Force regenerate embeddings for MET m
 
 prod_load-embeddings-aic-force:  ## [PROD] Force regenerate embeddings for AIC museum
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum aic --force --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-nga-force:  ## [PROD] Force regenerate embeddings for NGA museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum nga --force --batch-size 50 --delay 0.1 --batch-delay 2
 
 prod_load-embeddings-all-force:  ## [PROD] Force regenerate embeddings for all museums
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --force --batch-size 100 --delay 0.1 --batch-delay 2
@@ -306,6 +345,9 @@ prod_load-embeddings-met-retry-failed:  ## [PROD] Retry previously failed embedd
 
 prod_load-embeddings-aic-retry-failed:  ## [PROD] Retry previously failed embeddings for AIC museum
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --retry-failed --museum aic --batch-size 50 --delay 0.1 --batch-delay 2
+
+prod_load-embeddings-nga-retry-failed:  ## [PROD] Retry previously failed embeddings for NGA museum
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --retry-failed --museum nga --batch-size 50 --delay 0.1 --batch-delay 2
 
 # ---------- ETL Load Artwork Stats ---------- #
 

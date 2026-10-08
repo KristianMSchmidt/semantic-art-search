@@ -3,6 +3,7 @@
 from typing import Any
 import requests
 import xmltodict
+from etl.models import MetaDataRaw
 from artsearch.src.services.museum_clients.utils import get_museum_api_url
 from .metadata_processors import (
     clean_smk_metadata,
@@ -10,6 +11,7 @@ from .metadata_processors import (
     clean_met_metadata,
     clean_rma_metadata,
     clean_aic_metadata,
+    clean_nga_metadata,
 )
 
 
@@ -35,6 +37,10 @@ def fetch_and_clean_metadata(
     Raises:
         ValueError: If museum is unsupported or API request fails
     """
+    # NGA has no per-object metadata API, so we use the raw data stored during extraction
+    if museum_slug == "nga":
+        return _fetch_stored_nga_metadata(object_number)
+
     # Get API URL for this museum/artwork
     api_url = get_museum_api_url(museum_slug, object_number, museum_db_id)
     if not api_url:
@@ -104,3 +110,15 @@ def _clean_xml_metadata(museum_slug: str, raw_data: dict) -> dict[str, Any]:
         return clean_rma_metadata(raw_data)
     else:
         raise ValueError(f"Unknown museum slug for XML cleaning: {museum_slug}")
+
+
+def _fetch_stored_nga_metadata(object_number: str) -> dict[str, Any]:
+    """Get NGA metadata from the raw data stored during ETL extraction.
+
+    Raises:
+        ValueError: If no raw data is stored for the artwork
+    """
+    raw = MetaDataRaw.objects.filter(museum_slug="nga", object_number=object_number).first()
+    if raw is None:
+        raise ValueError(f"No stored metadata found for nga:{object_number}")
+    return clean_nga_metadata(raw.raw_json)

@@ -97,7 +97,7 @@ def test_home_view_loads_successfully(mock_qdrant_service, example_queries):
     museum_ctx = response.context["museum_filter_context"]
     assert museum_ctx.dropdown_name == "museums"
     # Museums list comes from constants, not Qdrant, so it should have items
-    assert len(museum_ctx.dropdown_items) == 5  # SMK, CMA, RMA, MET, AIC
+    assert len(museum_ctx.dropdown_items) == 6  # SMK, CMA, RMA, MET, AIC, NGA
     # Verify museums are sorted alphabetically by full name
     museum_names = [item["label"] for item in museum_ctx.dropdown_items]
     assert museum_names == sorted(museum_names), (

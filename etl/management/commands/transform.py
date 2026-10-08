@@ -14,7 +14,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--museum",
             type=str,
-            choices=["smk", "cma", "rma", "met", "aic"],
+            choices=["smk", "cma", "rma", "met", "aic", "nga"],
             help="Process records for specific museum only (default: all museums)",
         )
 
