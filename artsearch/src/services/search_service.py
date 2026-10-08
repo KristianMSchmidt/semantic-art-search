@@ -116,7 +116,7 @@ def _execute_query_search(
     museum_prefilter: list[str] | None,
     work_type_prefilter: list[str] | None,
     all_museum_slugs: list[str],
-    embedding_model: SearchMode,
+    search_mode: SearchMode,
 ) -> list:
     """Execute a text or similarity search for the given query."""
     qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
@@ -135,7 +135,7 @@ def _execute_query_search(
 
     if query_analysis.is_find_similar_query:
         return qdrant_service.search_similar_images(search_arguments)
-    return qdrant_service.search_text(search_arguments, embedding_model=embedding_model)
+    return qdrant_service.search_text(search_arguments, search_mode=search_mode)
 
 
 def handle_search(
@@ -144,7 +144,7 @@ def handle_search(
     limit: int,
     museums: list[str] | None = None,
     work_types: list[str] | None = None,
-    embedding_model: SearchMode = "auto",
+    search_mode: SearchMode = "auto",
     seed: str | None = None,
 ) -> SearchResult:
     """
@@ -187,7 +187,7 @@ def handle_search(
             museum_prefilter=museum_prefilter,
             work_type_prefilter=work_type_prefilter,
             all_museum_slugs=all_museum_slugs,
-            embedding_model=embedding_model,
+            search_mode=search_mode,
         )
         header_text = (
             f"Search results ({total_works} works)" if total_works > 0 else None

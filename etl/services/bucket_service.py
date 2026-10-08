@@ -88,7 +88,7 @@ class BucketService:
         self.bucket_name, region = get_bucket_config(use_etl_bucket)
 
         boto3_cfg = Config(
-            signature_version="s3",
+            signature_version="s3v4",
             connect_timeout=60,
             read_timeout=60,
             s3={"addressing_style": "path"},

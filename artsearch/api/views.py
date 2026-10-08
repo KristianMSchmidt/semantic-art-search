@@ -52,7 +52,7 @@ def _parse_search_params(request) -> dict:
         "limit": limit,
         "museums": request.GET.getlist("museums") or None,
         "work_types": request.GET.getlist("work_types") or None,
-        "embedding_model": validate_search_mode(request.GET.get("model", "auto")),
+        "search_mode": validate_search_mode(request.GET.get("model", "auto")),
     }
 
 
