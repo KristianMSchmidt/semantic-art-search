@@ -98,8 +98,9 @@ make sync-qdrant-local SNAPSHOT=path/to/file.snapshot
 
 The export deletes the snapshot from Qdrant's own storage after downloading,
 but the copy in the server's `qdrant_snapshots/` stays until you remove it.
-Snapshots restore only between compatible Qdrant versions; both compose files
-use `qdrant/qdrant:latest`, so pull the image if a restore fails.
+Snapshots restore only between compatible Qdrant versions. Both compose files
+pin the same image tag (`qdrant/qdrant:v1.16.3`); when upgrading Qdrant, bump
+both together, along with `qdrant-client` in `requirements.txt`.
 
 ---
 
