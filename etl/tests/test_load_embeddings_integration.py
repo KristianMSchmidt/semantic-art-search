@@ -29,8 +29,8 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
     """
     Test that embedding loading correctly manages vector flags and prerequisites.
 
-    This test uses real database operations but mocks CLIP model and Qdrant
-    to avoid expensive GPU inference and external service dependencies.
+    This test uses real database operations but mocks Jina and Qdrant to avoid
+    expensive API calls and external service dependencies.
 
     Tests:
     - Fetch real SMK artwork (extraction)
@@ -38,18 +38,10 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
     - Set image_loaded=True (prerequisite for embeddings)
     - Process embedding generation (load step)
     - Vector flags correctly updated
+    - image_clip gets zero vector and flag set True (deprecated but kept for schema)
     - Idempotency: processing twice doesn't recalculate
     - Qdrant point structure is correct
     - Only processes records with image_loaded=True
-
-    Potential bugs this could catch:
-    - Query logic returning records without images loaded
-    - Vector flags not being set (infinite reprocessing)
-    - Idempotency broken (waste GPU/money)
-    - Wrong vector dimensions for Qdrant
-    - Malformed Qdrant points
-    - Missing payload fields
-    - Active vector system broken
     """
 
     # Step 1: Fetch and store real SMK artwork (extraction)
@@ -90,12 +82,15 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
     assert transformed.text_vector_clip is False, (
         "Should start with text_vector_clip=False"
     )
+    assert transformed.image_vector_jina is False, (
+        "Should start with image_vector_jina=False"
+    )
+    assert transformed.text_vector_jina is False, (
+        "Should start with text_vector_jina=False"
+    )
 
     # Step 4: Test prerequisite - should NOT process if image_loaded=False
     assert transformed.image_loaded is False, "Should start with image_loaded=False"
-
-    # Setup mocks
-    mock_clip_embedder = Mock()
 
     mock_qdrant_service = Mock()
     mock_qdrant_client = MagicMock()
@@ -104,7 +99,6 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
 
     service = EmbeddingLoadService(
         collection_name="test_collection",
-        clip_embedder=mock_clip_embedder,
         qdrant_service=mock_qdrant_service,
     )
 
@@ -119,13 +113,7 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
     transformed.image_loaded = True
     transformed.save(update_fields=["image_loaded"])
 
-    # Step 6: Now test embedding processing with mocked CLIP, Jina, and Qdrant
-    # Setup mocks
-    mock_clip_embedder = Mock()
-    # Return fake 768-dimensional embedding
-    fake_embedding = [0.1] * 768
-    mock_clip_embedder.generate_thumbnail_embedding.return_value = fake_embedding
-
+    # Step 6: Now test embedding processing with mocked Jina and Qdrant
     mock_jina_embedder = Mock()
     fake_jina_embedding = [0.2] * 256
     mock_jina_embedder.generate_image_embedding.return_value = fake_jina_embedding
@@ -137,14 +125,12 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
     mock_qdrant_client.collection_exists.return_value = True
     mock_qdrant_service.qdrant_client = mock_qdrant_client
 
-    # Create service with dependency injection
     service = EmbeddingLoadService(
         collection_name="test_collection",
-        clip_embedder=mock_clip_embedder,
         qdrant_service=mock_qdrant_service,
     )
 
-    # Should now return our record (image_loaded=True, vector missing)
+    # Should now return our record (image_loaded=True, vectors missing)
     records = service.get_records_needing_processing(
         batch_size=100, museum_filter="smk"
     )
@@ -163,9 +149,6 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
 
     assert status == "success", "Processing should succeed"
 
-    # Verify CLIP embedder was called
-    mock_clip_embedder.generate_thumbnail_embedding.assert_called_once()
-
     # Verify Qdrant upload was called
     mock_qdrant_service.upload_points.assert_called_once()
 
@@ -183,15 +166,12 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
 
     # Verify named vectors structure
     vectors = point.vector
-    assert "image_clip" in vectors, "Should have image_clip vector"
+    assert "image_clip" in vectors, "Should have image_clip vector (zero)"
     assert "text_clip" in vectors, "Should have text_clip vector (zero)"
     assert "image_jina" in vectors, "Should have image_jina vector"
     assert "text_jina" in vectors, "Should have text_jina vector"
 
     # Verify active vectors have calculated values
-    assert vectors["image_clip"] == fake_embedding, (
-        "image_clip should have calculated values"
-    )
     assert vectors["image_jina"] == fake_jina_embedding, (
         "image_jina should have calculated values"
     )
@@ -199,7 +179,8 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
         "text_jina should have calculated values"
     )
 
-    # Verify non-active vectors have zeros
+    # Verify deprecated vectors are zero vectors
+    assert vectors["image_clip"] == [0.0] * 768, "image_clip should be zero vector"
     assert vectors["text_clip"] == [0.0] * 768, "text_clip should be zero vector"
 
     # Verify payload structure
@@ -229,7 +210,7 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
     # Verify database flags were updated
     transformed.refresh_from_db()
     assert transformed.image_vector_clip is True, (
-        "image_vector_clip should be True after processing"
+        "image_vector_clip should be True (zero vector written intentionally)"
     )
     assert transformed.image_vector_jina is True, (
         "image_vector_jina should be True after processing"
@@ -242,7 +223,6 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
     )
 
     # Step 7: Test idempotency - process again
-    mock_clip_embedder.reset_mock()
     mock_jina_embedder.reset_mock()
     mock_qdrant_service.reset_mock()
 
@@ -262,8 +242,8 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
 
     assert status == "success", "Processing should succeed (but skip)"
 
-    # Verify CLIP and Qdrant were NOT called (skipped because already calculated)
-    mock_clip_embedder.generate_thumbnail_embedding.assert_not_called()
+    # Jina and Qdrant were NOT called (skipped because already calculated)
+    mock_jina_embedder.generate_image_embedding.assert_not_called()
     mock_qdrant_service.upload_points.assert_not_called()
 
     # Step 8: Test reset functionality
@@ -271,8 +251,8 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
     assert count >= 1, "Should reset at least our test record"
 
     transformed.refresh_from_db()
-    assert transformed.image_vector_clip is False, (
-        "reset_vector_fields should set image_vector_clip to False"
+    assert transformed.image_vector_clip is True, (
+        "reset_vector_fields does not reset image_vector_clip (deprecated vector)"
     )
     assert transformed.image_vector_jina is False, (
         "reset_vector_fields should set image_vector_jina to False"
@@ -293,10 +273,7 @@ def test_embedding_load_updates_vector_flags_and_respects_prerequisites():
 @pytest.mark.django_db
 def test_failed_embeddings_are_marked_and_skipped():
     """
-    Test that permanent errors (invalid image, CLIP errors) fail immediately without retries.
-
-    This test verifies the fix for the infinite loop bug where embedding generation
-    errors would cause the same records to be retried indefinitely.
+    Test that permanent errors (invalid image format) fail immediately without retries.
 
     Tests:
     - Permanent errors fail immediately (no retries)
@@ -305,7 +282,7 @@ def test_failed_embeddings_are_marked_and_skipped():
     - reset_embedding_load_failed_field allows retrying failed embeddings
     """
 
-    # Step 1: Create a test record with image_loaded=True
+    # Create a test record with image_loaded=True
     transformed = TransformedData.objects.create(
         museum_slug="test",
         object_number="TEST_EMBED_001",
@@ -313,16 +290,15 @@ def test_failed_embeddings_are_marked_and_skipped():
         title="Test Artwork",
         thumbnail_url="https://example.com/test.jpg",
         searchable_work_types=["painting"],
-        image_loaded=True,  # Prerequisite met
+        image_loaded=True,
         image_load_failed=False,
         embedding_load_failed=False,
-        image_vector_clip=False,
+        image_vector_jina=False,
     )
 
-    # Step 2: Process with mocked CLIP embedder that raises permanent error
-    mock_clip_embedder = Mock()
-    # Simulate corrupted image error (permanent error - should not retry)
-    mock_clip_embedder.generate_thumbnail_embedding.side_effect = ValueError(
+    # Simulate corrupted image error from Jina (permanent error - should not retry)
+    mock_jina_embedder = Mock()
+    mock_jina_embedder.generate_image_embedding.side_effect = ValueError(
         "Cannot identify image file - corrupted or invalid format"
     )
 
@@ -333,27 +309,30 @@ def test_failed_embeddings_are_marked_and_skipped():
 
     service = EmbeddingLoadService(
         collection_name="test_collection",
-        clip_embedder=mock_clip_embedder,
         qdrant_service=mock_qdrant_service,
     )
 
     # Process - should fail immediately without retries
-    status = service.process_single_record(transformed, delay_seconds=0.0)
+    with patch(
+        "etl.services.embedding_load_service.get_jina_embedder",
+        return_value=mock_jina_embedder,
+    ):
+        status = service.process_single_record(transformed, delay_seconds=0.0)
     assert status == "error", "Processing should return error status"
 
-    # Verify generate_thumbnail_embedding was called exactly once (no retries)
-    assert mock_clip_embedder.generate_thumbnail_embedding.call_count == 1, (
+    # Verify generate_image_embedding was called exactly once (no retries for permanent error)
+    assert mock_jina_embedder.generate_image_embedding.call_count == 1, (
         "Permanent errors should fail immediately without retries"
     )
 
     # Verify embedding_load_failed was set
     transformed.refresh_from_db()
-    assert transformed.image_vector_clip is False, "image_vector_clip should still be False"
+    assert transformed.image_vector_jina is False, "image_vector_jina should still be False"
     assert transformed.embedding_load_failed is True, (
         "embedding_load_failed should be True after error"
     )
 
-    # Step 3: Verify record is excluded from future queries
+    # Verify record is excluded from future queries
     records = service.get_records_needing_processing(
         batch_size=100, museum_filter="test"
     )
@@ -363,7 +342,7 @@ def test_failed_embeddings_are_marked_and_skipped():
         "Failed record should be excluded from get_records_needing_processing"
     )
 
-    # Step 4: Test reset_embedding_load_failed_field
+    # Test reset_embedding_load_failed_field
     count = service.reset_embedding_load_failed_field(museum_filter="test")
     assert count >= 1, "Should reset at least our test record"
 
@@ -372,7 +351,7 @@ def test_failed_embeddings_are_marked_and_skipped():
         "reset_embedding_load_failed_field should set flag to False"
     )
 
-    # Step 5: Verify record is included again after reset
+    # Verify record is included again after reset
     records = service.get_records_needing_processing(
         batch_size=100, museum_filter="test"
     )
@@ -388,8 +367,7 @@ def test_transient_embedding_errors_are_retried():
 
     Tests:
     - Transient errors trigger retries (up to max_retries)
-    - Exponential backoff is used between retries
-    - Success after retry marks image_vector_clip=True
+    - Success after retry marks vector flags=True
     - Exhausted retries mark embedding_load_failed=True
     """
 
@@ -404,24 +382,16 @@ def test_transient_embedding_errors_are_retried():
         image_loaded=True,
         image_load_failed=False,
         embedding_load_failed=False,
-        image_vector_clip=False,
         image_vector_jina=False,
     )
 
-    # Mock CLIP embedder to succeed after one transient error
-    mock_clip_embedder = Mock()
-    fake_embedding = [0.1] * 768
-
-    # First call raises Qdrant connection error, second succeeds
-    mock_clip_embedder.generate_thumbnail_embedding.side_effect = [
-        RuntimeError("Qdrant connection timeout - please retry"),
-        fake_embedding,  # Success on second attempt
-    ]
-
-    # Mock Jina embedder
+    # Jina embedder fails on first call (Qdrant timeout), succeeds on second
     mock_jina_embedder = Mock()
     fake_jina_embedding = [0.2] * 256
-    mock_jina_embedder.generate_image_embedding.return_value = fake_jina_embedding
+    mock_jina_embedder.generate_image_embedding.side_effect = [
+        RuntimeError("Qdrant connection timeout - please retry"),
+        fake_jina_embedding,  # Success on second attempt
+    ]
     mock_jina_embedder.generate_text_embedding.return_value = [0.3] * 256
 
     mock_qdrant_service = Mock()
@@ -431,11 +401,9 @@ def test_transient_embedding_errors_are_retried():
 
     service = EmbeddingLoadService(
         collection_name="test_collection",
-        clip_embedder=mock_clip_embedder,
         qdrant_service=mock_qdrant_service,
     )
 
-    # Process - should succeed after retry
     with patch("time.sleep"):  # Mock sleep to speed up test
         with patch(
             "etl.services.embedding_load_service.get_jina_embedder",
@@ -444,13 +412,11 @@ def test_transient_embedding_errors_are_retried():
             status = service.process_single_record(transformed1, delay_seconds=0.0)
 
     assert status == "success", "Should succeed after retry"
-    assert mock_clip_embedder.generate_thumbnail_embedding.call_count == 2, (
+    assert mock_jina_embedder.generate_image_embedding.call_count == 2, (
         "Should have retried once (2 total calls)"
     )
 
-    # Verify success state
     transformed1.refresh_from_db()
-    assert transformed1.image_vector_clip is True, "image_vector_clip should be True"
     assert transformed1.image_vector_jina is True, "image_vector_jina should be True"
     assert transformed1.text_vector_jina is True, "text_vector_jina should be True"
     assert transformed1.embedding_load_failed is False, (
@@ -468,52 +434,51 @@ def test_transient_embedding_errors_are_retried():
         image_loaded=True,
         image_load_failed=False,
         embedding_load_failed=False,
-        image_vector_clip=False,
         image_vector_jina=False,
     )
 
-    # Mock CLIP embedder to always fail with transient error
-    mock_clip_embedder2 = Mock()
-    mock_clip_embedder2.generate_thumbnail_embedding.side_effect = RuntimeError(
+    mock_jina_embedder2 = Mock()
+    mock_jina_embedder2.generate_image_embedding.side_effect = RuntimeError(
         "Qdrant connection timeout - please retry"
     )
 
     service2 = EmbeddingLoadService(
         collection_name="test_collection",
-        clip_embedder=mock_clip_embedder2,
         qdrant_service=mock_qdrant_service,
     )
 
-    # Process - should fail after all retries (fails on CLIP, never reaches Jina)
     with patch("time.sleep"):  # Mock sleep to speed up test
-        status = service2.process_single_record(
-            transformed2, delay_seconds=0.0, max_retries=3
-        )
+        with patch(
+            "etl.services.embedding_load_service.get_jina_embedder",
+            return_value=mock_jina_embedder2,
+        ):
+            status = service2.process_single_record(
+                transformed2, delay_seconds=0.0, max_retries=3
+            )
 
     assert status == "error", "Should fail after exhausting retries"
-    assert mock_clip_embedder2.generate_thumbnail_embedding.call_count == 3, (
+    assert mock_jina_embedder2.generate_image_embedding.call_count == 3, (
         "Should have tried 3 times (max_retries=3)"
     )
 
-    # Verify failed state
     transformed2.refresh_from_db()
-    assert transformed2.image_vector_clip is False, "image_vector_clip should be False"
+    assert transformed2.image_vector_jina is False, "image_vector_jina should be False"
     assert transformed2.embedding_load_failed is True, (
         "embedding_load_failed should be True after exhausting retries"
     )
 
 
 @pytest.mark.unit
-def test_jina_is_in_active_vector_types():
-    """Test that image_jina and text_jina are in ACTIVE_VECTOR_TYPES."""
+def test_clip_is_not_in_active_vector_types():
+    """Test that image_clip is no longer in ACTIVE_VECTOR_TYPES (deprecated)."""
     assert "image_jina" in ACTIVE_VECTOR_TYPES, (
         "image_jina should be in ACTIVE_VECTOR_TYPES"
     )
     assert "text_jina" in ACTIVE_VECTOR_TYPES, (
         "text_jina should be in ACTIVE_VECTOR_TYPES"
     )
-    assert "image_clip" in ACTIVE_VECTOR_TYPES, (
-        "image_clip should still be in ACTIVE_VECTOR_TYPES"
+    assert "image_clip" not in ACTIVE_VECTOR_TYPES, (
+        "image_clip should NOT be in ACTIVE_VECTOR_TYPES (CLIP deprecated)"
     )
 
 
@@ -521,15 +486,16 @@ def test_jina_is_in_active_vector_types():
 @pytest.mark.django_db
 def test_jina_embedding_generation():
     """
-    Test that Jina image embeddings are generated correctly.
+    Test that Jina image and text embeddings are generated correctly.
 
     Tests:
-    - Jina embedder is called with bucket URL
-    - Jina vector is 256 dimensions
-    - image_vector_jina flag is set after processing
+    - Jina embedder is called for both image and title
+    - image_jina vector is 256 dimensions
+    - text_jina vector is 256 dimensions
+    - image_clip gets zero vector (deprecated)
+    - All flags set correctly after processing
     """
 
-    # Create a test record with image_loaded=True but no vectors
     transformed = TransformedData.objects.create(
         museum_slug="test",
         object_number="TEST_JINA_001",
@@ -544,11 +510,6 @@ def test_jina_embedding_generation():
         image_vector_jina=False,
     )
 
-    # Setup mocks
-    mock_clip_embedder = Mock()
-    fake_clip_embedding = [0.1] * 768
-    mock_clip_embedder.generate_thumbnail_embedding.return_value = fake_clip_embedding
-
     mock_jina_embedder = Mock()
     fake_jina_embedding = [0.2] * 256
     mock_jina_embedder.generate_image_embedding.return_value = fake_jina_embedding
@@ -559,16 +520,13 @@ def test_jina_embedding_generation():
     mock_qdrant_client = MagicMock()
     mock_qdrant_client.collection_exists.return_value = True
     mock_qdrant_service.qdrant_client = mock_qdrant_client
-    # No existing vectors (new record)
     mock_qdrant_service.get_point_vectors.return_value = None
 
     service = EmbeddingLoadService(
         collection_name="test_collection",
-        clip_embedder=mock_clip_embedder,
         qdrant_service=mock_qdrant_service,
     )
 
-    # Mock the Jina embedder at the source location
     with patch(
         "etl.services.embedding_load_service.get_jina_embedder",
         return_value=mock_jina_embedder,
@@ -577,34 +535,31 @@ def test_jina_embedding_generation():
 
     assert status == "success", "Processing should succeed"
 
-    # Verify both embedders were called
-    mock_clip_embedder.generate_thumbnail_embedding.assert_called_once()
     mock_jina_embedder.generate_image_embedding.assert_called_once()
     mock_jina_embedder.generate_text_embedding.assert_called_once()
 
-    # Verify Qdrant upload was called with both vectors
     mock_qdrant_service.upload_points.assert_called_once()
     upload_call_args = mock_qdrant_service.upload_points.call_args
     points = upload_call_args[0][0]
     point = points[0]
 
-    # Verify vectors
     vectors = point.vector
-    assert vectors["image_clip"] == fake_clip_embedding, (
-        "image_clip should have CLIP embedding"
-    )
     assert vectors["image_jina"] == fake_jina_embedding, (
         "image_jina should have Jina embedding"
     )
     assert vectors["text_jina"] == fake_jina_text_embedding, (
         "text_jina should have Jina text embedding"
     )
+    assert vectors["image_clip"] == [0.0] * 768, (
+        "image_clip should be zero vector (deprecated)"
+    )
     assert len(vectors["image_jina"]) == 256, "Jina vector should be 256 dimensions"
     assert len(vectors["text_jina"]) == 256, "Jina text vector should be 256 dimensions"
 
-    # Verify database flags were updated
     transformed.refresh_from_db()
-    assert transformed.image_vector_clip is True, "image_vector_clip should be True"
+    assert transformed.image_vector_clip is True, (
+        "image_vector_clip should be True (zero vector written intentionally)"
+    )
     assert transformed.image_vector_jina is True, "image_vector_jina should be True"
     assert transformed.text_vector_jina is True, "text_vector_jina should be True"
 
@@ -613,18 +568,18 @@ def test_jina_embedding_generation():
 @pytest.mark.django_db
 def test_vector_merging_preserves_existing_vectors():
     """
-    Test that existing CLIP vectors are preserved when adding Jina vectors.
+    Test that existing vectors in Qdrant are preserved when processing adds new ones.
 
-    This is the critical test for the vector merging feature.
+    Scenario: A record already has image_vector_clip=True (old CLIP data in Qdrant)
+    and needs Jina vectors added. The existing CLIP vector should be preserved.
 
     Tests:
-    - Record with existing CLIP vector (image_vector_clip=True)
-    - When processing to add Jina vector
-    - Existing CLIP vector is fetched from Qdrant and preserved
-    - Final point has both vectors
+    - Record with existing image_vector_clip=True is not recalculated
+    - Existing Qdrant vectors are fetched and merged
+    - Final point has all vectors (old CLIP preserved + new Jina calculated)
     """
 
-    # Create a record that already has CLIP vector calculated
+    # Record that already has CLIP vector (from before CLIP was deprecated)
     transformed = TransformedData.objects.create(
         museum_slug="test",
         object_number="TEST_MERGE_001",
@@ -635,17 +590,11 @@ def test_vector_merging_preserves_existing_vectors():
         image_loaded=True,
         image_load_failed=False,
         embedding_load_failed=False,
-        image_vector_clip=True,  # Already has CLIP vector
+        image_vector_clip=True,  # Already has CLIP vector from before
         image_vector_jina=False,  # Needs Jina vector
     )
 
-    # Existing CLIP vector in Qdrant
-    existing_clip_vector = [0.5] * 768
-
-    # Setup mocks
-    mock_clip_embedder = Mock()
-    # CLIP embedder should NOT be called since image_vector_clip=True
-    mock_clip_embedder.generate_thumbnail_embedding.return_value = [0.1] * 768
+    existing_clip_vector = [0.5] * 768  # Non-zero (was calculated before deprecation)
 
     mock_jina_embedder = Mock()
     fake_jina_embedding = [0.3] * 256
@@ -658,7 +607,7 @@ def test_vector_merging_preserves_existing_vectors():
     mock_qdrant_client.collection_exists.return_value = True
     mock_qdrant_service.qdrant_client = mock_qdrant_client
 
-    # Return existing vectors from Qdrant (simulating existing CLIP vector)
+    # Return existing vectors from Qdrant (real CLIP vectors from before deprecation)
     mock_qdrant_service.get_point_vectors.return_value = {
         "image_clip": existing_clip_vector,
         "text_clip": [0.0] * 768,
@@ -668,11 +617,9 @@ def test_vector_merging_preserves_existing_vectors():
 
     service = EmbeddingLoadService(
         collection_name="test_collection",
-        clip_embedder=mock_clip_embedder,
         qdrant_service=mock_qdrant_service,
     )
 
-    # Mock the Jina embedder at the source location
     with patch(
         "etl.services.embedding_load_service.get_jina_embedder",
         return_value=mock_jina_embedder,
@@ -681,23 +628,18 @@ def test_vector_merging_preserves_existing_vectors():
 
     assert status == "success", "Processing should succeed"
 
-    # CLIP embedder should NOT be called (already calculated)
-    mock_clip_embedder.generate_thumbnail_embedding.assert_not_called()
-
-    # Jina embedder should be called for both image and text
+    # Jina embedders should be called for missing vectors
     mock_jina_embedder.generate_image_embedding.assert_called_once()
     mock_jina_embedder.generate_text_embedding.assert_called_once()
 
-    # Qdrant get_point_vectors should be called (to fetch existing vectors)
+    # get_point_vectors should be called (record has at least one vector flag=True)
     mock_qdrant_service.get_point_vectors.assert_called_once()
 
-    # Verify Qdrant upload
     mock_qdrant_service.upload_points.assert_called_once()
     upload_call_args = mock_qdrant_service.upload_points.call_args
     points = upload_call_args[0][0]
     point = points[0]
 
-    # Verify vectors - CLIP should be preserved, Jina should be new
     vectors = point.vector
     assert vectors["image_clip"] == existing_clip_vector, (
         "Existing CLIP vector should be preserved"
@@ -709,7 +651,6 @@ def test_vector_merging_preserves_existing_vectors():
         "Jina text vector should be newly calculated"
     )
 
-    # Verify Jina flags were updated
     transformed.refresh_from_db()
     assert transformed.image_vector_clip is True, (
         "image_vector_clip should remain True"
@@ -728,11 +669,10 @@ def test_new_record_does_not_fetch_existing_vectors():
     """
     Test that new records (all vector flags False) don't make unnecessary Qdrant calls.
 
-    This is an optimization test - we only fetch existing vectors when we know
-    the point likely exists (at least one vector flag is True).
+    This is an optimization - we only fetch existing vectors when we know the point
+    likely exists (at least one vector flag is True).
     """
 
-    # Create a completely new record
     transformed = TransformedData.objects.create(
         museum_slug="test",
         object_number="TEST_NEW_001",
@@ -747,10 +687,6 @@ def test_new_record_does_not_fetch_existing_vectors():
         image_vector_jina=False,
     )
 
-    # Setup mocks
-    mock_clip_embedder = Mock()
-    mock_clip_embedder.generate_thumbnail_embedding.return_value = [0.1] * 768
-
     mock_jina_embedder = Mock()
     mock_jina_embedder.generate_image_embedding.return_value = [0.2] * 256
     mock_jina_embedder.generate_text_embedding.return_value = [0.3] * 256
@@ -762,7 +698,6 @@ def test_new_record_does_not_fetch_existing_vectors():
 
     service = EmbeddingLoadService(
         collection_name="test_collection",
-        clip_embedder=mock_clip_embedder,
         qdrant_service=mock_qdrant_service,
     )
 
@@ -774,10 +709,8 @@ def test_new_record_does_not_fetch_existing_vectors():
 
     assert status == "success", "Processing should succeed"
 
-    # get_point_vectors should NOT be called for new records
+    # get_point_vectors should NOT be called for new records (optimization)
     mock_qdrant_service.get_point_vectors.assert_not_called()
 
-    # All embedders should be called
-    mock_clip_embedder.generate_thumbnail_embedding.assert_called_once()
     mock_jina_embedder.generate_image_embedding.assert_called_once()
     mock_jina_embedder.generate_text_embedding.assert_called_once()

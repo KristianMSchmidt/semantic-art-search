@@ -16,10 +16,10 @@ from artsearch.src.services.search_service import handle_search
 from artsearch.src.utils.get_museums import get_museum_slugs
 from artsearch.models import ExampleQuery
 from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
-from artsearch.src.constants.embedding_models import (
-    EmbeddingModelChoice,
-    validate_embedding_model,
-    EMBEDDING_MODELS,
+from artsearch.src.constants.search_modes import (
+    SearchMode,
+    validate_search_mode,
+    SEARCH_MODES,
 )
 from artsearch.src.constants.search import MAX_QUERY_LENGTH, DEFAULT_WORK_TYPE_FILTER
 
@@ -63,9 +63,9 @@ class SearchParams:
         return retrieve_offset(self.request)
 
     @property
-    def selected_embedding_model(self) -> EmbeddingModelChoice:
+    def selected_search_mode(self) -> SearchMode:
         model = self.request.GET.get("model", "auto")
-        return validate_embedding_model(model)
+        return validate_search_mode(model)
 
     @property
     def seed(self) -> str:
@@ -221,7 +221,7 @@ def make_url_with_params(
     offset: int | None = None,
     selected_work_types: list[str] = [],
     selected_museums: list[str] = [],
-    embedding_model: EmbeddingModelChoice | None = None,
+    embedding_model: SearchMode | None = None,
     seed: str | None = None,
 ) -> str:
     """Make a URL with query parameters for pagination and filtering."""
@@ -248,7 +248,7 @@ def make_urls_with_params(
     offset: int,
     selected_work_types: list[str],
     selected_museums: list[str],
-    embedding_model: EmbeddingModelChoice | None = None,
+    embedding_model: SearchMode | None = None,
     seed: str | None = None,
 ) -> dict[str, str]:
     """Make URLs with query parameters for pagination and filtering"""
@@ -265,7 +265,7 @@ def make_urls_with_params(
     }
 
 
-def build_search_context(params: SearchParams, embedding_model: EmbeddingModelChoice = "auto") -> dict[str, Any]:
+def build_search_context(params: SearchParams, search_mode: SearchMode = "auto") -> dict[str, Any]:
     """
     Build the main context for the search view.
     """
@@ -281,7 +281,7 @@ def build_search_context(params: SearchParams, embedding_model: EmbeddingModelCh
         limit=limit,
         museums=params.selected_museums,
         work_types=params.selected_work_types,
-        embedding_model=embedding_model,
+        embedding_model=search_mode,
         seed=params.seed if is_browse_mode else None,
     )
 
@@ -292,7 +292,7 @@ def build_search_context(params: SearchParams, embedding_model: EmbeddingModelCh
         offset=offset + limit,
         selected_museums=params.selected_museums,
         selected_work_types=params.selected_work_types,
-        embedding_model=params.selected_embedding_model,
+        embedding_model=params.selected_search_mode,
         seed=params.seed if is_browse_mode else None,
     )
 
@@ -301,8 +301,8 @@ def build_search_context(params: SearchParams, embedding_model: EmbeddingModelCh
         "query": params.query,
         "is_first_batch": offset == 0,
         "urls": urls,
-        "selected_model": embedding_model,
-        "embedding_models": EMBEDDING_MODELS,
+        "selected_model": search_mode,
+        "search_modes": SEARCH_MODES,
     }
 
 

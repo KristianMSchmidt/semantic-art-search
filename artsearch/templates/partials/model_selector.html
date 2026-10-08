@@ -3,7 +3,7 @@
          open: false,
          selectedModel: '{{ selected_model }}',
          getLabel() {
-             const labels = { auto: 'Auto', clip: 'OpenAI CLIP', jina: 'Jina CLIP v2' };
+             const labels = { auto: 'Auto', image: 'Visual', title: 'By title' };
              return labels[this.selectedModel] || 'Auto';
          },
          selectModel(value) {
@@ -21,7 +21,7 @@
     <button type="button"
             @click="open = true"
             class="inline-flex items-center gap-1.5 px-3 py-1 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
-        <span>Model:</span>
+        <span>Mode:</span>
         <span class="font-medium text-gray-800" x-text="getLabel()"></span>
         <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -55,7 +55,7 @@
 
         <!-- Header -->
         <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <h2 class="text-lg font-semibold text-gray-900">Search Model</h2>
+            <h2 class="text-lg font-semibold text-gray-900">Search Mode</h2>
             <button type="button"
                     @click="open = false"
                     class="text-gray-400 hover:text-gray-600 transition">
@@ -67,7 +67,7 @@
 
         <!-- Content -->
         <div class="p-4 space-y-2">
-            {% for model in embedding_models %}
+            {% for model in search_modes %}
             <button type="button"
                     @click="selectModel('{{ model.value }}')"
                     :class="selectedModel === '{{ model.value }}'

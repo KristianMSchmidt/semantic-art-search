@@ -19,7 +19,7 @@ from artsearch.views.log_utils import log_search_query
 from artsearch.src.services.artwork_description.service import generate_description
 from artsearch.src.cache_registry import clear_all_caches, register_cache
 from artsearch.src.config import config
-from artsearch.src.constants.embedding_models import EMBEDDING_MODELS
+from artsearch.src.constants.search_modes import SEARCH_MODES
 from artsearch.src.constants.ui import EXAMPLE_QUERY_COUNTS
 from artsearch.models import ArtMapData
 
@@ -49,8 +49,8 @@ def home_view(request: HttpRequest) -> HttpResponse:
     queries = get_active_example_queries()
     shuffled_queries = random.sample(queries, len(queries))
     context = build_home_context(params=params, example_queries=shuffled_queries)
-    context["embedding_models"] = EMBEDDING_MODELS
-    context["selected_model"] = params.selected_embedding_model
+    context["search_modes"] = SEARCH_MODES
+    context["selected_model"] = params.selected_search_mode
     context["example_query_counts"] = EXAMPLE_QUERY_COUNTS
 
     return render(request, "home.html", context)
@@ -85,7 +85,7 @@ def get_artworks_view(request: HttpRequest) -> HttpResponse:
     if params.offset == 0:
         log_search_query(params)
     context = build_search_context(
-        params, embedding_model=params.selected_embedding_model
+        params, search_mode=params.selected_search_mode
     )
     return render(request, "partials/artwork_response.html", context)
 

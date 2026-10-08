@@ -12,9 +12,8 @@ from artsearch.src.services.museum_stats_service import (
 )
 from artsearch.src.utils.get_museums import get_museum_full_name, get_museum_slugs
 from artsearch.src.config import config
-from artsearch.src.constants.embedding_models import (
-    resolve_embedding_model,
-    EmbeddingModelChoice,
+from artsearch.src.constants.search_modes import (
+    SearchMode,
 )
 
 
@@ -117,18 +116,12 @@ def _execute_query_search(
     museum_prefilter: list[str] | None,
     work_type_prefilter: list[str] | None,
     all_museum_slugs: list[str],
-    embedding_model: EmbeddingModelChoice,
+    embedding_model: SearchMode,
 ) -> list:
     """Execute a text or similarity search for the given query."""
     qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
 
     query_analysis = analyze_query(query, all_museum_slugs)
-
-    resolved_model = resolve_embedding_model(
-        embedding_model,
-        is_similarity_search=query_analysis.is_find_similar_query,
-        query=query,
-    )
 
     search_arguments = SearchFunctionArguments(
         query=query,
@@ -141,12 +134,8 @@ def _execute_query_search(
     )
 
     if query_analysis.is_find_similar_query:
-        return qdrant_service.search_similar_images(
-            search_arguments, embedding_model=resolved_model
-        )
-    return qdrant_service.search_text(
-        search_arguments, embedding_model=resolved_model
-    )
+        return qdrant_service.search_similar_images(search_arguments)
+    return qdrant_service.search_text(search_arguments, embedding_model=embedding_model)
 
 
 def handle_search(
@@ -155,7 +144,7 @@ def handle_search(
     limit: int,
     museums: list[str] | None = None,
     work_types: list[str] | None = None,
-    embedding_model: EmbeddingModelChoice = "auto",
+    embedding_model: SearchMode = "auto",
     seed: str | None = None,
 ) -> SearchResult:
     """

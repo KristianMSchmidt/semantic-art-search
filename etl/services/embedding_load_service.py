@@ -9,7 +9,6 @@ import requests
 from etl.models import TransformedData
 from etl.services.bucket_service import get_bucket_image_url
 from etl.utils import generate_uuid5
-from artsearch.src.services.clip_embedder import get_clip_embedder
 from artsearch.src.services.jina_embedder import get_jina_embedder
 from artsearch.src.services.qdrant_service import QdrantService
 from artsearch.src.config import config
@@ -91,7 +90,9 @@ def is_retryable_error(error: Exception) -> bool:
 
 
 # Active vector types configuration - easy to expand later
-ACTIVE_VECTOR_TYPES = ["image_clip", "image_jina", "text_jina"]
+# image_clip is intentionally excluded: CLIP is no longer used.
+# New artworks receive zero-vectors for image_clip to preserve the Qdrant schema.
+ACTIVE_VECTOR_TYPES = ["image_jina", "text_jina"]
 
 # Vector type to database field mapping
 VECTOR_TYPE_TO_FIELD = {
@@ -123,11 +124,9 @@ class EmbeddingLoadService:
     def __init__(
         self,
         collection_name: str | None = None,
-        clip_embedder=None,
         qdrant_service=None,
     ):
         self.collection_name = collection_name or config.qdrant_collection_name_etl
-        self.clip_embedder = clip_embedder or get_clip_embedder()
         self.qdrant_service = qdrant_service or QdrantService(
             collection_name=self.collection_name
         )
@@ -331,19 +330,7 @@ class EmbeddingLoadService:
         Raises:
             NotImplementedError: If vector type calculation is not yet implemented
         """
-        if vector_type == "image_clip":
-            # Get image URL from ETL bucket
-            bucket_url = get_bucket_image_url(
-                record.museum_slug, record.object_number, use_etl_bucket=True
-            )
-            embedding = self.clip_embedder.generate_thumbnail_embedding(
-                thumbnail_url=bucket_url, object_number=record.object_number
-            )
-            if embedding is None:
-                raise ValueError(f"Failed to generate {vector_type} embedding")
-            return embedding
-
-        elif vector_type == "text_clip":
+        if vector_type == "text_clip":
             raise NotImplementedError(
                 "text_clip vector calculation not yet implemented"
             )
@@ -426,13 +413,19 @@ class EmbeddingLoadService:
                 # Upload to Qdrant
                 self.qdrant_service.upload_points([point])
 
-                # Update record status for calculated vector types
+                # Update record status for calculated vector types.
+                # Also mark image_vector_clip=True since new records receive
+                # intentional zero-vectors for the deprecated CLIP vector.
                 with transaction.atomic():
                     update_fields = []
                     for vector_type in vectors_to_calculate:
                         field_name = VECTOR_TYPE_TO_FIELD[vector_type]
                         setattr(record, field_name, True)
                         update_fields.append(field_name)
+
+                    if not record.image_vector_clip:
+                        record.image_vector_clip = True
+                        update_fields.append("image_vector_clip")
 
                     record.save(update_fields=update_fields)
 

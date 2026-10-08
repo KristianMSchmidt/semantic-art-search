@@ -5,4 +5,4 @@ MAX_QUERY_LENGTH = 500
 #   - Single type: ["painting"]
 #   - Multiple types: ["painting", "drawing"]
 #   - All types: None (no filtering)
-DEFAULT_WORK_TYPE_FILTER: list[str] | None = ["painting"]
+DEFAULT_WORK_TYPE_FILTER: list[str] | None = None

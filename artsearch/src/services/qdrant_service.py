@@ -9,13 +9,12 @@ from artsearch.src.utils.qdrant_formatting import (
     format_payloads,
     format_hits,
 )
-from artsearch.src.services.clip_embedder import get_clip_embedder
 from artsearch.src.services.jina_embedder import get_jina_embedder
 from artsearch.src.utils.get_qdrant_client import get_qdrant_client
 from artsearch.src.config import config
-from artsearch.src.constants.embedding_models import (
-    MODEL_TO_VECTOR_NAME,
-    ResolvedEmbeddingModel,
+from artsearch.src.constants.search_modes import (
+    SEARCH_MODE_TO_VECTOR_NAME,
+    SearchMode,
 )
 
 logger = logging.getLogger(__name__)
@@ -69,23 +68,13 @@ class QdrantService:
             collection_name=self.collection_name,
         )
 
-    def _search(
+    def _build_filter(
         self,
-        query_vector: list[float],
-        limit: int,
-        offset: int,
         work_types: list[str] | None,
         museums: list[str] | None,
         object_number: str | None,
-        embedding_model: ResolvedEmbeddingModel = "clip",
-    ) -> list[dict]:
-        """
-        Perform search in qdrant collection based on vector similarity.
-        If object_number is provided, it will be included in the results regardless of the other filters.
-        Note that in qdrant 'should' means 'or' & 'must' means 'and'.
-        """
-        start_time = time.time()
-
+    ) -> models.Filter:
+        """Build Qdrant filter from work type, museum, and object number constraints."""
         standard_conditions = []
         if museums is not None:
             standard_conditions.append(
@@ -103,7 +92,7 @@ class QdrantService:
             )
 
         if object_number:
-            query_filter = models.Filter(
+            return models.Filter(
                 should=[
                     # Always include this object number
                     models.Filter(
@@ -118,21 +107,29 @@ class QdrantService:
                     models.Filter(must=standard_conditions),
                 ]
             )
-        else:
-            query_filter = models.Filter(must=standard_conditions)
+        return models.Filter(must=standard_conditions)
+
+    def _search(
+        self,
+        query_vector: list[float],
+        limit: int,
+        offset: int,
+        work_types: list[str] | None,
+        museums: list[str] | None,
+        object_number: str | None,
+        vector_name: str,
+    ) -> list[dict]:
+        """
+        Perform search in qdrant collection based on vector similarity.
+        If object_number is provided, it will be included in the results regardless of the other filters.
+        Note that in qdrant 'should' means 'or' & 'must' means 'and'.
+        """
+        start_time = time.time()
+
+        query_filter = self._build_filter(work_types, museums, object_number)
 
         # exact=True is brute force search (ensures full recall)
-        # This is slower, but okay for smaller collections
-        # If speed becomes an issue, we can instead try
-        # models.SearchParams(hnsw_ef=128) # Try 128, 256, or 512...
-        # for a compromise between speed and recall.
-        # An index on work_types would speed up
-        # the payload filtering (happens before vector search),
-        # but seems not to be needed yet.
         search_params = models.SearchParams(exact=True)
-
-        # Determine which vector to search based on embedding model
-        vector_name = MODEL_TO_VECTOR_NAME[embedding_model]
 
         qdrant_start = time.time()
         response = self.qdrant_client.query_points(
@@ -166,61 +163,99 @@ class QdrantService:
 
         return formatted
 
+    def _search_hybrid(
+        self,
+        query_vector: list[float],
+        limit: int,
+        offset: int,
+        work_types: list[str] | None,
+        museums: list[str] | None,
+        object_number: str | None,
+        prefetch_limit: int = 100,
+    ) -> list[dict]:
+        """
+        Perform hybrid search using both image_jina and text_jina vectors,
+        fused with Reciprocal Rank Fusion (RRF).
+        """
+        start_time = time.time()
+
+        query_filter = self._build_filter(work_types, museums, object_number)
+
+        qdrant_start = time.time()
+        response = self.qdrant_client.query_points(
+            collection_name=self.collection_name,
+            prefetch=[
+                models.Prefetch(
+                    query=query_vector,
+                    using="image_jina",
+                    limit=prefetch_limit,
+                    filter=query_filter,
+                ),
+                models.Prefetch(
+                    query=query_vector,
+                    using="text_jina",
+                    limit=prefetch_limit,
+                    filter=query_filter,
+                ),
+            ],
+            query=models.FusionQuery(fusion=models.Fusion.RRF),
+            limit=limit,
+            offset=offset,
+        )
+        qdrant_time = (time.time() - qdrant_start) * 1000
+
+        logger.info(
+            f"[TIMING] Qdrant hybrid search (RRF) - "
+            f"limit={limit}, offset={offset}, "
+            f"museums={museums}, work_types={work_types}: {qdrant_time:.2f}ms"
+        )
+
+        format_start = time.time()
+        formatted = format_hits(response.points)
+        format_time = (time.time() - format_start) * 1000
+
+        total_time = (time.time() - start_time) * 1000
+        logger.info(
+            f"[TIMING] _search_hybrid total: {total_time:.2f}ms "
+            f"(qdrant: {qdrant_time:.2f}ms, format: {format_time:.2f}ms)"
+        )
+
+        return formatted
+
     def search_text(
         self,
         search_function_args: SearchFunctionArguments,
-        embedding_model: ResolvedEmbeddingModel = "clip",
+        embedding_model: SearchMode = "auto",
     ) -> list[dict]:
-        """Search for related artworks based on a text query.
+        """Search for related artworks based on a text query."""
 
-        If Jina embedding fails, silently falls back to CLIP.
-        """
-
-        # Unpack the search function arguments
         query: TextQuery = search_function_args.query
         limit = search_function_args.limit
         offset = search_function_args.offset
         work_types = search_function_args.work_type_prefilter
         museums = search_function_args.museum_prefilter
 
-        # Choose embedder based on model
-        actual_model = embedding_model
         embedding_start = time.time()
-        if embedding_model == "jina":
-            try:
-                query_vector = get_jina_embedder().generate_text_embedding(query)
-            except Exception as e:
-                logger.warning(f"Jina embedding failed, falling back to CLIP: {e}")
-                query_vector = get_clip_embedder().generate_text_embedding(query)
-                actual_model = "clip"  # Update for correct Qdrant collection
-        else:
-            query_vector = get_clip_embedder().generate_text_embedding(query)
+        query_vector = get_jina_embedder().generate_text_embedding(query)
         embedding_time = (time.time() - embedding_start) * 1000
 
-        logger.info(
-            f"[TIMING] search_text - {actual_model.upper()} text embedding: {embedding_time:.2f}ms"
-        )
+        logger.info(f"[TIMING] search_text - Jina text embedding: {embedding_time:.2f}ms")
 
-        return self._search(
-            query_vector,
-            limit,
-            offset,
-            work_types,
-            museums,
-            object_number=None,
-            embedding_model=actual_model,
-        )
+        if embedding_model == "auto":
+            return self._search_hybrid(query_vector, limit, offset, work_types, museums, object_number=None)
+
+        vector_name = SEARCH_MODE_TO_VECTOR_NAME[embedding_model]
+        return self._search(query_vector, limit, offset, work_types, museums, object_number=None, vector_name=vector_name)
 
     def search_similar_images(
         self,
         search_function_args: SearchFunctionArguments,
-        embedding_model: ResolvedEmbeddingModel = "clip",
     ) -> list[dict]:
         """
-        Search for artworks similar to the given target object based on vector embedding similarity.
+        Search for artworks similar to the given target object based on visual embedding similarity.
+        Always uses image_jina vectors.
         """
 
-        # Unpack the search function arguments
         limit = search_function_args.limit
         offset = search_function_args.offset
         work_types = search_function_args.work_type_prefilter
@@ -229,7 +264,6 @@ class QdrantService:
         object_number = search_function_args.object_number
         object_museum = search_function_args.object_museum
 
-        # Fetch vector target object from Qdrant collection
         start_time = time.time()
         assert object_number is not None, (
             "object_number must be provided for similarity search."
@@ -249,32 +283,25 @@ class QdrantService:
             raise ValueError("No vector found for the given object number and museum.")
         vec = items[0].vector
 
-        # Determine which vector name to use based on embedding model
-        vector_name = MODEL_TO_VECTOR_NAME[embedding_model]
-
         # Qdrant may return either a single vector (list[float]) or a dict of named vectors.
         if isinstance(vec, dict):
             named_vecs = cast(dict[str, list[float]], vec)
-            target_vec = named_vecs.get(vector_name)
+            target_vec = named_vecs.get("image_jina")
             if target_vec is None:
-                raise ValueError(
-                    f"No '{vector_name}' vector found in the point's named vectors."
-                )
+                raise ValueError("No 'image_jina' vector found in the point's named vectors.")
             query_vector = cast(list[float], target_vec)
         else:
             query_vector = cast(list[float], vec)
 
-        results = self._search(
+        return self._search(
             query_vector,
             limit,
             offset,
             work_types,
             museums,
             object_number,
-            embedding_model=embedding_model,
+            vector_name="image_jina",
         )
-
-        return results
 
     def get_items_by_ids(
         self,

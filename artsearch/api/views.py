@@ -4,7 +4,7 @@ from django.http import JsonResponse
 from django_ratelimit.decorators import ratelimit
 
 from artsearch.src.config import config
-from artsearch.src.constants.embedding_models import validate_embedding_model
+from artsearch.src.constants.search_modes import validate_search_mode
 from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
 from artsearch.src.constants.search import MAX_QUERY_LENGTH
 from artsearch.src.constants.work_types import SEARCHABLE_WORK_TYPES
@@ -52,7 +52,7 @@ def _parse_search_params(request) -> dict:
         "limit": limit,
         "museums": request.GET.getlist("museums") or None,
         "work_types": request.GET.getlist("work_types") or None,
-        "embedding_model": validate_embedding_model(request.GET.get("model", "auto")),
+        "embedding_model": validate_search_mode(request.GET.get("model", "auto")),
     }
 
 
