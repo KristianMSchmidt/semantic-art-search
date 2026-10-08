@@ -61,6 +61,16 @@ Run `make help` for all commands.
 
 See `.claude/rules/etl-pipeline.md` for ETL command patterns (`*-force`, `*-retry-failed`, etc.).
 
+### Local Qdrant Data
+
+Local search is only meaningful if the dev Qdrant collection holds real prod vectors. `make qdrant-check-vectors` reports zero-norm vectors per museum. To refresh dev from prod (prod Qdrant has no published port, so this goes via a snapshot file):
+
+1. On the server: `make prod_qdrant-snapshot-export` (saves to `qdrant_snapshots/`)
+2. Locally: `scp` the file into `qdrant_snapshots/` (the export prints the command)
+3. Locally: `make sync-qdrant-local` (replaces the dev collection, then runs the vector check)
+
+See `QDRANT_MANAGEMENT.md` for details.
+
 ## Search Features
 
 ### Query Types
