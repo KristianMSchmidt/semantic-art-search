@@ -9,7 +9,7 @@ SEARCHABLE_WORK_TYPES = set(
         "bust",
         "pastel",
         "aquatint",
-        "guache",
+        "gouache",
         "miniature",
     ]
 )

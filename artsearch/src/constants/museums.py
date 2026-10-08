@@ -34,7 +34,7 @@ MUSEUM_SLUG_TO_INDEX = {slug: i for i, slug in enumerate(MUSEUM_SLUGS)}
 # Art map work type labels and lookup
 WORK_TYPE_LABELS = [
     "painting", "print", "drawing", "watercolor", "design",
-    "bust", "pastel", "aquatint", "guache", "miniature", "other",
+    "bust", "pastel", "aquatint", "gouache", "miniature", "other",
 ]
 WORK_TYPE_TO_INDEX = {wt: i for i, wt in enumerate(WORK_TYPE_LABELS)}
 OTHER_WORK_TYPE_INDEX = WORK_TYPE_LABELS.index("other")
