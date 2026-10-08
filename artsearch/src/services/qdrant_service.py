@@ -19,6 +19,10 @@ from artsearch.src.constants.search_modes import (
 
 logger = logging.getLogger(__name__)
 
+# RRF rank constant for hybrid (auto) search: score = sum(1 / (k + rank)).
+# Low k favours each list's top hits (interleaving); high k favours artworks both lists agree on.
+RRF_K = 20
+
 
 # Type aliases
 TextQuery = str
@@ -172,6 +176,7 @@ class QdrantService:
         museums: list[str] | None,
         object_number: str | None,
         prefetch_limit: int = 100,
+        rrf_k: int = RRF_K,
     ) -> list[dict]:
         """
         Perform hybrid search using both image_jina and text_jina vectors,
@@ -198,14 +203,14 @@ class QdrantService:
                     filter=query_filter,
                 ),
             ],
-            query=models.FusionQuery(fusion=models.Fusion.RRF),
+            query=models.RrfQuery(rrf=models.Rrf(k=rrf_k)),
             limit=limit,
             offset=offset,
         )
         qdrant_time = (time.time() - qdrant_start) * 1000
 
         logger.info(
-            f"[TIMING] Qdrant hybrid search (RRF) - "
+            f"[TIMING] Qdrant hybrid search (RRF k={rrf_k}) - "
             f"limit={limit}, offset={offset}, "
             f"museums={museums}, work_types={work_types}: {qdrant_time:.2f}ms"
         )
