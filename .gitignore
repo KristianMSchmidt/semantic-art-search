@@ -15,3 +15,4 @@ staticfiles
 postgres_data
 .playwright-mcp/
 blogpost.md
+qdrant_snapshots

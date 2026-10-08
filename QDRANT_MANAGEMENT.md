@@ -52,22 +52,54 @@ The Web UI lets you browse data, test queries, and debug issues.
 
 ### On Production Server
 
-**Step 1: From your LOCAL machine, create SSH tunnel:**
-```bash
-ssh -L 6333:localhost:6333 kristian@your-server-address
-```
+Qdrant has no published port (internal Docker network only), so the tunnel
+must target the container's IP rather than `localhost`.
 
-**Step 2: Open in browser:**
-```
-http://localhost:6333/dashboard
-```
-
-Keep the SSH connection open while using the UI.
-
-**Shortcut to see instructions:**
+**Step 1: On the server, print the tunnel command:**
 ```bash
 make prod_qdrant-ui-tunnel
 ```
+
+**Step 2: From your LOCAL machine, run the printed command**, e.g.:
+```bash
+ssh -L 6335:172.18.0.2:6333 kristian@your-server-address
+```
+
+**Step 3: Open in browser:**
+```
+http://localhost:6335/dashboard
+```
+
+Local port 6335 avoids clashing with the dev Qdrant on 6333. Keep the SSH
+connection open while using the UI.
+
+---
+
+## 🔄 Syncing Prod Data to Dev
+
+The dev collection should contain real prod vectors, otherwise local search
+results are meaningless. Check with:
+```bash
+make qdrant-check-vectors
+```
+
+To refresh dev from prod:
+```bash
+# 1. On the server: create a snapshot and save it to qdrant_snapshots/
+make prod_qdrant-snapshot-export
+
+# 2. Locally: copy the snapshot (the export prints the exact command)
+scp your-server-address:/path/to/repo/qdrant_snapshots/<name>.snapshot qdrant_snapshots/
+
+# 3. Locally: replace the dev collection and check vectors
+make sync-qdrant-local                      # newest file in qdrant_snapshots/
+make sync-qdrant-local SNAPSHOT=path/to/file.snapshot
+```
+
+The export deletes the snapshot from Qdrant's own storage after downloading,
+but the copy in the server's `qdrant_snapshots/` stays until you remove it.
+Snapshots restore only between compatible Qdrant versions; both compose files
+use `qdrant/qdrant:latest`, so pull the image if a restore fails.
 
 ---
 
@@ -146,7 +178,8 @@ docker compose -f docker-compose.prod.yml exec web curl -s \
 **Step 2: Download to your local machine**
 ```bash
 # Replace SNAPSHOT_NAME with actual name from step 1
-docker compose -f docker-compose.prod.yml exec web curl -s \
+# -T is required: without it the TTY corrupts the binary output
+docker compose -f docker-compose.prod.yml exec -T web curl -s \
   http://qdrant:6333/collections/artworks_prod_v1/snapshots/SNAPSHOT_NAME \
   > qdrant-backup-$(date +%Y%m%d).snapshot
 ```
@@ -327,7 +360,7 @@ make prod_qdrant-info | grep -A 10 payload_schema
 ## 🔐 Security Notes
 
 - Qdrant is **NOT exposed** to the internet (internal Docker network only)
-- Web UI only accessible via SSH tunnel or from server localhost
+- Web UI only accessible via SSH tunnel to the container IP
 - No authentication required for internal access
 - Data persists in Docker volume: `live-app_qdrant_data`
 
@@ -350,6 +383,10 @@ make prod_qdrant-stats
 
 # Access Web UI
 make prod_qdrant-ui-tunnel
+
+# Refresh dev from prod
+make prod_qdrant-snapshot-export   # on server, then scp
+make sync-qdrant-local
 
 # Create backup
 make prod_qdrant-snapshot

@@ -32,10 +32,10 @@ These two components are **genuinely interdependent by design**:
 
 | Category | ETL Files | Imports from ArtsSearch |
 |----------|-----------|------------------------|
-| **Config** | `bucket_service.py`, `embedding_load_service.py`, `copy_bucket.py`, `load_artwork_stats.py`, `migrate_qdrant_cloud.py` | `artsearch.src.config` |
-| **Services** | `embedding_load_service.py`, `update_payload.py` | `QdrantService`, `get_clip_embedder`, `get_jina_embedder` |
-| **Constants** | `pipeline/transform/utils.py` | `SEARCHABLE_WORK_TYPES`, `get_standardized_work_type` |
-| **Museum Utils** | `models.py`, `extract.py`, `factory.py` | `get_museum_slugs`, `get_museum_page_url`, `get_museum_api_url` |
+| **Config** | `bucket_service.py`, `embedding_load_service.py`, `copy_bucket.py`, `load_artwork_stats.py`, `check_qdrant_vectors.py` | `artsearch.src.config` |
+| **Services** | `embedding_load_service.py`, `update_payload.py`, `check_qdrant_vectors.py` | `QdrantService`, `get_clip_embedder`, `get_jina_embedder`, `get_qdrant_client` |
+| **Constants** | `pipeline/transform/utils.py`, `check_qdrant_vectors.py` | `SEARCHABLE_WORK_TYPES`, `get_standardized_work_type`, `SEARCH_MODE_TO_VECTOR_NAME` |
+| **Museum Utils** | `models.py`, `extract.py`, `factory.py`, `check_qdrant_vectors.py` | `get_museum_slugs`, `get_museum_page_url`, `get_museum_api_url` |
 | **Models** | `load_artwork_stats.py` | `ArtworkStats` |
 
 ### ArtsSearch → ETL (4 files)
