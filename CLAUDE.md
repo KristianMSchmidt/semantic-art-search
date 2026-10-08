@@ -89,7 +89,7 @@ See `QDRANT_MANAGEMENT.md` for details.
 ### Search Mode Selection
 
 Users select via radio button UI:
-- **Auto**: Hybrid search combining visual and title signals via Qdrant RRF fusion
+- **Auto**: Hybrid search combining visual and title signals via Qdrant RRF fusion (`RRF_K` in `qdrant_service.py`; k=20 favours artworks both signals agree on while keeping each mode's top hits)
 - **Visual** (`image`): Searches `image_jina` vectors — finds visually similar artworks
 - **By title** (`title`): Searches `text_jina` vectors — finds artworks by title/description match
 
