@@ -221,7 +221,7 @@ def make_url_with_params(
     offset: int | None = None,
     selected_work_types: list[str] = [],
     selected_museums: list[str] = [],
-    embedding_model: SearchMode | None = None,
+    search_mode: SearchMode | None = None,
     seed: str | None = None,
 ) -> str:
     """Make a URL with query parameters for pagination and filtering."""
@@ -234,8 +234,8 @@ def make_url_with_params(
         query_params["work_types"] = selected_work_types
     if selected_museums:
         query_params["museums"] = selected_museums
-    if embedding_model and embedding_model != "auto":
-        query_params["model"] = embedding_model
+    if search_mode and search_mode != "auto":
+        query_params["model"] = search_mode
     if seed:
         query_params["seed"] = seed
     if not query_params:
@@ -248,7 +248,7 @@ def make_urls_with_params(
     offset: int,
     selected_work_types: list[str],
     selected_museums: list[str],
-    embedding_model: SearchMode | None = None,
+    search_mode: SearchMode | None = None,
     seed: str | None = None,
 ) -> dict[str, str]:
     """Make URLs with query parameters for pagination and filtering"""
@@ -259,7 +259,7 @@ def make_urls_with_params(
             offset=offset,
             selected_work_types=selected_work_types,
             selected_museums=selected_museums,
-            embedding_model=embedding_model,
+            search_mode=search_mode,
             seed=seed,
         ),
     }
@@ -281,7 +281,7 @@ def build_search_context(params: SearchParams, search_mode: SearchMode = "auto")
         limit=limit,
         museums=params.selected_museums,
         work_types=params.selected_work_types,
-        embedding_model=search_mode,
+        search_mode=search_mode,
         seed=params.seed if is_browse_mode else None,
     )
 
@@ -292,7 +292,7 @@ def build_search_context(params: SearchParams, search_mode: SearchMode = "auto")
         offset=offset + limit,
         selected_museums=params.selected_museums,
         selected_work_types=params.selected_work_types,
-        embedding_model=params.selected_search_mode,
+        search_mode=params.selected_search_mode,
         seed=params.seed if is_browse_mode else None,
     )
 

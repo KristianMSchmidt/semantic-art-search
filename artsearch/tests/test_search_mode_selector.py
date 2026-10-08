@@ -116,11 +116,11 @@ def test_search_params_selected_search_mode_invalid_defaults_to_auto(
 
 @pytest.mark.unit
 def test_make_url_with_params_excludes_model_when_auto():
-    """Test that URLs with embedding_model='auto' don't include model param."""
+    """Test that URLs with search_mode='auto' don't include model param."""
     url = make_url_with_params(
         url_name="get-artworks",
         query="test",
-        embedding_model="auto",
+        search_mode="auto",
     )
     assert "model=" not in url
     assert "query=test" in url
@@ -135,11 +135,11 @@ def test_make_url_with_params_excludes_model_when_auto():
     ],
 )
 def test_make_url_with_params_includes_model_when_not_auto(model, expected_param):
-    """Test that URLs with non-auto embedding_model include the model param."""
+    """Test that URLs with non-auto search_mode include the model param."""
     url = make_url_with_params(
         url_name="get-artworks",
         query="test",
-        embedding_model=model,
+        search_mode=model,
     )
     assert expected_param in url
 
@@ -202,7 +202,7 @@ def test_get_artworks_view_auto_passes_auto_to_qdrant(mock_qdrant_service):
 
     mock_qdrant_service.search_text.assert_called_once()
     _, kwargs = mock_qdrant_service.search_text.call_args
-    assert kwargs["embedding_model"] == "auto"
+    assert kwargs["search_mode"] == "auto"
 
 
 @pytest.mark.integration
@@ -221,7 +221,7 @@ def test_get_artworks_view_passes_explicit_mode_to_search(mock_qdrant_service, m
 
     mock_qdrant_service.search_text.assert_called_once()
     _, kwargs = mock_qdrant_service.search_text.call_args
-    assert kwargs["embedding_model"] == model
+    assert kwargs["search_mode"] == model
 
 
 # =============================================================================
@@ -268,7 +268,7 @@ def test_qdrant_service_search_text_uses_correct_vector_name(
         mock_embedder.generate_text_embedding.return_value = [0.1] * 256
         mock_jina.return_value = mock_embedder
 
-        service.search_text(search_args, embedding_model=model)
+        service.search_text(search_args, search_mode=model)
 
     mock_client.query_points.assert_called_once()
     _, kwargs = mock_client.query_points.call_args
@@ -305,7 +305,7 @@ def test_qdrant_service_search_text_auto_uses_prefetch_rrf():
         mock_embedder.generate_text_embedding.return_value = [0.1] * 256
         mock_jina.return_value = mock_embedder
 
-        service.search_text(search_args, embedding_model="auto")
+        service.search_text(search_args, search_mode="auto")
 
     mock_client.query_points.assert_called_once()
     _, kwargs = mock_client.query_points.call_args
@@ -347,7 +347,7 @@ def test_qdrant_service_search_text_auto_passes_filter_into_prefetch():
         mock_embedder.generate_text_embedding.return_value = [0.1] * 256
         mock_jina.return_value = mock_embedder
 
-        service.search_text(search_args, embedding_model="auto")
+        service.search_text(search_args, search_mode="auto")
 
     _, kwargs = mock_client.query_points.call_args
     prefetch = kwargs["prefetch"]

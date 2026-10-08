@@ -225,7 +225,7 @@ class QdrantService:
     def search_text(
         self,
         search_function_args: SearchFunctionArguments,
-        embedding_model: SearchMode = "auto",
+        search_mode: SearchMode = "auto",
     ) -> list[dict]:
         """Search for related artworks based on a text query."""
 
@@ -241,10 +241,10 @@ class QdrantService:
 
         logger.info(f"[TIMING] search_text - Jina text embedding: {embedding_time:.2f}ms")
 
-        if embedding_model == "auto":
+        if search_mode == "auto":
             return self._search_hybrid(query_vector, limit, offset, work_types, museums, object_number=None)
 
-        vector_name = SEARCH_MODE_TO_VECTOR_NAME[embedding_model]
+        vector_name = SEARCH_MODE_TO_VECTOR_NAME[search_mode]
         return self._search(query_vector, limit, offset, work_types, museums, object_number=None, vector_name=vector_name)
 
     def search_similar_images(

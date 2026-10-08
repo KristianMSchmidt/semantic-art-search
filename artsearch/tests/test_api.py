@@ -271,7 +271,7 @@ def test_search_passes_filters(mock_search_deps):
         limit=24,
         museums=["smk", "met"],
         work_types=["painting"],
-        embedding_model="auto",
+        search_mode="auto",
     )
 
 
@@ -288,7 +288,7 @@ def test_search_no_filters_passes_none(mock_search_deps):
         limit=24,
         museums=None,
         work_types=None,
-        embedding_model="auto",
+        search_mode="auto",
     )
 
 
@@ -300,7 +300,7 @@ def test_search_passes_model_param(mock_search_deps):
     assert response.status_code == 200
 
     call_kwargs = mock_search_deps["handle_search"].call_args[1]
-    assert call_kwargs["embedding_model"] == "image"
+    assert call_kwargs["search_mode"] == "image"
 
 
 @pytest.mark.integration
@@ -398,7 +398,7 @@ def test_similar_calls_handle_search_with_correct_query(mock_similar_deps):
         limit=24,
         museums=None,
         work_types=None,
-        embedding_model="auto",
+        search_mode="auto",
     )
 
 
@@ -413,7 +413,7 @@ def test_similar_passes_filters(mock_similar_deps):
         limit=24,
         museums=["met"],
         work_types=["painting"],
-        embedding_model="auto",
+        search_mode="auto",
     )
 
 
