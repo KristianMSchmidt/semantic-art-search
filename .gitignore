@@ -14,3 +14,4 @@ dev.py
 staticfiles
 postgres_data
 .playwright-mcp/
+blogpost.md
