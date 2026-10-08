@@ -9,7 +9,7 @@ django-tailwind==4.2.0
 django-ratelimit==4.1.0
 
 # Vector Database
-qdrant-client==1.14.2
+qdrant-client==1.16.2
 
 # Storage
 boto3==1.39.16

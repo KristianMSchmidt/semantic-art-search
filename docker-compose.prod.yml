@@ -1,7 +1,7 @@
 services:
   # Qdrant vector database
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:v1.16.3
     restart: always
     volumes:
       - qdrant_data:/qdrant/storage
