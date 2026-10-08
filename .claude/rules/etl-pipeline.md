@@ -44,6 +44,13 @@ Fetches artwork metadata from museum APIs into PostgreSQL `MetaDataRaw` table.
 - `accessionNumber`: Public catalog number, NOT unique (~0.3% duplicates)
 - System uses `accessionNumber` as `object_number` for UX, accepts ~0.3% data loss
 
+**NGA Data Model:**
+- No per-object API: the full collection is published as CSV files on GitHub (https://github.com/NationalGalleryOfArt/opendata), updated daily
+- Extractor downloads `objects.csv` + `published_images.csv` and joins them; each run upserts everything
+- `accessionnum` (unique in practice) is `object_number`; `objectid` is `museum_db_id` (used in page URLs)
+- Only paintings for now (`ALLOWED_CLASSIFICATIONS` in the extractor; the transformer also supports drawings and prints)
+- Only objects with an open access (`openaccess=1`) primary image are included; images via NGA's IIIF API
+
 **RMA API Data Model:**
 - Uses OAI-PMH XML/RDF structure
 - `object_number` extracted from `dc:identifier` (not guaranteed unique)

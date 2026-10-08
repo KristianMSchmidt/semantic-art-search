@@ -8,7 +8,7 @@ def get_museum_api_url(
 ) -> str | None:
     """Returns the URL to the artwork's API endpoint at the source museum."""
     museum_api_client = get_museum_client(museum_slug)
-    if museum_slug in ("met", "rma", "aic"):
+    if museum_slug in ("met", "rma", "aic", "nga"):
         return museum_api_client.get_object_url(museum_db_id)
     else:
         return museum_api_client.get_object_url(object_number)
@@ -19,7 +19,7 @@ def get_museum_page_url(
 ) -> str | None:
     """Returns the URL to the artwork's public page at the source museum."""
     museum_api_client = get_museum_client(museum_slug)
-    if museum_slug in ("met", "aic"):
+    if museum_slug in ("met", "aic", "nga"):
         return museum_api_client.get_page_url(museum_db_id)
     else:
         return museum_api_client.get_page_url(object_number)

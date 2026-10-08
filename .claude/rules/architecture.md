@@ -38,13 +38,14 @@ These two components are **genuinely interdependent by design**:
 | **Museum Utils** | `models.py`, `extract.py`, `factory.py` | `get_museum_slugs`, `get_museum_page_url`, `get_museum_api_url` |
 | **Models** | `load_artwork_stats.py` | `ArtworkStats` |
 
-### ArtsSearch → ETL (3 files)
+### ArtsSearch → ETL (4 files)
 
 | ArtsSearch File | Import from ETL |
 |-----------------|-----------------|
 | `qdrant_formatting.py` | `get_bucket_image_url` |
 | `artwork_description/service.py` | `get_bucket_image_url` |
 | `artwork_description/metadata_processors/rma.py` | `RmaTransformer` |
+| `artwork_description/metadata_fetcher.py` | `MetaDataRaw` (NGA has no per-object API, so description metadata is read from stored raw data) |
 
 ## Why This Coupling Is Acceptable
 
