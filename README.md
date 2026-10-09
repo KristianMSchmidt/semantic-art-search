@@ -58,7 +58,7 @@ Being natural language based, the semantic search engine also understands abstra
 
 ## 🧠 Behind The Scenes
 
-The system uses *Jina CLIP v2* (a multimodal neural network) to embed both images and search queries into a shared vector space. It then performs vector-based nearest neighbor search to rank artworks by semantic or visual relevance to the query. In Auto mode, image and title embeddings are searched in parallel and merged using Reciprocal Rank Fusion (RRF).
+The system uses *Jina CLIP v2* (a multimodal neural network) to embed both images and search queries into a shared vector space. It then performs vector-based nearest neighbor search to rank artworks by semantic or visual relevance to the query. Users can search either by visual appearance (image embeddings) or by title (text embeddings).
 
 ## 🎨 Artwork Coverage
 

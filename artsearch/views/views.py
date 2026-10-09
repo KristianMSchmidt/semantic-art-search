@@ -9,6 +9,7 @@ from django_ratelimit.decorators import ratelimit
 
 from artsearch.views.context_builders import (
     build_search_context,
+    make_home_url,
     build_home_context,
     build_work_type_filter_context,
     build_museum_filter_context,
@@ -19,7 +20,6 @@ from artsearch.views.log_utils import log_search_query
 from artsearch.src.services.artwork_description.service import generate_description
 from artsearch.src.cache_registry import clear_all_caches, register_cache
 from artsearch.src.config import config
-from artsearch.src.constants.search_modes import SEARCH_MODES
 from artsearch.src.constants.ui import EXAMPLE_QUERY_COUNTS
 from artsearch.models import ArtMapData
 
@@ -49,7 +49,6 @@ def home_view(request: HttpRequest) -> HttpResponse:
     queries = get_active_example_queries()
     shuffled_queries = random.sample(queries, len(queries))
     context = build_home_context(params=params, example_queries=shuffled_queries)
-    context["search_modes"] = SEARCH_MODES
     context["selected_model"] = params.selected_search_mode
     context["example_query_counts"] = EXAMPLE_QUERY_COUNTS
 
@@ -87,7 +86,12 @@ def get_artworks_view(request: HttpRequest) -> HttpResponse:
     context = build_search_context(
         params, search_mode=params.selected_search_mode
     )
-    return render(request, "partials/artwork_response.html", context)
+    response = render(request, "partials/artwork_response.html", context)
+    if params.offset == 0:
+        # Keep the browser URL in sync with the search so refresh and
+        # sharing reproduce it (pagination requests leave it alone)
+        response["HX-Replace-Url"] = make_home_url(params)
+    return response
 
 
 def update_work_types(request):

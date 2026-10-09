@@ -17,9 +17,9 @@ from artsearch.src.utils.get_museums import get_museum_slugs
 from artsearch.models import ExampleQuery
 from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
 from artsearch.src.constants.search_modes import (
+    DEFAULT_SEARCH_MODE,
     SearchMode,
     validate_search_mode,
-    SEARCH_MODES,
 )
 from artsearch.src.constants.search import MAX_QUERY_LENGTH, DEFAULT_WORK_TYPE_FILTER
 
@@ -64,7 +64,7 @@ class SearchParams:
 
     @property
     def selected_search_mode(self) -> SearchMode:
-        model = self.request.GET.get("model", "auto")
+        model = self.request.GET.get("model", DEFAULT_SEARCH_MODE)
         return validate_search_mode(model)
 
     @property
@@ -234,7 +234,7 @@ def make_url_with_params(
         query_params["work_types"] = selected_work_types
     if selected_museums:
         query_params["museums"] = selected_museums
-    if search_mode and search_mode != "auto":
+    if search_mode:
         query_params["model"] = search_mode
     if seed:
         query_params["seed"] = seed
@@ -265,7 +265,33 @@ def make_urls_with_params(
     }
 
 
-def build_search_context(params: SearchParams, search_mode: SearchMode = "auto") -> dict[str, Any]:
+def make_home_url(params: SearchParams) -> str:
+    """
+    Make a shareable home page URL reflecting the current search.
+
+    Filters that cover everything, and the mode when browsing without a
+    query, are left out to keep the URL short.
+    """
+    museums = params.selected_museums
+    if set(museums) >= set(get_museum_slugs()):
+        museums = []
+    work_types = params.selected_work_types
+    if not params.has_explicit_work_type_filter or set(work_types) >= set(
+        get_work_type_names()
+    ):
+        work_types = []
+    return make_url_with_params(
+        url_name="home",
+        query=params.query,
+        selected_work_types=work_types,
+        selected_museums=museums,
+        search_mode=params.selected_search_mode if params.query else None,
+    )
+
+
+def build_search_context(
+    params: SearchParams, search_mode: SearchMode = DEFAULT_SEARCH_MODE
+) -> dict[str, Any]:
     """
     Build the main context for the search view.
     """
@@ -302,7 +328,6 @@ def build_search_context(params: SearchParams, search_mode: SearchMode = "auto")
         "is_first_batch": offset == 0,
         "urls": urls,
         "selected_model": search_mode,
-        "search_modes": SEARCH_MODES,
     }
 
 
@@ -401,6 +426,7 @@ def build_home_context(
 
     return {
         **filter_contexts,
+        "query": params.query,
         "example_queries": example_queries,
         "search_hint_mobile": SEARCH_HINT_MOBILE,
         "search_hint_desktop": SEARCH_HINT_DESKTOP,

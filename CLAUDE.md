@@ -88,9 +88,11 @@ See `QDRANT_MANAGEMENT.md` for details.
 
 ### Search Mode Selection
 
-Users select via radio button UI:
-- **Auto**: Hybrid search combining visual and title signals via Qdrant RRF fusion (`RRF_K` in `qdrant_service.py`; k=20 favours artworks both signals agree on while keeping each mode's top hits)
-- **Visual** (`image`): Searches `image_jina` vectors — finds visually similar artworks
+The search form has two submit buttons, "Visual Search" (`image`) and "Title Search" (`title`); the clicked button sets the hidden `model` input, and the highlighted one shows the mode of the current results so users can re-run the same query in the other mode with one click. Enter triggers Visual Search. Example queries reuse the last chosen mode.
+
+New searches (offset 0) return an `HX-Replace-Url` header (`make_home_url()` in `context_builders.py`) so the browser URL holds query, filters and mode; loading that URL restores the search. Filters covering everything are omitted from the URL.
+
+- **Visual** (`image`, default): Searches `image_jina` vectors — finds visually similar artworks
 - **By title** (`title`): Searches `text_jina` vectors — finds artworks by title/description match
 
 All modes use Jina CLIP v2 (256d) for text embedding. Similarity search always uses `image_jina`.
@@ -98,7 +100,7 @@ All modes use Jina CLIP v2 (256d) for text embedding. Similarity search always u
 **Key Files:**
 - `artsearch/src/constants/search_modes.py`: Mode definitions and vector name mapping
 - `artsearch/src/services/jina_embedder.py`: Jina embedder (API)
-- `artsearch/src/services/qdrant_service.py`: Vector search, including `_search_hybrid()` for auto mode
+- `artsearch/src/services/qdrant_service.py`: Vector search
 
 **Qdrant vectors per artwork:** `image_jina` (256d), `text_jina` (256d), `image_clip` (768d, zeros — deprecated), `text_clip` (768d, zeros — unused)
 
@@ -115,7 +117,7 @@ JSON API at `/api/`. Code in `artsearch/api/views.py` and `artsearch/api/urls.py
 | `GET /api/artworks/<museum_slug>/<object_number>/` | Single artwork detail |
 | `GET /api/artworks/<museum_slug>/<object_number>/similar/` | Visually similar artworks |
 
-**Common query parameters** (search, random, similar): `offset`, `limit` (max 24), `museums` (repeatable), `work_types` (repeatable), `model` (`auto`/`image`/`title`).
+**Common query parameters** (search, random, similar): `offset`, `limit` (max 24), `museums` (repeatable), `work_types` (repeatable), `model` (`image`/`title`, default `image`).
 
 Search, similar, and random endpoints are **rate-limited** (30/min, 200/hour per IP).
 

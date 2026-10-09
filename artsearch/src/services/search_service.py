@@ -13,6 +13,7 @@ from artsearch.src.services.museum_stats_service import (
 from artsearch.src.utils.get_museums import get_museum_full_name, get_museum_slugs
 from artsearch.src.config import config
 from artsearch.src.constants.search_modes import (
+    DEFAULT_SEARCH_MODE,
     SearchMode,
 )
 
@@ -144,7 +145,7 @@ def handle_search(
     limit: int,
     museums: list[str] | None = None,
     work_types: list[str] | None = None,
-    search_mode: SearchMode = "auto",
+    search_mode: SearchMode = DEFAULT_SEARCH_MODE,
     seed: str | None = None,
 ) -> SearchResult:
     """
