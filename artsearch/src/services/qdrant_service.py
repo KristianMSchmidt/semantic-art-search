@@ -13,15 +13,12 @@ from artsearch.src.services.jina_embedder import get_jina_embedder
 from artsearch.src.utils.get_qdrant_client import get_qdrant_client
 from artsearch.src.config import config
 from artsearch.src.constants.search_modes import (
+    DEFAULT_SEARCH_MODE,
     SEARCH_MODE_TO_VECTOR_NAME,
     SearchMode,
 )
 
 logger = logging.getLogger(__name__)
-
-# RRF rank constant for hybrid (auto) search: score = sum(1 / (k + rank)).
-# Low k favours each list's top hits (interleaving); high k favours artworks both lists agree on.
-RRF_K = 20
 
 
 # Type aliases
@@ -167,70 +164,10 @@ class QdrantService:
 
         return formatted
 
-    def _search_hybrid(
-        self,
-        query_vector: list[float],
-        limit: int,
-        offset: int,
-        work_types: list[str] | None,
-        museums: list[str] | None,
-        object_number: str | None,
-        prefetch_limit: int = 100,
-        rrf_k: int = RRF_K,
-    ) -> list[dict]:
-        """
-        Perform hybrid search using both image_jina and text_jina vectors,
-        fused with Reciprocal Rank Fusion (RRF).
-        """
-        start_time = time.time()
-
-        query_filter = self._build_filter(work_types, museums, object_number)
-
-        qdrant_start = time.time()
-        response = self.qdrant_client.query_points(
-            collection_name=self.collection_name,
-            prefetch=[
-                models.Prefetch(
-                    query=query_vector,
-                    using="image_jina",
-                    limit=prefetch_limit,
-                    filter=query_filter,
-                ),
-                models.Prefetch(
-                    query=query_vector,
-                    using="text_jina",
-                    limit=prefetch_limit,
-                    filter=query_filter,
-                ),
-            ],
-            query=models.RrfQuery(rrf=models.Rrf(k=rrf_k)),
-            limit=limit,
-            offset=offset,
-        )
-        qdrant_time = (time.time() - qdrant_start) * 1000
-
-        logger.info(
-            f"[TIMING] Qdrant hybrid search (RRF k={rrf_k}) - "
-            f"limit={limit}, offset={offset}, "
-            f"museums={museums}, work_types={work_types}: {qdrant_time:.2f}ms"
-        )
-
-        format_start = time.time()
-        formatted = format_hits(response.points)
-        format_time = (time.time() - format_start) * 1000
-
-        total_time = (time.time() - start_time) * 1000
-        logger.info(
-            f"[TIMING] _search_hybrid total: {total_time:.2f}ms "
-            f"(qdrant: {qdrant_time:.2f}ms, format: {format_time:.2f}ms)"
-        )
-
-        return formatted
-
     def search_text(
         self,
         search_function_args: SearchFunctionArguments,
-        search_mode: SearchMode = "auto",
+        search_mode: SearchMode = DEFAULT_SEARCH_MODE,
     ) -> list[dict]:
         """Search for related artworks based on a text query."""
 
@@ -245,9 +182,6 @@ class QdrantService:
         embedding_time = (time.time() - embedding_start) * 1000
 
         logger.info(f"[TIMING] search_text - Jina text embedding: {embedding_time:.2f}ms")
-
-        if search_mode == "auto":
-            return self._search_hybrid(query_vector, limit, offset, work_types, museums, object_number=None)
 
         vector_name = SEARCH_MODE_TO_VECTOR_NAME[search_mode]
         return self._search(query_vector, limit, offset, work_types, museums, object_number=None, vector_name=vector_name)

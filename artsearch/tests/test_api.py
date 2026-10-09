@@ -271,7 +271,7 @@ def test_search_passes_filters(mock_search_deps):
         limit=24,
         museums=["smk", "met"],
         work_types=["painting"],
-        search_mode="auto",
+        search_mode="image",
     )
 
 
@@ -288,7 +288,7 @@ def test_search_no_filters_passes_none(mock_search_deps):
         limit=24,
         museums=None,
         work_types=None,
-        search_mode="auto",
+        search_mode="image",
     )
 
 
@@ -398,7 +398,7 @@ def test_similar_calls_handle_search_with_correct_query(mock_similar_deps):
         limit=24,
         museums=None,
         work_types=None,
-        search_mode="auto",
+        search_mode="image",
     )
 
 
@@ -413,7 +413,7 @@ def test_similar_passes_filters(mock_similar_deps):
         limit=24,
         museums=["met"],
         work_types=["painting"],
-        search_mode="auto",
+        search_mode="image",
     )
 
 

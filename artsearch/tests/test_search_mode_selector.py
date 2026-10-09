@@ -2,7 +2,7 @@
 Tests for search mode selector functionality.
 
 Tests the ability to choose between image and title search modes,
-and the auto hybrid mode using Qdrant RRF fusion.
+and that searches keep the browser URL in sync.
 """
 
 import pytest
@@ -10,10 +10,7 @@ from unittest.mock import patch, MagicMock
 from django.test import Client, RequestFactory
 from django.urls import reverse
 
-from artsearch.src.constants.search_modes import (
-    SEARCH_MODES,
-    validate_search_mode,
-)
+from artsearch.src.constants.search_modes import validate_search_mode
 from artsearch.views.context_builders import SearchParams, make_url_with_params
 
 
@@ -49,7 +46,6 @@ def mock_qdrant_service():
 @pytest.mark.parametrize(
     "model_param,expected",
     [
-        ("auto", "auto"),
         ("image", "image"),
         ("title", "title"),
     ],
@@ -62,11 +58,11 @@ def test_validate_search_mode_valid_values(model_param, expected):
 @pytest.mark.unit
 @pytest.mark.parametrize(
     "model_param",
-    ["clip", "jina", "invalid", "", "AUTO"],
+    ["auto", "clip", "jina", "invalid", "", "TITLE"],
 )
-def test_validate_search_mode_invalid_defaults_to_auto(model_param):
-    """Test that invalid values default to 'auto'."""
-    assert validate_search_mode(model_param) == "auto"
+def test_validate_search_mode_invalid_defaults_to_image(model_param):
+    """Test that invalid values (including the removed 'auto' mode) default to 'image'."""
+    assert validate_search_mode(model_param) == "image"
 
 
 # =============================================================================
@@ -78,7 +74,6 @@ def test_validate_search_mode_invalid_defaults_to_auto(model_param):
 @pytest.mark.parametrize(
     "model_param,expected",
     [
-        ("auto", "auto"),
         ("image", "image"),
         ("title", "title"),
     ],
@@ -94,16 +89,16 @@ def test_search_params_selected_search_mode_valid_values(model_param, expected):
 @pytest.mark.parametrize(
     "get_params,expected",
     [
-        ({"model": "clip"}, "auto"),   # Old value defaults to auto
-        ({"model": "jina"}, "auto"),   # Old value defaults to auto
-        ({"model": "invalid"}, "auto"),
-        ({}, "auto"),
+        ({"model": "auto"}, "image"),  # Removed mode defaults to image
+        ({"model": "clip"}, "image"),  # Old value defaults to image
+        ({"model": "invalid"}, "image"),
+        ({}, "image"),
     ],
 )
-def test_search_params_selected_search_mode_invalid_defaults_to_auto(
+def test_search_params_selected_search_mode_invalid_defaults_to_image(
     get_params, expected
 ):
-    """Test that invalid or missing search mode param defaults to 'auto'."""
+    """Test that invalid or missing search mode param defaults to 'image'."""
     request = RequestFactory().get("/", get_params)
     params = SearchParams(request=request)
     assert params.selected_search_mode == expected
@@ -115,12 +110,11 @@ def test_search_params_selected_search_mode_invalid_defaults_to_auto(
 
 
 @pytest.mark.unit
-def test_make_url_with_params_excludes_model_when_auto():
-    """Test that URLs with search_mode='auto' don't include model param."""
+def test_make_url_with_params_excludes_model_when_none():
+    """Test that URLs without a search_mode don't include model param."""
     url = make_url_with_params(
         url_name="get-artworks",
         query="test",
-        search_mode="auto",
     )
     assert "model=" not in url
     assert "query=test" in url
@@ -134,8 +128,8 @@ def test_make_url_with_params_excludes_model_when_auto():
         ("title", "model=title"),
     ],
 )
-def test_make_url_with_params_includes_model_when_not_auto(model, expected_param):
-    """Test that URLs with non-auto search_mode include the model param."""
+def test_make_url_with_params_includes_model(model, expected_param):
+    """Test that URLs with a search_mode include the model param."""
     url = make_url_with_params(
         url_name="get-artworks",
         query="test",
@@ -151,18 +145,28 @@ def test_make_url_with_params_includes_model_when_not_auto(model, expected_param
 
 @pytest.mark.integration
 @pytest.mark.django_db
-def test_home_view_includes_search_modes_in_context(mock_qdrant_service):
-    """Test that home view includes search modes in context."""
+def test_home_view_defaults_to_image_mode(mock_qdrant_service):
+    """Test that home view selects image mode when no model param is given."""
     client = Client()
     url = reverse("home")
 
     response = client.get(url)
 
     assert response.status_code == 200
-    assert "search_modes" in response.context
-    assert response.context["search_modes"] == SEARCH_MODES
-    assert "selected_model" in response.context
-    assert response.context["selected_model"] == "auto"
+    assert response.context["selected_model"] == "image"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_home_view_prefills_query_from_url(mock_qdrant_service):
+    """Test that a shared URL restores the query in the search input."""
+    client = Client()
+    url = reverse("home") + "?query=sunset&model=title"
+
+    response = client.get(url)
+
+    assert response.context["query"] == "sunset"
+    assert 'value="sunset"' in response.content.decode()
 
 
 @pytest.mark.integration
@@ -189,24 +193,6 @@ def test_home_view_selected_model_from_query_param(
 
 @pytest.mark.integration
 @pytest.mark.django_db
-def test_get_artworks_view_auto_passes_auto_to_qdrant(mock_qdrant_service):
-    """Test that search with model=auto passes 'auto' to QdrantService.search_text."""
-    client = Client()
-    url = reverse("get-artworks") + "?query=cat&model=auto"
-
-    with patch(
-        "artsearch.src.services.search_service.get_total_works_for_filters",
-        return_value=10,
-    ):
-        client.get(url)
-
-    mock_qdrant_service.search_text.assert_called_once()
-    _, kwargs = mock_qdrant_service.search_text.call_args
-    assert kwargs["search_mode"] == "auto"
-
-
-@pytest.mark.integration
-@pytest.mark.django_db
 @pytest.mark.parametrize("model", ["image", "title"])
 def test_get_artworks_view_passes_explicit_mode_to_search(mock_qdrant_service, model):
     """Test that explicit mode is passed through to QdrantService.search_text."""
@@ -222,6 +208,61 @@ def test_get_artworks_view_passes_explicit_mode_to_search(mock_qdrant_service, m
     mock_qdrant_service.search_text.assert_called_once()
     _, kwargs = mock_qdrant_service.search_text.call_args
     assert kwargs["search_mode"] == model
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_get_artworks_view_syncs_browser_url_with_search(mock_qdrant_service):
+    """Test that a new search tells HTMX to put query, filters and mode in the URL."""
+    client = Client()
+    url = reverse("get-artworks") + "?query=sunset&model=title&museums=smk"
+
+    with patch(
+        "artsearch.src.services.search_service.get_total_works_for_filters",
+        return_value=10,
+    ):
+        response = client.get(url)
+
+    assert response["HX-Replace-Url"] == (
+        reverse("home") + "?query=sunset&museums=smk&model=title"
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_get_artworks_view_omits_all_inclusive_filters_from_url(mock_qdrant_service):
+    """Test that selecting every museum/work type leaves them out of the URL."""
+    from artsearch.src.services.museum_stats_service import get_work_type_names
+    from artsearch.src.utils.get_museums import get_museum_slugs
+
+    client = Client()
+    response = client.get(
+        reverse("get-artworks"),
+        {
+            "query": "sunset",
+            "model": "image",
+            "museums": list(get_museum_slugs()),
+            "work_types": list(get_work_type_names()),
+        },
+    )
+
+    assert response["HX-Replace-Url"] == reverse("home") + "?query=sunset&model=image"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_get_artworks_view_pagination_leaves_url_alone(mock_qdrant_service):
+    """Test that infinite-scroll requests don't rewrite the browser URL."""
+    client = Client()
+    url = reverse("get-artworks") + "?query=sunset&model=title&offset=24"
+
+    with patch(
+        "artsearch.src.services.search_service.get_total_works_for_filters",
+        return_value=10,
+    ):
+        response = client.get(url)
+
+    assert "HX-Replace-Url" not in response
 
 
 # =============================================================================
@@ -276,90 +317,6 @@ def test_qdrant_service_search_text_uses_correct_vector_name(
 
 
 @pytest.mark.unit
-def test_qdrant_service_search_text_auto_uses_prefetch_rrf():
-    """Test that auto mode uses prefetch + RRF fusion, not a single vector search."""
-    from artsearch.src.services.qdrant_service import (
-        QdrantService,
-        SearchFunctionArguments,
-    )
-
-    mock_client = MagicMock()
-    mock_response = MagicMock()
-    mock_response.points = []
-    mock_client.query_points.return_value = mock_response
-
-    service = QdrantService(collection_name="test", qdrant_client=mock_client)
-
-    search_args = SearchFunctionArguments(
-        query="test query",
-        limit=10,
-        offset=0,
-        work_type_prefilter=None,
-        museum_prefilter=None,
-    )
-
-    with patch(
-        "artsearch.src.services.qdrant_service.get_jina_embedder"
-    ) as mock_jina:
-        mock_embedder = MagicMock()
-        mock_embedder.generate_text_embedding.return_value = [0.1] * 256
-        mock_jina.return_value = mock_embedder
-
-        service.search_text(search_args, search_mode="auto")
-
-    mock_client.query_points.assert_called_once()
-    _, kwargs = mock_client.query_points.call_args
-    # Auto mode uses prefetch, not a single 'using' parameter
-    assert "prefetch" in kwargs
-    assert len(kwargs["prefetch"]) == 2
-    assert kwargs["prefetch"][0].using == "image_jina"
-    assert kwargs["prefetch"][1].using == "text_jina"
-    assert "using" not in kwargs
-
-
-@pytest.mark.unit
-def test_qdrant_service_search_text_auto_passes_filter_into_prefetch():
-    """Test that auto mode applies filters inside each prefetch block, not just at the top level."""
-    from artsearch.src.services.qdrant_service import (
-        QdrantService,
-        SearchFunctionArguments,
-    )
-
-    mock_client = MagicMock()
-    mock_response = MagicMock()
-    mock_response.points = []
-    mock_client.query_points.return_value = mock_response
-
-    service = QdrantService(collection_name="test", qdrant_client=mock_client)
-
-    search_args = SearchFunctionArguments(
-        query="test query",
-        limit=10,
-        offset=0,
-        work_type_prefilter=["painting"],
-        museum_prefilter=["smk", "met"],
-    )
-
-    with patch(
-        "artsearch.src.services.qdrant_service.get_jina_embedder"
-    ) as mock_jina:
-        mock_embedder = MagicMock()
-        mock_embedder.generate_text_embedding.return_value = [0.1] * 256
-        mock_jina.return_value = mock_embedder
-
-        service.search_text(search_args, search_mode="auto")
-
-    _, kwargs = mock_client.query_points.call_args
-    prefetch = kwargs["prefetch"]
-    assert len(prefetch) == 2
-    # Both prefetch blocks must carry the filter so candidates are pre-filtered
-    assert prefetch[0].filter is not None, "image_jina prefetch must have a filter"
-    assert prefetch[1].filter is not None, "text_jina prefetch must have a filter"
-    # The same filter object should be used for both
-    assert prefetch[0].filter == prefetch[1].filter
-
-
-@pytest.mark.unit
 def test_qdrant_service_search_similar_images_uses_image_jina():
     """Test that search_similar_images always uses image_jina vector."""
     from artsearch.src.services.qdrant_service import (
@@ -410,7 +367,7 @@ def test_similarity_search_calls_search_similar_images(mock_qdrant_service):
     mock_qdrant_service.search_similar_images.return_value = []
 
     client = Client()
-    url = reverse("get-artworks") + "?query=smk:KMS1&model=auto"
+    url = reverse("get-artworks") + "?query=smk:KMS1&model=image"
 
     with patch(
         "artsearch.src.services.search_service.get_total_works_for_filters",

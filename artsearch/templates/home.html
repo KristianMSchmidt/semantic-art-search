@@ -37,8 +37,15 @@ title="View on GitHub"
         hx-get="{% url 'get-artworks' %}"
         hx-target="#search-results"
         hx-swap="innerHTML"
-        hx-include="#search-form, #model-selector"
         hx-on:submit="return validateSearchInput()"
+        x-data="{
+            mode: '{{ selected_model }}',
+            setMode(value) {
+                // Write the input directly so the value is set before submit fires
+                this.mode = value;
+                this.$refs.modeInput.value = value;
+            }
+        }"
         class="flex flex-col sm:flex-row sm:items-end space-y-2 sm:space-y-0 sm:space-x-2 mt-4 sm:mt-6">
 
         <!-- Search Input with hint label -->
@@ -97,13 +104,30 @@ title="View on GitHub"
             {% endwith %}
         </div>
 
-        <!-- HTMX Submit Button -->
-        <button
-            type="submit"
-            class="w-full sm:w-auto bg-blue-500 text-white px-8 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-            Search
-        </button>
+        <!-- Search mode is chosen by which button is clicked. Enter triggers
+             the first button (Visual Search). The highlighted button shows the
+             mode of the current results, inviting a one-click re-run in the other. -->
+        <input type="hidden" name="model" x-ref="modeInput" value="{{ selected_model }}" :value="mode">
+        <div class="flex w-full sm:w-auto gap-2">
+            <button
+                type="submit"
+                @click="setMode('image')"
+                :class="mode === 'image' ? 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600' : 'bg-white text-blue-600 border-blue-300 hover:bg-blue-50'"
+                class="flex-1 sm:flex-none whitespace-nowrap border px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                title="Find artworks that look like your query"
+            >
+                Visual Search
+            </button>
+            <button
+                type="submit"
+                @click="setMode('title')"
+                :class="mode === 'title' ? 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600' : 'bg-white text-blue-600 border-blue-300 hover:bg-blue-50'"
+                class="flex-1 sm:flex-none whitespace-nowrap border px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                title="Find artworks whose title matches your query"
+            >
+                Title Search
+            </button>
+        </div>
     </form>
 
     <!-- Example Queries Section -->
@@ -126,17 +150,12 @@ title="View on GitHub"
                     hx-get="{% url 'get-artworks' %}"
                     hx-target="#search-results"
                     hx-swap="innerHTML"
-                    hx-include="#search-form, #model-selector"
+                    hx-include="#search-form"
                 >
                     {{ example.query }}
                 </button>
                 {% endfor %}
                 </div>
-            </div>
-
-            <!-- Model selector (right side, hidden on mobile) -->
-            <div class="hidden md:block flex-shrink-0">
-                {% include "partials/model_selector.html" %}
             </div>
         </div>
     </div>
@@ -149,6 +168,7 @@ title="View on GitHub"
         <div
             hx-get="{% url 'get-artworks' %}"
             hx-trigger="revealed"
+            hx-include="#search-form"
             hx-swap="outerHTML"
             class="py-4 text-center text-gray-500">
         </div>
@@ -396,7 +416,7 @@ title="View on GitHub"
           hx-get="{% url 'get-artworks' %}"
           hx-target="#search-results"
           hx-swap="innerHTML"
-          hx-include="#search-form, #model-selector">
+          hx-include="#search-form">
           Find similar
         </button>
       </div>
