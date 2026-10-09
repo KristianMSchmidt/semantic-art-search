@@ -472,13 +472,27 @@ title="View on GitHub"
         return true;
     }
 
+    // Work types last set by an example query, so we can tell whether the
+    // user has since changed the filter themselves.
+    let exampleWorkTypes = null;
+
     function insertQuery(query, allWorkTypes) {
         document.getElementById('search-input').value = query;
         if (allWorkTypes !== undefined) {
             const el = document.querySelector('#work-type-container [x-data]');
             if (el) {
                 const data = Alpine.$data(el);
-                data.selectedItems = allWorkTypes ? [...data.allItems] : ['painting'];
+                const current = [...data.selectedItems].sort().join(',');
+                const isUnfiltered = data.selectedItems.length === 0
+                    || data.selectedItems.length === data.allItems.length;
+                const isFromExample = exampleWorkTypes !== null
+                    && current === [...exampleWorkTypes].sort().join(',');
+                // Only apply the example's work type hint if the user hasn't
+                // picked work types themselves
+                if (isUnfiltered || isFromExample) {
+                    data.selectedItems = allWorkTypes ? [...data.allItems] : ['painting'];
+                    exampleWorkTypes = [...data.selectedItems];
+                }
             }
         }
     }
