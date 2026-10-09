@@ -69,6 +69,11 @@ prod_stop: ## [PROD] Stop production server
 prod_start: ## [PROD] Start production server as daemon
 	docker compose -f docker-compose.prod.yml up --build --remove-orphans -d
 
+prod_deploy: ## [PROD] Pull latest master and rebuild/restart the web container (aborts on local changes)
+	@git diff --quiet && git diff --cached --quiet || { echo "Uncommitted changes on server - aborting deploy"; git status --short; exit 1; }
+	git pull --ff-only
+	$(MAKE) prod_start
+
 prod_djangologs: ## [PROD] Show django logs
 	docker logs live-app-web-1
 

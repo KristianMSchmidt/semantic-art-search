@@ -71,6 +71,14 @@ Local search is only meaningful if the dev Qdrant collection holds real prod vec
 
 See `QDRANT_MANAGEMENT.md` for details.
 
+### Deployment
+
+Deploy from merged `master`: on the server, in the repo, run `make prod_deploy` (aborts if the server checkout has local changes, then `git pull --ff-only` + `make prod_start`). Only the `web` container is rebuilt and recreated; Qdrant, nginx and the cloud database are untouched.
+
+- `entrypoint.prod.sh` runs migrations, builds Tailwind CSS and collects static files on every start, so no manual migrate or CSS step is needed on the server. (The committed `theme/static/css/dist/styles.css` is only used locally; run `make tailwind-start` while editing templates or new classes won't show up in dev.)
+- Expect 502s for ~20s after a deploy while that startup runs.
+- Verify: the home page returns 200 and contains a marker from the change; for search changes, hit the HTMX endpoint `/artworks/?query=...` (not `/get-artworks/`).
+
 ## Search Features
 
 ### Query Types
@@ -102,7 +110,7 @@ All modes use Jina CLIP v2 (256d) for text embedding. Similarity search always u
 - `artsearch/src/services/jina_embedder.py`: Jina embedder (API)
 - `artsearch/src/services/qdrant_service.py`: Vector search
 
-**Qdrant vectors per artwork:** `image_jina` (256d), `text_jina` (256d), `image_clip` (768d, zeros — deprecated), `text_clip` (768d, zeros — unused)
+**Qdrant vectors per artwork:** `image_jina` (256d), `text_jina` (256d), `image_clip` (768d, populated for all museums except NGA (zeros); currently unused by search — see #88), `text_clip` (768d, zeros — unused)
 
 ## REST API
 
