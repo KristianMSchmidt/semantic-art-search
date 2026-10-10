@@ -232,7 +232,7 @@ class QdrantService:
         else:
             query_vector = cast(list[float], vec)
 
-        return self._search(
+        results = self._search(
             query_vector,
             limit,
             offset,
@@ -241,6 +241,14 @@ class QdrantService:
             object_number,
             vector_name="image_jina",
         )
+        # Mark the artwork the similarity search started from, so the frontend can
+        # highlight it. (Score == 1 is not a reliable signal: title search can
+        # produce many exact matches.)
+        for result in results:
+            result["is_query_artwork"] = result["object_number"] == object_number and (
+                object_museum is None or result["museum_slug"] == object_museum
+            )
+        return results
 
     def get_items_by_ids(
         self,

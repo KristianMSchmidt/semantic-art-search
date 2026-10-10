@@ -19,7 +19,7 @@
         {{ result.title }}
       </h3>
 
-      {% if result.score == 1.0 %}
+      {% if result.is_query_artwork %}
         <div>
           <span class="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded">
             {{ result.object_number }}
@@ -65,8 +65,8 @@
     </p>
     {% endif %}
 
-    <!-- Find similar button (only if not exact match) -->
-    {% if not result.score or result.score < 1 %}
+    <!-- Find similar button (not for the artwork a similarity search started from) -->
+    {% if not result.is_query_artwork %}
     <div class="mt-3">
       <button
         type="button"

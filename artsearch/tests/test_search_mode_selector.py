@@ -352,6 +352,67 @@ def test_qdrant_service_search_similar_images_uses_image_jina():
     assert kwargs["using"] == "image_jina"
 
 
+@pytest.mark.unit
+def test_search_similar_images_marks_only_query_artwork():
+    """Only the artwork the similarity search started from is flagged, not other hits."""
+    from artsearch.src.services.qdrant_service import (
+        QdrantService,
+        SearchFunctionArguments,
+    )
+
+    mock_item = MagicMock()
+    mock_item.vector = {"image_jina": [0.1] * 256}
+    hits = [
+        {"object_number": "KMS1", "museum_slug": "smk", "score": 1.0},
+        {"object_number": "KMS1", "museum_slug": "cma", "score": 0.9},
+        {"object_number": "KMS2", "museum_slug": "smk", "score": 1.0},
+    ]
+
+    service = QdrantService(collection_name="test", qdrant_client=MagicMock())
+
+    with patch.object(
+        service, "get_items_by_object_number", return_value=[mock_item]
+    ), patch.object(service, "_search", return_value=hits):
+        results = service.search_similar_images(
+            SearchFunctionArguments(
+                query="smk:KMS1",
+                limit=10,
+                offset=0,
+                work_type_prefilter=None,
+                museum_prefilter=None,
+                object_number="KMS1",
+                object_museum="smk",
+            )
+        )
+
+    assert [r["is_query_artwork"] for r in results] == [True, False, False]
+
+
+@pytest.mark.unit
+def test_artwork_card_score_one_is_not_treated_as_query_artwork():
+    """A title search hit with score 1 gets no highlight badge and keeps 'Find similar'."""
+    from django.template.loader import render_to_string
+
+    result = {
+        "title": "Exact Title",
+        "artist": "Artist",
+        "object_number": "KMS2",
+        "museum": "SMK",
+        "score": 1.0,
+        "find_similar_query": "smk:KMS2",
+    }
+    html = render_to_string("partials/artwork_card.html", {"result": result})
+    assert "bg-green-100" not in html
+    assert "insertQuery(" in html
+
+    html = render_to_string(
+        "partials/artwork_card.html",
+        {"result": {**result, "is_query_artwork": True}},
+    )
+    assert "bg-green-100" in html
+    assert "insertQuery(" not in html
+
+
 # =============================================================================
 # Integration Tests: Similarity search in search_service
 # =============================================================================
