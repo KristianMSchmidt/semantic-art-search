@@ -96,7 +96,7 @@ Deploy from merged `master`: on the server, in the repo, run `make prod_deploy` 
 
 ### Search Mode Selection
 
-The search form has two submit buttons, "Visual Search" (`image`) and "Title Search" (`title`); the clicked button sets the hidden `model` input, and the highlighted one shows the mode of the current results so users can re-run the same query in the other mode with one click. Enter triggers Visual Search. Example queries reuse the last chosen mode.
+The search form has two submit buttons, "Visual Search" (`image`) and "Title Search" (`title`); the clicked button sets the hidden `model` input, and the highlighted one shows the mode of the current results so users can re-run the same query in the other mode with one click. Enter in the search input re-runs the currently highlighted mode. Example queries reuse the last chosen mode.
 
 New searches (offset 0) return an `HX-Replace-Url` header (`make_home_url()` in `context_builders.py`) so the browser URL holds query, filters and mode; loading that URL restores the search. Filters covering everything are omitted from the URL.
 

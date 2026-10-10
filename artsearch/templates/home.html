@@ -69,6 +69,7 @@ title="View on GitHub"
                 :class="{ 'placeholder-fade': isTransitioning }"
                 @focus="pause(); $el.style.borderColor='rgb(156 163 175)'"
                 @blur="resume(); $el.style.borderColor='rgb(209 213 219)'"
+                @keydown.enter.prevent="$el.form.requestSubmit()"
                 @resize.window.debounce.150ms="checkMobile()"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none transition-colors"
             />
@@ -104,9 +105,10 @@ title="View on GitHub"
             {% endwith %}
         </div>
 
-        <!-- Search mode is chosen by which button is clicked. Enter triggers
-             the first button (Visual Search). The highlighted button shows the
-             mode of the current results, inviting a one-click re-run in the other. -->
+        <!-- Search mode is chosen by which button is clicked. Enter in the search
+             input submits without clicking a button, so it keeps the current mode.
+             The highlighted button shows the mode of the current results, inviting
+             a one-click re-run in the other. -->
         <input type="hidden" name="model" x-ref="modeInput" value="{{ selected_model }}" :value="mode">
         <div class="flex w-full sm:w-auto gap-2">
             <button
