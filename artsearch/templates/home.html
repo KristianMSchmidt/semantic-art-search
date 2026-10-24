@@ -145,9 +145,6 @@ title="View on GitHub"
                             x-text="preset.label"></button>
                     </template>
                 </div>
-                <button type="button" x-show="from !== '' || to !== ''"
-                    @click="apply('', '')"
-                    class="text-sm text-blue-600 hover:underline">Clear</button>
             </div>
         </div>
 
@@ -621,7 +618,11 @@ title="View on GitHub"
             open: false,
             from: initialFrom,
             to: initialTo,
-            presets: [{ label: 'Before 1500', from: '', to: '1499' }, ...centuries],
+            presets: [
+                { label: 'All years', from: '', to: '' },
+                { label: 'Before 1500', from: '', to: '1499' },
+                ...centuries,
+            ],
 
             // Swap a reversed range as each search is sent (Search buttons, Enter,
             // example queries, find similar), so the inputs and label match the
