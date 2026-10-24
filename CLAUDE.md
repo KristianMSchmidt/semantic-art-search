@@ -92,6 +92,7 @@ Deploy from merged `master`: on the server, in the repo, run `make prod_deploy` 
 
 - Filter by museum (SMK, CMA, RMA, MET, AIC, NGA)
 - Filter by work type (painting, print, drawing, etc.)
+- Filter by production year (`year_from` / `year_to`): keeps artworks whose production period overlaps the range; artworks with no dates are excluded once a bound is set. Implemented twice with the same rules: `filter_by_year_range()` (PostgreSQL `ArtworkStats`, used for browse mode and counts) and `_year_range_conditions()` (Qdrant search). Years come from the `production_date_start`/`end` payload fields, copied into `ArtworkStats` by `load_artwork_stats`
 - Paginated (20 items per page)
 
 ### Search Mode Selection
@@ -125,7 +126,7 @@ JSON API at `/api/`. Code in `artsearch/api/views.py` and `artsearch/api/urls.py
 | `GET /api/artworks/<museum_slug>/<object_number>/` | Single artwork detail |
 | `GET /api/artworks/<museum_slug>/<object_number>/similar/` | Visually similar artworks |
 
-**Common query parameters** (search, random, similar): `offset`, `limit` (max 24), `museums` (repeatable), `work_types` (repeatable), `model` (`image`/`title`, default `image`).
+**Common query parameters** (search, random, similar): `offset`, `limit` (max 24), `museums` (repeatable), `work_types` (repeatable), `model` (`image`/`title`, default `image`), `year_from` / `year_to` (production year range).
 
 Search, similar, and random endpoints are **rate-limited** (30/min, 200/hour per IP).
 

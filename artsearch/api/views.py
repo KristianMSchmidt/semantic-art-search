@@ -12,7 +12,7 @@ from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
 from artsearch.src.constants.search import MAX_QUERY_LENGTH
 from artsearch.src.constants.work_types import SEARCHABLE_WORK_TYPES
 from artsearch.src.services.qdrant_service import QdrantService
-from artsearch.src.services.search_service import handle_search
+from artsearch.src.services.search_service import handle_search, parse_year_range
 from artsearch.src.utils.qdrant_formatting import format_payload
 from artsearch.views.views import get_client_ip
 
@@ -50,12 +50,18 @@ def _parse_search_params(request) -> dict:
     except (ValueError, TypeError):
         limit = 24
 
+    year_from, year_to = parse_year_range(
+        request.GET.get("year_from"), request.GET.get("year_to")
+    )
+
     return {
         "offset": offset,
         "limit": limit,
         "museums": request.GET.getlist("museums") or None,
         "work_types": request.GET.getlist("work_types") or None,
         "search_mode": validate_search_mode(request.GET.get("model", DEFAULT_SEARCH_MODE)),
+        "year_from": year_from,
+        "year_to": year_to,
     }
 
 
@@ -125,6 +131,8 @@ def random_view(request):
         limit=params["limit"],
         museums=params["museums"],
         work_types=params["work_types"],
+        year_from=params["year_from"],
+        year_to=params["year_to"],
     )
 
     if search_results["error_message"]:

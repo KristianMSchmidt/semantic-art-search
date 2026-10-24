@@ -12,7 +12,7 @@ from artsearch.src.services.museum_stats_service import (
     aggregate_work_type_count_for_selected_museums,
     aggregate_museum_count_for_selected_work_types,
 )
-from artsearch.src.services.search_service import handle_search
+from artsearch.src.services.search_service import handle_search, parse_year_range
 from artsearch.src.utils.get_museums import get_museum_slugs
 from artsearch.models import ExampleQuery
 from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
@@ -57,6 +57,12 @@ class SearchParams:
                 return list(work_type_names)
             return DEFAULT_WORK_TYPE_FILTER
         return retrieve_selected(work_type_names, self.request, "work_types")
+
+    @property
+    def year_range(self) -> tuple[int | None, int | None]:
+        return parse_year_range(
+            self.request.GET.get("year_from"), self.request.GET.get("year_to")
+        )
 
     @property
     def offset(self) -> int:
@@ -223,6 +229,7 @@ def make_url_with_params(
     selected_museums: list[str] = [],
     search_mode: SearchMode | None = None,
     seed: str | None = None,
+    year_range: tuple[int | None, int | None] = (None, None),
 ) -> str:
     """Make a URL with query parameters for pagination and filtering."""
     query_params = {}
@@ -234,6 +241,11 @@ def make_url_with_params(
         query_params["work_types"] = selected_work_types
     if selected_museums:
         query_params["museums"] = selected_museums
+    year_from, year_to = year_range
+    if year_from is not None:
+        query_params["year_from"] = year_from
+    if year_to is not None:
+        query_params["year_to"] = year_to
     if search_mode:
         query_params["model"] = search_mode
     if seed:
@@ -250,6 +262,7 @@ def make_urls_with_params(
     selected_museums: list[str],
     search_mode: SearchMode | None = None,
     seed: str | None = None,
+    year_range: tuple[int | None, int | None] = (None, None),
 ) -> dict[str, str]:
     """Make URLs with query parameters for pagination and filtering"""
     return {
@@ -261,6 +274,7 @@ def make_urls_with_params(
             selected_museums=selected_museums,
             search_mode=search_mode,
             seed=seed,
+            year_range=year_range,
         ),
     }
 
@@ -286,6 +300,7 @@ def make_home_url(params: SearchParams) -> str:
         selected_work_types=work_types,
         selected_museums=museums,
         search_mode=params.selected_search_mode if params.query else None,
+        year_range=params.year_range,
     )
 
 
@@ -300,6 +315,7 @@ def build_search_context(
 
     # Determine if we're in browse mode (no query)
     is_browse_mode = params.query is None or params.query == ""
+    year_from, year_to = params.year_range
 
     search_results = handle_search(
         query=params.query,
@@ -309,6 +325,8 @@ def build_search_context(
         work_types=params.selected_work_types,
         search_mode=search_mode,
         seed=params.seed if is_browse_mode else None,
+        year_from=year_from,
+        year_to=year_to,
     )
 
     # Only include seed in pagination URLs for browse mode
@@ -320,6 +338,7 @@ def build_search_context(
         selected_work_types=params.selected_work_types,
         search_mode=params.selected_search_mode,
         seed=params.seed if is_browse_mode else None,
+        year_range=params.year_range,
     )
 
     return {
@@ -423,10 +442,13 @@ def build_home_context(
         example_queries = get_active_example_queries()
 
     filter_contexts = build_filter_contexts(params)
+    year_from, year_to = params.year_range
 
     return {
         **filter_contexts,
         "query": params.query,
+        "year_from": year_from,
+        "year_to": year_to,
         "example_queries": example_queries,
         "search_hint_mobile": SEARCH_HINT_MOBILE,
         "search_hint_desktop": SEARCH_HINT_DESKTOP,

@@ -9,7 +9,7 @@ import logging
 from functools import lru_cache
 from dataclasses import dataclass
 from django.db import connection
-from django.db.models import Count
+from django.db.models import Count, Q, QuerySet
 from artsearch.models import ArtworkStats
 from artsearch.src.cache_registry import register_cache
 
@@ -159,18 +159,46 @@ def aggregate_museum_count_for_selected_work_types(
     return MuseumWorkTypeSummary(work_types=museums, total=total)
 
 
+def filter_by_year_range(
+    queryset: QuerySet[ArtworkStats], year_from: int | None, year_to: int | None
+) -> QuerySet[ArtworkStats]:
+    """
+    Keep artworks whose production period overlaps [year_from, year_to].
+    An artwork with only a start or only an end date is treated as that single
+    year. Artworks without any date are excluded when a bound is set.
+    Mirrors QdrantService._year_range_conditions().
+    """
+    if year_to is not None:
+        queryset = queryset.filter(
+            Q(production_date_start__lte=year_to)
+            | Q(production_date_start__isnull=True, production_date_end__lte=year_to)
+        )
+    if year_from is not None:
+        queryset = queryset.filter(
+            Q(production_date_end__gte=year_from)
+            | Q(production_date_end__isnull=True, production_date_start__gte=year_from)
+        )
+    return queryset
+
+
 @register_cache
 @lru_cache(maxsize=1024)
 def get_total_works_for_filters(
-    selected_museums: tuple[str], selected_work_types: tuple[str]
+    selected_museums: tuple[str],
+    selected_work_types: tuple[str],
+    year_from: int | None = None,
+    year_to: int | None = None,
 ) -> int:
     """
-    Returns the total count of unique artworks that match BOTH museum AND work type filters.
+    Returns the total count of unique artworks that match the museum, work type
+    and production year filters.
     Used on every search, so must be fast.
 
     Args:
         selected_museums: Tuple of museum slugs to filter by (must be tuple for caching)
         selected_work_types: Tuple of work type names to filter by (must be tuple for caching)
+        year_from: Earliest production year, or None for no lower bound
+        year_to: Latest production year, or None for no upper bound
 
     Returns:
         Integer count of unique artworks matching both filters
@@ -188,13 +216,10 @@ def get_total_works_for_filters(
     )
 
     count_start = time.time()
-    result = (
-        ArtworkStats.objects.filter(museum_slug__in=selected_museums)
-        .extra(
-            where=["searchable_work_types ?| %s"], params=[list(selected_work_types)]
-        )
-        .count()
+    queryset = ArtworkStats.objects.filter(museum_slug__in=selected_museums).extra(
+        where=["searchable_work_types ?| %s"], params=[list(selected_work_types)]
     )
+    result = filter_by_year_range(queryset, year_from, year_to).count()
     logger.info(
         f"[TIMING] get_total_works - COUNT query: {(time.time() - count_start) * 1000:.2f}ms"
     )

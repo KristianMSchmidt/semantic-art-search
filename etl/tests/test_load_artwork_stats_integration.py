@@ -298,3 +298,44 @@ def test_load_artwork_stats_handles_pagination():
 
     # Verify fetch_points was called twice (once per page)
     assert mock_qdrant_service.fetch_points.call_count == 2
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_load_artwork_stats_updates_existing_rows_with_production_dates():
+    """
+    A plain reload (no --drop-existing) refreshes existing rows, so production
+    dates added to Qdrant payloads reach the year filter without a full drop.
+    Duplicate points in Qdrant keep the first occurrence.
+    """
+    ArtworkStats.objects.create(
+        museum_slug="smk",
+        object_number="KMS1",
+        searchable_work_types=["drawing"],
+    )
+
+    point = Mock()
+    point.id = "test-id-1"
+    point.payload = {
+        "museum": "smk",
+        "object_number": "KMS1",
+        "searchable_work_types": ["painting"],
+        "production_date_start": 1600,
+        "production_date_end": 1650,
+    }
+    duplicate = Mock()
+    duplicate.id = "test-id-2"
+    duplicate.payload = {**point.payload, "production_date_start": 1900}
+
+    mock_qdrant_service = Mock()
+    mock_qdrant_service.fetch_points.return_value = ([point, duplicate], None)
+
+    with patch(
+        "etl.management.commands.load_artwork_stats.QdrantService",
+        return_value=mock_qdrant_service,
+    ):
+        call_command("load_artwork_stats", stdout=StringIO())
+
+    stats = ArtworkStats.objects.get(museum_slug="smk", object_number="KMS1")
+    assert stats.searchable_work_types == ["painting"]
+    assert (stats.production_date_start, stats.production_date_end) == (1600, 1650)

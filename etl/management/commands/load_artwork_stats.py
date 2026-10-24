@@ -82,7 +82,8 @@ class Command(BaseCommand):
     ) -> list[dict]:
         """
         Fetch all artworks from Qdrant collection.
-        Returns list of dicts with museum, object_number, searchable_work_types.
+        Returns list of dicts with museum, object_number, searchable_work_types
+        and production dates.
         """
         artwork_records = []
         next_page_token = None
@@ -92,7 +93,13 @@ class Command(BaseCommand):
             points, next_page_token = qdrant_service.fetch_points(
                 next_page_token,
                 limit=batch_size,
-                with_payload=["museum", "object_number", "searchable_work_types"],
+                with_payload=[
+                    "museum",
+                    "object_number",
+                    "searchable_work_types",
+                    "production_date_start",
+                    "production_date_end",
+                ],
             )
 
             for point in points:
@@ -125,6 +132,8 @@ class Command(BaseCommand):
                         "museum_slug": museum,
                         "object_number": object_number,
                         "searchable_work_types": searchable_work_types,
+                        "production_date_start": payload.get("production_date_start"),
+                        "production_date_end": payload.get("production_date_end"),
                     }
                 )
 
@@ -155,23 +164,38 @@ class Command(BaseCommand):
                 f"  Creating {len(artwork_records)} ArtworkStats records..."
             )
 
+            # First occurrence wins: an upsert can't touch the same row twice
+            unique_records = {}
+            for record in artwork_records:
+                key = (record["museum_slug"], record["object_number"])
+                unique_records.setdefault(key, record)
+
             # Convert to ArtworkStats objects
             artwork_stats_objects = [
                 ArtworkStats(
                     museum_slug=record["museum_slug"],
                     object_number=record["object_number"],
                     searchable_work_types=record["searchable_work_types"],
+                    production_date_start=record["production_date_start"],
+                    production_date_end=record["production_date_end"],
                 )
-                for record in artwork_records
+                for record in unique_records.values()
             ]
 
             # Bulk create in batches for memory efficiency
             created_count = 0
             for i in range(0, len(artwork_stats_objects), bulk_create_batch):
                 batch = artwork_stats_objects[i : i + bulk_create_batch]
+                # Update existing rows so a plain reload picks up changed payloads
                 ArtworkStats.objects.bulk_create(
                     batch,
-                    ignore_conflicts=True,  # Skip duplicates (shouldn't happen but safe)
+                    update_conflicts=True,
+                    unique_fields=["museum_slug", "object_number"],
+                    update_fields=[
+                        "searchable_work_types",
+                        "production_date_start",
+                        "production_date_end",
+                    ],
                 )
                 created_count += len(batch)
                 self.stdout.write(

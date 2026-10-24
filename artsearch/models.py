@@ -20,6 +20,7 @@ class ArtworkStats(models.Model):
     - Count artworks per museum
     - Count artworks per work type (with deduplication)
     - Count artworks matching museum + work type filters
+    - Filter by production year range
 
     Design: One row per artwork (not per work type) to avoid double-counting
     artworks with multiple work types. This makes counting queries simple and fast.
@@ -32,6 +33,8 @@ class ArtworkStats(models.Model):
     searchable_work_types = models.JSONField(
         help_text="List of searchable work types for this artwork"
     )
+    production_date_start = models.IntegerField(null=True, blank=True)
+    production_date_end = models.IntegerField(null=True, blank=True)
 
     class Meta:
         constraints = [
@@ -51,6 +54,9 @@ class ArtworkStats(models.Model):
                 name="idx_searchable_work_types_gin",
                 opclasses=["jsonb_path_ops"],
             ),
+            # Production year range filtering
+            models.Index(fields=["production_date_start"]),
+            models.Index(fields=["production_date_end"]),
         ]
 
     def __str__(self):

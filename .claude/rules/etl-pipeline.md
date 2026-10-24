@@ -50,6 +50,7 @@ Fetches artwork metadata from museum APIs into PostgreSQL `MetaDataRaw` table.
 - `accessionnum` (unique in practice) is `object_number`; `objectid` is `museum_db_id` (used in page URLs)
 - Only paintings for now (`ALLOWED_CLASSIFICATIONS` in the extractor; the transformer also supports drawings and prints)
 - Only objects with an open access (`openaccess=1`) primary image are included; images via NGA's IIIF API
+- For undated works NGA fills `beginyear`/`endyear` with the artist's lifespan, so the transformer stores no production dates when `displaydate` is empty, "n.d." or "date unknown"
 
 **RMA API Data Model:**
 - Uses OAI-PMH XML/RDF structure
