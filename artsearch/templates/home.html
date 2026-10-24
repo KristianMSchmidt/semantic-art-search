@@ -126,25 +126,25 @@ title="View on GitHub"
                 <div class="flex items-center gap-2">
                     <input type="number" name="year_from" x-model="from" placeholder="From"
                         aria-label="From year"
-                        @keydown.enter.prevent="apply(from, to)"
+                        @keydown.enter.prevent="open = false; $el.form.requestSubmit()"
                         class="w-full min-w-0 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <span class="text-gray-500">–</span>
                     <input type="number" name="year_to" x-model="to" placeholder="To"
                         aria-label="To year"
-                        @keydown.enter.prevent="apply(from, to)"
+                        @keydown.enter.prevent="open = false; $el.form.requestSubmit()"
                         class="w-full min-w-0 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div class="flex flex-wrap gap-1">
                     <template x-for="preset in presets" :key="preset.label">
                         <button type="button"
-                            @click="apply(preset.from, preset.to)"
+                            @click="from = preset.from; to = preset.to; open = false"
                             :class="from === preset.from && to === preset.to ? 'bg-blue-500 text-white border-blue-500' : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'"
                             class="border px-2 py-0.5 rounded-full text-sm"
                             x-text="preset.label"></button>
                     </template>
                 </div>
                 <button type="button" x-show="from !== '' || to !== ''"
-                    @click="apply('', '')"
+                    @click="from = ''; to = ''"
                     class="text-sm text-blue-600 hover:underline">Clear</button>
             </div>
         </div>
@@ -620,33 +620,6 @@ title="View on GitHub"
             from: initialFrom,
             to: initialTo,
             presets: [{ label: 'Before 1500', from: '', to: '1499' }, ...centuries],
-
-            // Swap a reversed range as each search is sent (Search buttons, Enter,
-            // example queries, find similar), so the inputs and label match the
-            // results. Doing it while typing would move values mid-edit.
-            init() {
-                document.body.addEventListener('htmx:configRequest', (event) => {
-                    const params = event.detail.parameters;
-                    const from = params.year_from;
-                    const to = params.year_to;
-                    if (from && to && Number(from) > Number(to)) {
-                        params.year_from = to;
-                        params.year_to = from;
-                        this.from = to;
-                        this.to = from;
-                    }
-                });
-            },
-
-            // Set the range and search right away. requestSubmit() without a
-            // submitter keeps the current search mode, like Enter in the search input.
-            apply(from, to) {
-                this.from = from;
-                this.to = to;
-                this.open = false;
-                // Wait for x-model to write the new values into the inputs
-                this.$nextTick(() => this.$root.closest('form').requestSubmit());
-            },
 
             get buttonLabel() {
                 if (this.from !== '' && this.to !== '') return `${this.from}–${this.to}`;

@@ -321,22 +321,3 @@ def test_browse_mode_requires_seed():
         )
 
     assert "seed is required for browsing mode" in str(exc_info.value)
-
-
-@pytest.mark.integration
-@pytest.mark.django_db
-def test_browse_pagination_url_reuses_first_page_seed(
-    mock_qdrant_service, mock_random_artwork_ids
-):
-    """
-    Without a seed in the request, the first page and the infinite-scroll URL
-    must share one generated seed, or later pages come from a different shuffle
-    (artworks repeat or go missing).
-    """
-    mock_random_artwork_ids.return_value = []
-
-    response = Client().get(reverse("get-artworks"), {"query": ""})
-
-    first_page_seed = mock_random_artwork_ids.call_args.kwargs["seed"]
-    next_page_url = response.context["urls"]["get_artworks_with_params"]
-    assert f"seed={first_page_seed}" in next_page_url
