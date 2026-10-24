@@ -20,6 +20,9 @@ MEDIUM_WORK_TYPES = {
 
 MAX_TITLE_LENGTH = 500  # TransformedData.title max_length
 
+# displaydate values (lowercased) meaning NGA has no date for the work
+UNDATED_DISPLAY_DATES = {"", "n.d.", "date unknown"}
+
 
 class NgaTransformer(BaseTransformer):
     """NGA (National Gallery of Art, Washington) data transformer."""
@@ -100,7 +103,15 @@ class NgaTransformer(BaseTransformer):
     def extract_production_dates(
         self, raw_json: dict
     ) -> tuple[Optional[int], Optional[int]]:
-        """Extract production dates from NGA beginyear and endyear (integer strings in the CSV)."""
+        """Extract production dates from NGA beginyear and endyear (integer strings in the CSV).
+
+        For undated works NGA fills beginyear/endyear with the artist's lifespan
+        (e.g. Alphonse Legros, 1837-1911). These are recognizable by having no
+        displaydate (empty, "n.d." or "date unknown"), so treat their dates as unknown.
+        """
+        display_date = raw_json.get("displaydate", "").strip().lower()
+        if display_date in UNDATED_DISPLAY_DATES:
+            return None, None
 
         def to_int(value: Optional[str]) -> Optional[int]:
             try:
