@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 from django.db.models.expressions import RawSQL
 
 from artsearch.models import ArtworkStats
+from artsearch.src.services.museum_stats_service import filter_by_year_range
 from artsearch.src.services.qdrant_service import QdrantService
 from artsearch.src.config import config
 
@@ -29,6 +30,8 @@ def get_random_artwork_ids(
     seed: str,
     limit: int,
     offset: int,
+    year_from: int | None = None,
+    year_to: int | None = None,
 ) -> list[tuple[str, str]]:
     """
     Get random artwork IDs from PostgreSQL with deterministic ordering.
@@ -42,6 +45,8 @@ def get_random_artwork_ids(
         seed: Random seed for deterministic ordering
         limit: Number of results to return
         offset: Number of results to skip
+        year_from: Earliest production year, or None for no lower bound
+        year_to: Latest production year, or None for no upper bound
 
     Returns:
         List of (museum_slug, object_number) tuples
@@ -60,6 +65,8 @@ def get_random_artwork_ids(
             where=["searchable_work_types ?| %s"], params=[work_types]
         )
 
+    queryset = filter_by_year_range(queryset, year_from, year_to)
+
     # Deterministic random order using md5 hash with seed
     queryset = queryset.order_by(
         RawSQL("md5(museum_slug || object_number || %s)", [seed])
@@ -74,7 +81,7 @@ def get_random_artwork_ids(
     logger.info(
         f"[TIMING] get_random_artwork_ids - "
         f"museums={museums}, work_types={work_types}, "
-        f"offset={offset}, limit={limit}: {elapsed:.2f}ms"
+        f"years={year_from}-{year_to}, offset={offset}, limit={limit}: {elapsed:.2f}ms"
     )
 
     return result
@@ -88,6 +95,8 @@ def handle_browse(
     seed: str,
     total_works: int,
     is_initial_load: bool,
+    year_from: int | None = None,
+    year_to: int | None = None,
 ) -> SearchResult:
     """
     Handle browsing (no query) with proper pagination.
@@ -105,6 +114,8 @@ def handle_browse(
         seed=seed,
         limit=limit,
         offset=offset,
+        year_from=year_from,
+        year_to=year_to,
     )
 
     # Fetch full payloads from Qdrant

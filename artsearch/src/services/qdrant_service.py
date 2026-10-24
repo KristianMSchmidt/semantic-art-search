@@ -37,6 +37,63 @@ class SearchFunctionArguments:
     museum_prefilter: list[str] | None
     object_number: str | None = None
     object_museum: str | None = None
+    year_from: int | None = None
+    year_to: int | None = None
+
+
+def _year_range_conditions(
+    year_from: int | None, year_to: int | None
+) -> list[models.Filter]:
+    """
+    Conditions keeping artworks whose production period overlaps [year_from, year_to].
+    An artwork with only a start or only an end date is treated as that single
+    year. Artworks without any date are excluded when a bound is set.
+    Mirrors filter_by_year_range() in museum_stats_service.
+    """
+    conditions = []
+    if year_to is not None:
+        conditions.append(
+            models.Filter(
+                should=[
+                    models.FieldCondition(
+                        key="production_date_start", range=models.Range(lte=year_to)
+                    ),
+                    models.Filter(
+                        must=[
+                            models.IsEmptyCondition(
+                                is_empty=models.PayloadField(key="production_date_start")
+                            ),
+                            models.FieldCondition(
+                                key="production_date_end",
+                                range=models.Range(lte=year_to),
+                            ),
+                        ]
+                    ),
+                ]
+            )
+        )
+    if year_from is not None:
+        conditions.append(
+            models.Filter(
+                should=[
+                    models.FieldCondition(
+                        key="production_date_end", range=models.Range(gte=year_from)
+                    ),
+                    models.Filter(
+                        must=[
+                            models.IsEmptyCondition(
+                                is_empty=models.PayloadField(key="production_date_end")
+                            ),
+                            models.FieldCondition(
+                                key="production_date_start",
+                                range=models.Range(gte=year_from),
+                            ),
+                        ]
+                    ),
+                ]
+            )
+        )
+    return conditions
 
 
 class QdrantService:
@@ -74,9 +131,11 @@ class QdrantService:
         work_types: list[str] | None,
         museums: list[str] | None,
         object_number: str | None,
+        year_from: int | None = None,
+        year_to: int | None = None,
     ) -> models.Filter:
-        """Build Qdrant filter from work type, museum, and object number constraints."""
-        standard_conditions = []
+        """Build Qdrant filter from work type, museum, year range and object number constraints."""
+        standard_conditions: list[models.Condition] = []
         if museums is not None:
             standard_conditions.append(
                 models.FieldCondition(
@@ -91,6 +150,7 @@ class QdrantService:
                     match=models.MatchAny(any=work_types),
                 )
             )
+        standard_conditions.extend(_year_range_conditions(year_from, year_to))
 
         if object_number:
             return models.Filter(
@@ -119,6 +179,8 @@ class QdrantService:
         museums: list[str] | None,
         object_number: str | None,
         vector_name: str,
+        year_from: int | None = None,
+        year_to: int | None = None,
     ) -> list[dict]:
         """
         Perform search in qdrant collection based on vector similarity.
@@ -127,7 +189,9 @@ class QdrantService:
         """
         start_time = time.time()
 
-        query_filter = self._build_filter(work_types, museums, object_number)
+        query_filter = self._build_filter(
+            work_types, museums, object_number, year_from, year_to
+        )
 
         # exact=True is brute force search (ensures full recall)
         search_params = models.SearchParams(exact=True)
@@ -148,6 +212,7 @@ class QdrantService:
             f"[TIMING] Qdrant vector search - "
             f"limit={limit}, offset={offset}, "
             f"museums={museums}, work_types={work_types}, "
+            f"years={year_from}-{year_to}, "
             f"object_number={object_number}, "
             f"exact_search=True: {qdrant_time:.2f}ms"
         )
@@ -184,7 +249,17 @@ class QdrantService:
         logger.info(f"[TIMING] search_text - Jina text embedding: {embedding_time:.2f}ms")
 
         vector_name = SEARCH_MODE_TO_VECTOR_NAME[search_mode]
-        return self._search(query_vector, limit, offset, work_types, museums, object_number=None, vector_name=vector_name)
+        return self._search(
+            query_vector,
+            limit,
+            offset,
+            work_types,
+            museums,
+            object_number=None,
+            vector_name=vector_name,
+            year_from=search_function_args.year_from,
+            year_to=search_function_args.year_to,
+        )
 
     def search_similar_images(
         self,
@@ -240,6 +315,8 @@ class QdrantService:
             museums,
             object_number,
             vector_name="image_jina",
+            year_from=search_function_args.year_from,
+            year_to=search_function_args.year_to,
         )
         # Mark the artwork the similarity search started from, so the frontend can
         # highlight it. (Score == 1 is not a reliable signal: title search can

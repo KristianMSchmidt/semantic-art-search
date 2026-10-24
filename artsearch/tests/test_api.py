@@ -272,6 +272,8 @@ def test_search_passes_filters(mock_search_deps):
         museums=["smk", "met"],
         work_types=["painting"],
         search_mode="image",
+        year_from=None,
+        year_to=None,
     )
 
 
@@ -289,6 +291,8 @@ def test_search_no_filters_passes_none(mock_search_deps):
         museums=None,
         work_types=None,
         search_mode="image",
+        year_from=None,
+        year_to=None,
     )
 
 
@@ -399,6 +403,8 @@ def test_similar_calls_handle_search_with_correct_query(mock_similar_deps):
         museums=None,
         work_types=None,
         search_mode="image",
+        year_from=None,
+        year_to=None,
     )
 
 
@@ -414,6 +420,8 @@ def test_similar_passes_filters(mock_similar_deps):
         museums=["met"],
         work_types=["painting"],
         search_mode="image",
+        year_from=None,
+        year_to=None,
     )
 
 
@@ -520,6 +528,8 @@ def test_random_uses_provided_seed(mock_random_deps):
         limit=24,
         museums=None,
         work_types=None,
+        year_from=None,
+        year_to=None,
     )
 
 
@@ -545,6 +555,8 @@ def test_random_passes_filters(mock_random_deps):
         limit=24,
         museums=["smk", "met"],
         work_types=["painting"],
+        year_from=None,
+        year_to=None,
     )
 
 

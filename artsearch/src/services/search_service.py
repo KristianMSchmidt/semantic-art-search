@@ -110,6 +110,30 @@ def make_prefilter(
     return selected_items
 
 
+MAX_ABS_YEAR = 9999
+
+
+def parse_year_range(
+    raw_from: str | None, raw_to: str | None
+) -> tuple[int | None, int | None]:
+    """
+    Parse year_from/year_to request values. Blank or invalid values mean no
+    bound. A reversed range is swapped, so "1700 to 1600" means 1600-1700.
+    """
+
+    def parse_year(raw: str | None) -> int | None:
+        try:
+            year = int((raw or "").strip())
+        except ValueError:
+            return None
+        return year if abs(year) <= MAX_ABS_YEAR else None
+
+    year_from, year_to = parse_year(raw_from), parse_year(raw_to)
+    if year_from is not None and year_to is not None and year_from > year_to:
+        year_from, year_to = year_to, year_from
+    return year_from, year_to
+
+
 def _execute_query_search(
     query: str,
     offset: int,
@@ -118,6 +142,8 @@ def _execute_query_search(
     work_type_prefilter: list[str] | None,
     all_museum_slugs: list[str],
     search_mode: SearchMode,
+    year_from: int | None = None,
+    year_to: int | None = None,
 ) -> list:
     """Execute a text or similarity search for the given query."""
     qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
@@ -132,6 +158,8 @@ def _execute_query_search(
         museum_prefilter=museum_prefilter,
         object_number=query_analysis.object_number,
         object_museum=query_analysis.object_museum,
+        year_from=year_from,
+        year_to=year_to,
     )
 
     if query_analysis.is_find_similar_query:
@@ -147,6 +175,8 @@ def handle_search(
     work_types: list[str] | None = None,
     search_mode: SearchMode = DEFAULT_SEARCH_MODE,
     seed: str | None = None,
+    year_from: int | None = None,
+    year_to: int | None = None,
 ) -> SearchResult:
     """
     Handle the search logic based on the provided query and filters.
@@ -165,6 +195,8 @@ def handle_search(
     total_works = get_total_works_for_filters(
         tuple(selected_museums),
         tuple(selected_work_types),
+        year_from,
+        year_to,
     )
 
     if query is None or query == "":
@@ -178,6 +210,8 @@ def handle_search(
             seed=seed,
             total_works=total_works,
             is_initial_load=(query is None),
+            year_from=year_from,
+            year_to=year_to,
         )
 
     try:
@@ -189,6 +223,8 @@ def handle_search(
             work_type_prefilter=work_type_prefilter,
             all_museum_slugs=all_museum_slugs,
             search_mode=search_mode,
+            year_from=year_from,
+            year_to=year_to,
         )
         header_text = (
             f"Search results ({total_works} works)" if total_works > 0 else None
