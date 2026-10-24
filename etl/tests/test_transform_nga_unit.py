@@ -31,3 +31,17 @@ def test_extract_production_dates(displaydate, beginyear, endyear, expected):
 def test_extract_production_dates_without_displaydate_field():
     raw_json = {"beginyear": "1837", "endyear": "1911"}
     assert NgaTransformer().extract_production_dates(raw_json) == (None, None)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "displaydate, expected",
+    [
+        ("c. 1310", "c. 1310"),
+        ("", None),
+        ("n.d.", None),
+        ("Date Unknown ", None),
+    ],
+)
+def test_extract_period(displaydate, expected):
+    assert NgaTransformer().extract_period({"displaydate": displaydate}) == expected

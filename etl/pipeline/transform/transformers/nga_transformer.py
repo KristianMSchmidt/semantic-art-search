@@ -122,8 +122,14 @@ class NgaTransformer(BaseTransformer):
         return to_int(raw_json.get("beginyear")), to_int(raw_json.get("endyear"))
 
     def extract_period(self, raw_json: dict) -> Optional[str]:
-        """Extract period from NGA displaydate, e.g. "c. 1310", "1796-1797"."""
-        return raw_json.get("displaydate", "").strip() or None
+        """Extract period from NGA displaydate, e.g. "c. 1310", "1796-1797".
+
+        Undated works get None, so they are labelled "Date unknown" like other museums.
+        """
+        display_date = raw_json.get("displaydate", "").strip()
+        if display_date.lower() in UNDATED_DISPLAY_DATES:
+            return None
+        return display_date
 
     def extract_image_url(self, raw_json: dict) -> Optional[str]:
         """Extract full resolution image URL using NGA's IIIF Image API (v2)."""
