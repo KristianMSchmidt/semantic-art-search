@@ -124,12 +124,14 @@ title="View on GitHub"
                 x-cloak
             >
                 <div class="flex items-center gap-2">
-                    <input type="number" name="year_from" x-model="from" placeholder="From"
+                    <input type="text" inputmode="numeric" name="year_from"
+                        x-model="from" @input="from = cleanYear(from)" placeholder="From"
                         aria-label="From year"
                         @keydown.enter.prevent="apply(from, to)"
                         class="w-full min-w-0 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <span class="text-gray-500">–</span>
-                    <input type="number" name="year_to" x-model="to" placeholder="To"
+                    <input type="text" inputmode="numeric" name="year_to"
+                        x-model="to" @input="to = cleanYear(to)" placeholder="To"
                         aria-label="To year"
                         @keydown.enter.prevent="apply(from, to)"
                         class="w-full min-w-0 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -638,6 +640,16 @@ title="View on GitHub"
                 });
             },
 
+            // Keep only a year: digits with an optional leading minus (BCE; also
+            // the Unicode minus and en dash found in pasted dates), no leading
+            // zeros, at most 4 digits like the server's limit of 9999. Limiting
+            // here rather than with maxlength keeps pasted "c. 1650" whole.
+            cleanYear(value) {
+                const negative = /^\s*[-−–]/.test(value);
+                const digits = value.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 4);
+                return (negative ? '-' : '') + digits;
+            },
+
             // Set the range and search right away. requestSubmit() without a
             // submitter keeps the current search mode, like Enter in the search input.
             apply(from, to) {
@@ -648,10 +660,14 @@ title="View on GitHub"
                 this.$nextTick(() => this.$root.closest('form').requestSubmit());
             },
 
+            // A lone "-" (mid-typing a BCE year) is ignored by the server, so
+            // label only values that hold a digit
             get buttonLabel() {
-                if (this.from !== '' && this.to !== '') return `${this.from}–${this.to}`;
-                if (this.from !== '') return `From ${this.from}`;
-                if (this.to !== '') return `Until ${this.to}`;
+                const hasFrom = /\d/.test(this.from);
+                const hasTo = /\d/.test(this.to);
+                if (hasFrom && hasTo) return `${this.from}–${this.to}`;
+                if (hasFrom) return `From ${this.from}`;
+                if (hasTo) return `Until ${this.to}`;
                 return 'All Years';
             }
         };
