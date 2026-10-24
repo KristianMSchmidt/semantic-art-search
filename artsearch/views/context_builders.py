@@ -2,7 +2,6 @@ import json
 import secrets
 from typing import Any, Iterable, Literal
 from dataclasses import dataclass
-from functools import cached_property
 from urllib.parse import urlencode
 
 from django.http import HttpRequest
@@ -74,12 +73,9 @@ class SearchParams:
         model = self.request.GET.get("model", DEFAULT_SEARCH_MODE)
         return validate_search_mode(model)
 
-    @cached_property
+    @property
     def seed(self) -> str:
-        """
-        Get seed from URL or generate new one for deterministic random ordering.
-        Cached so the first page and the pagination URL use the same seed.
-        """
+        """Get seed from URL or generate new one for deterministic random ordering."""
         existing = self.request.GET.get("seed")
         if existing:
             return existing
