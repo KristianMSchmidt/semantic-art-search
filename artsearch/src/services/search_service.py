@@ -167,6 +167,29 @@ def _execute_query_search(
     return qdrant_service.search_text(search_arguments, search_mode=search_mode)
 
 
+def _execute_image_vector_search(
+    image_vector: list[float],
+    offset: int,
+    limit: int,
+    museum_prefilter: list[str] | None,
+    work_type_prefilter: list[str] | None,
+    year_from: int | None = None,
+    year_to: int | None = None,
+) -> list:
+    """Find artworks visually similar to an image embedding."""
+    qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
+    search_arguments = SearchFunctionArguments(
+        query="",
+        limit=limit,
+        offset=offset,
+        work_type_prefilter=work_type_prefilter,
+        museum_prefilter=museum_prefilter,
+        year_from=year_from,
+        year_to=year_to,
+    )
+    return qdrant_service.search_image_vector(image_vector, search_arguments)
+
+
 def handle_search(
     query: str | None,
     offset: int,
@@ -177,9 +200,13 @@ def handle_search(
     seed: str | None = None,
     year_from: int | None = None,
     year_to: int | None = None,
+    image_vector: list[float] | None = None,
 ) -> SearchResult:
     """
     Handle the search logic based on the provided query and filters.
+
+    With an image_vector (an uploaded image), finds visually similar artworks
+    and ignores the query.
 
     For browsing (no query), delegates to handle_browse which uses PostgreSQL
     for deterministic random ordering with proper pagination support.
@@ -199,7 +226,7 @@ def handle_search(
         year_to,
     )
 
-    if query is None or query == "":
+    if image_vector is None and (query is None or query == ""):
         if seed is None:
             raise ValueError("seed is required for browsing mode (no query)")
         return handle_browse(
@@ -215,20 +242,38 @@ def handle_search(
         )
 
     try:
-        results = _execute_query_search(
-            query=query,
-            offset=offset,
-            limit=limit,
-            museum_prefilter=museum_prefilter,
-            work_type_prefilter=work_type_prefilter,
-            all_museum_slugs=all_museum_slugs,
-            search_mode=search_mode,
-            year_from=year_from,
-            year_to=year_to,
+        if image_vector is not None:
+            results = _execute_image_vector_search(
+                image_vector=image_vector,
+                offset=offset,
+                limit=limit,
+                museum_prefilter=museum_prefilter,
+                work_type_prefilter=work_type_prefilter,
+                year_from=year_from,
+                year_to=year_to,
+            )
+        else:
+            results = _execute_query_search(
+                query=query or "",
+                offset=offset,
+                limit=limit,
+                museum_prefilter=museum_prefilter,
+                work_type_prefilter=work_type_prefilter,
+                all_museum_slugs=all_museum_slugs,
+                search_mode=search_mode,
+                year_from=year_from,
+                year_to=year_to,
+            )
+        header_label = (
+            "Artworks resembling your image"
+            if image_vector is not None
+            else "Search results"
         )
         header_text = (
-            f"Search results ({total_works} works)" if total_works > 0 else None
+            f"{header_label} ({total_works} works)" if total_works > 0 else None
         )
+        if header_text and image_vector is not None:
+            header_text += " · Your image is not stored"
         return SearchResult(
             results=results,
             header_text=header_text,

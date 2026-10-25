@@ -41,6 +41,7 @@ urlpatterns = [
         name="sitemap-section",
     ),
     path("artworks/", views.get_artworks_view, name="get-artworks"),
+    path("artworks/image/", views.upload_image_view, name="upload-image"),
     path("artworks/description/", views.get_artwork_description_view, name="get-artwork-description"),
     path(
         "artworks/description/cached/",

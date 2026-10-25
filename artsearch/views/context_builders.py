@@ -38,6 +38,11 @@ class SearchParams:
         return retrieve_query(self.request)
 
     @property
+    def image_key(self) -> str | None:
+        """Key of the cached embedding of an uploaded image (image search)."""
+        return self.request.GET.get("image") or None
+
+    @property
     def query_error(self) -> str | None:
         """Return error message if query exceeds max length, None otherwise."""
         query = self.query
@@ -234,6 +239,7 @@ def make_url_with_params(
     search_mode: SearchMode | None = None,
     seed: str | None = None,
     year_range: tuple[int | None, int | None] = (None, None),
+    image_key: str | None = None,
 ) -> str:
     """Make a URL with query parameters for pagination and filtering."""
     query_params = {}
@@ -241,6 +247,8 @@ def make_url_with_params(
         query_params["offset"] = offset
     if query:
         query_params["query"] = query
+    if image_key:
+        query_params["image"] = image_key
     if selected_work_types:
         query_params["work_types"] = selected_work_types
     if selected_museums:
@@ -267,6 +275,7 @@ def make_urls_with_params(
     search_mode: SearchMode | None = None,
     seed: str | None = None,
     year_range: tuple[int | None, int | None] = (None, None),
+    image_key: str | None = None,
 ) -> dict[str, str]:
     """Make URLs with query parameters for pagination and filtering"""
     return {
@@ -279,6 +288,7 @@ def make_urls_with_params(
             search_mode=search_mode,
             seed=seed,
             year_range=year_range,
+            image_key=image_key,
         ),
     }
 
@@ -309,16 +319,23 @@ def make_home_url(params: SearchParams) -> str:
 
 
 def build_search_context(
-    params: SearchParams, search_mode: SearchMode = DEFAULT_SEARCH_MODE
+    params: SearchParams,
+    search_mode: SearchMode = DEFAULT_SEARCH_MODE,
+    image_vector: list[float] | None = None,
 ) -> dict[str, Any]:
     """
     Build the main context for the search view.
+
+    image_vector is the embedding of an uploaded image (see params.image_key);
+    when given, results are artworks resembling it and the query is ignored.
     """
     offset = params.offset
     limit = params.limit
 
-    # Determine if we're in browse mode (no query)
-    is_browse_mode = params.query is None or params.query == ""
+    # Determine if we're in browse mode (no query and no uploaded image)
+    is_browse_mode = image_vector is None and (
+        params.query is None or params.query == ""
+    )
     year_from, year_to = params.year_range
 
     search_results = handle_search(
@@ -331,6 +348,7 @@ def build_search_context(
         seed=params.seed if is_browse_mode else None,
         year_from=year_from,
         year_to=year_to,
+        image_vector=image_vector,
     )
 
     # Only include seed in pagination URLs for browse mode
@@ -343,6 +361,7 @@ def build_search_context(
         search_mode=params.selected_search_mode,
         seed=params.seed if is_browse_mode else None,
         year_range=params.year_range,
+        image_key=params.image_key if image_vector is not None else None,
     )
 
     return {

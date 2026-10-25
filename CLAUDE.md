@@ -87,6 +87,7 @@ Deploy from merged `master`: on the server, in the repo, run `make prod_deploy` 
 2. **Object Number Search**: Direct lookup (e.g., "KMS1")
 3. **Museum-Specific Search**: Format "museum:object_number" (e.g., "smk:KMS1")
 4. **Similar Image Search**: Find visually similar artworks
+5. **Image Upload Search**: Upload, drop or paste your own image (camera button in the search input) to find artworks that look like it
 
 ### Filtering
 
@@ -113,6 +114,10 @@ All modes use Jina CLIP v2 (256d) for text embedding. Similarity search always u
 
 **Qdrant vectors per artwork:** `image_jina` (256d), `text_jina` (256d), `image_clip` (768d, populated for all museums except NGA (zeros); currently unused by search — see #88), `text_clip` (768d, zeros — unused)
 
+### Image Upload Search
+
+`artsearch/src/services/image_upload_service.py`. The browser downscales the image (1024px, `downscaleImage()` in `home.html`) and POSTs it to `/artworks/image/` (rate limited 10/min, 100/hour). The server validates it with Pillow, downscales to 512px (one Jina tile, so one 4,000-token charge), embeds it with Jina and caches the vector for an hour in its own Django cache, `uploaded_images` (per-process LocMem, fine with prod's single gunicorn worker), keyed by a hash of the image bytes. It returns that key; the form puts it in the hidden `image` input and submits, so `/artworks/?image=<key>` searches `image_jina` with the usual filters and pagination. Uploads are never stored. Image searches aren't shareable: the key is left out of `HX-Replace-Url`, and after it expires (or a restart/deploy) the user is asked to upload again. Typing a text query, clicking an example query or clicking Title Search clears the image.
+
 ## Artwork Pages
 
 Every artwork has a shareable page at `/artwork/<museum_slug>/<object_number>/` (`artwork_page_view`, template `artwork.html`), linked from the artwork title on search result cards and in the popup (the image still opens the popup). A **Share** button in the popup and on the page uses `shareLink()` (`base.html`): the system share menu on touch devices, otherwise copy to clipboard. It shows the image, metadata, 12 visually similar artworks (stored `image_jina` vector, no Jina call; "Show more" appends the next 12 in place via the HTMX endpoint `/artwork/<museum_slug>/<object_number>/similar/?offset=N`) and per-artwork `<title>`, canonical URL and Open Graph/Twitter tags. Pages override the `title` and `meta` blocks in `base.html`.
@@ -131,6 +136,7 @@ JSON API at `/api/`. Code in `artsearch/api/views.py` and `artsearch/api/urls.py
 | `GET /api/museums/` | List museums (`slug`, `full_name`) |
 | `GET /api/work-types/` | List searchable work types |
 | `GET /api/search/?query=...` | Semantic search across artworks |
+| `POST /api/search/image/` | Artworks resembling an uploaded image (multipart field `image`, max 10 MB; filters/paging in the query string). Rate-limited 10/min, 100/hour |
 | `GET /api/random/` | Random artworks (optional `seed` for reproducibility) |
 | `GET /api/artworks/<museum_slug>/<object_number>/` | Single artwork detail |
 | `GET /api/artworks/<museum_slug>/<object_number>/similar/` | Visually similar artworks |

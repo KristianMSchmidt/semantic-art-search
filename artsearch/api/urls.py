@@ -4,6 +4,7 @@ from artsearch.api.views import (
     artwork_detail_view,
     museums_view,
     random_view,
+    search_image_view,
     search_view,
     similar_view,
     work_types_view,
@@ -20,5 +21,6 @@ urlpatterns = [
     ),
     path("artworks/<str:museum_slug>/<path:object_number>/", artwork_detail_view),
     path("search/", search_view),
+    path("search/image/", search_image_view),
     path("random/", random_view),
 ]

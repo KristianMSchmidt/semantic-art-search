@@ -8,6 +8,7 @@ from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
 from django.contrib.admin.views.decorators import staff_member_required
+from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 
 from artsearch.views.context_builders import (
@@ -22,6 +23,11 @@ from artsearch.views.context_builders import (
 from artsearch.views.log_utils import log_search_query
 from artsearch.src.services.artwork_description.cache import get_cached_description
 from artsearch.src.services.artwork_description.service import generate_description
+from artsearch.src.services.image_upload_service import (
+    ImageUploadError,
+    embed_upload,
+    get_uploaded_image_vector,
+)
 from artsearch.src.utils.get_museums import get_museum_slugs
 from artsearch.src.services.qdrant_service import QdrantService, SearchFunctionArguments
 from artsearch.src.utils.qdrant_formatting import format_payload
@@ -94,10 +100,19 @@ def get_artworks_view(request: HttpRequest) -> HttpResponse:
         }
         return render(request, "partials/artwork_response.html", context)
 
-    if params.offset == 0:
+    image_vector = None
+    if params.image_key:
+        image_vector = get_uploaded_image_vector(params.image_key)
+        if image_vector is None:
+            context = {
+                "error_message": "Your image search has expired. Please upload the image again.",
+                "error_type": "warning",
+            }
+            return render(request, "partials/artwork_response.html", context)
+    elif params.offset == 0:
         log_search_query(params)
     context = build_search_context(
-        params, search_mode=params.selected_search_mode
+        params, search_mode=params.selected_search_mode, image_vector=image_vector
     )
     response = render(request, "partials/artwork_response.html", context)
     if params.offset == 0:
@@ -105,6 +120,30 @@ def get_artworks_view(request: HttpRequest) -> HttpResponse:
         # sharing reproduce it (pagination requests leave it alone)
         response["HX-Replace-Url"] = make_home_url(params)
     return response
+
+
+@require_POST
+@ratelimit(key=get_client_ip, rate="10/m", method="POST", block=False)
+@ratelimit(key=get_client_ip, rate="100/h", method="POST", block=False)
+def upload_image_view(request: HttpRequest) -> JsonResponse:
+    """
+    Embed an uploaded image for image search and return the key of its cached
+    embedding. The client then runs the search through get_artworks_view with
+    `image=<key>`, so filters and pagination work as for text searches.
+
+    The image is processed in memory and never stored. Rate limited more
+    tightly than text search, since image embeddings cost more Jina tokens.
+    """
+    if getattr(request, "limited", False):
+        return JsonResponse(
+            {"error": "Too many image searches. Please wait a moment before trying again."},
+            status=429,
+        )
+    try:
+        image_key, _ = embed_upload(request.FILES.get("image"))
+    except ImageUploadError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"image_key": image_key})
 
 
 def update_work_types(request):

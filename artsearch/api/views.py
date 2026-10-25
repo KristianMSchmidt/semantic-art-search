@@ -1,6 +1,8 @@
 import secrets
 
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 
 from artsearch.src.config import config
@@ -11,6 +13,10 @@ from artsearch.src.constants.search_modes import (
 from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
 from artsearch.src.constants.search import MAX_QUERY_LENGTH
 from artsearch.src.constants.work_types import SEARCHABLE_WORK_TYPES
+from artsearch.src.services.image_upload_service import (
+    ImageUploadError,
+    embed_upload,
+)
 from artsearch.src.services.qdrant_service import QdrantService
 from artsearch.src.services.search_service import handle_search, parse_year_range
 from artsearch.src.utils.qdrant_formatting import format_payload
@@ -176,6 +182,46 @@ def search_view(request):
         "results": search_results["results"],
         "total_works": search_results["total_works"],
         "query": query,
+        "offset": params["offset"],
+        "limit": params["limit"],
+    })
+
+
+@csrf_exempt
+@require_POST
+@ratelimit(key=get_client_ip, rate="10/m", method="POST", block=False)
+@ratelimit(key=get_client_ip, rate="100/h", method="POST", block=False)
+def search_image_view(request):
+    """
+    Find artworks visually similar to an uploaded image (multipart field `image`).
+
+    Filters and paging come from the query string, as for search_view. The
+    embedding is cached by image content, so posting the same image again for
+    the next page doesn't re-embed it. The image itself is not stored.
+    """
+    if getattr(request, "limited", False):
+        return JsonResponse(
+            {"error": "Too many requests. Please try again later."}, status=429
+        )
+
+    try:
+        _, image_vector = embed_upload(request.FILES.get("image"))
+    except ImageUploadError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+    params = _parse_search_params(request)
+    search_results = handle_search(
+        query=None,
+        image_vector=image_vector,
+        **params,
+    )
+
+    if search_results["error_message"]:
+        return JsonResponse({"error": search_results["error_message"]}, status=400)
+
+    return JsonResponse({
+        "results": search_results["results"],
+        "total_works": search_results["total_works"],
         "offset": params["offset"],
         "limit": params["limit"],
     })

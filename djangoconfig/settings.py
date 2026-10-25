@@ -127,6 +127,21 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
+# Uploaded-image embeddings for image search get their own cache, so the
+# sitemap pages cached in the default cache can't push them out early.
+CACHES = {
+    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+    "uploaded_images": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "uploaded-images",
+        "OPTIONS": {"MAX_ENTRIES": 2000},
+    },
+}
+
+# Keep image search uploads (max 10 MB) in memory: they are never stored,
+# not even as a temporary file
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
