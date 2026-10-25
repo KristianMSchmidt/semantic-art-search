@@ -1,0 +1,32 @@
+{% for result in similar_artworks %}
+  {% url 'artwork-page' result.museum_slug result.object_number as page_url %}
+  {% if page_url %}
+  <a href="{{ page_url }}"
+     class="block bg-white rounded-lg shadow-md ring-1 ring-gray-200 overflow-hidden hover:opacity-80 transition">
+    <img loading="lazy"
+         src="{{ result.thumbnail_url }}"
+         alt="{{ result.title }}"
+         class="w-full h-40 object-contain bg-gray-50">
+    <div class="p-2">
+      <p class="text-sm font-semibold text-gray-800 leading-snug line-clamp-2">{{ result.title }}</p>
+      <p class="text-xs text-gray-500 mt-1 line-clamp-1">{{ result.artist }}</p>
+    </div>
+  </a>
+  {% endif %}
+{% endfor %}
+
+<!-- Replaced by the next batch of cards (and a new button, if there are more) -->
+{% if similar_more_url %}
+  <div class="col-span-full text-center mt-2">
+    <button
+      type="button"
+      hx-get="{{ similar_more_url }}"
+      hx-target="closest div"
+      hx-swap="outerHTML"
+      hx-disabled-elt="this"
+      class="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
+      title="Load more artworks that look similar to this one">
+      Show more
+    </button>
+  </div>
+{% endif %}

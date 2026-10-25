@@ -113,6 +113,15 @@ All modes use Jina CLIP v2 (256d) for text embedding. Similarity search always u
 
 **Qdrant vectors per artwork:** `image_jina` (256d), `text_jina` (256d), `image_clip` (768d, populated for all museums except NGA (zeros); currently unused by search — see #88), `text_clip` (768d, zeros — unused)
 
+## Artwork Pages
+
+Every artwork has a shareable page at `/artwork/<museum_slug>/<object_number>/` (`artwork_page_view`, template `artwork.html`), linked from the artwork title on search result cards and in the popup (the image still opens the popup). A **Share** button in the popup and on the page uses `shareLink()` (`base.html`): the system share menu on touch devices, otherwise copy to clipboard. It shows the image, metadata, 12 visually similar artworks (stored `image_jina` vector, no Jina call; "Show more" appends the next 12 in place via the HTMX endpoint `/artwork/<museum_slug>/<object_number>/similar/?offset=N`) and per-artwork `<title>`, canonical URL and Open Graph/Twitter tags. Pages override the `title` and `meta` blocks in `base.html`.
+
+- **Object numbers can contain `/`, spaces, brackets, commas** (e.g. SMK `KKS10208/5`, MET `Burdick 218, N220.35`), so artwork routes use `<path:object_number>`, with the `similar/` routes listed before the detail/page routes (page and REST API).
+- **AI descriptions**: the page and the search popup only show an already cached description (the popup fetches it on open from `/artworks/description/cached/`, which is DB-only and not rate limited); new ones are generated on click. Never generate on page load, or crawlers would trigger OpenAI calls for every page.
+- **Sitemap**: `/sitemap.xml` (index) and `/sitemap-<section>.xml?p=N`, built from `ArtworkStats`, 10k URLs per page, cached for a day. Paths are built by `artwork_page_path()` (`artsearch/sitemaps.py`) rather than `reverse()`, which was too slow at this volume; a test keeps the two identical.
+- **robots.txt** points to the sitemap and disallows `/artworks/` (HTMX search), `/api/` and `/htmx/` so crawlers don't spend Jina API calls.
+
 ## REST API
 
 JSON API at `/api/`. Code in `artsearch/api/views.py` and `artsearch/api/urls.py`.

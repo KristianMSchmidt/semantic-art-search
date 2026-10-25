@@ -1,9 +1,12 @@
 import json
+import logging
 import random
 from functools import lru_cache
+from urllib.parse import urlencode
 
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
+from django.urls import reverse
 from django.contrib.admin.views.decorators import staff_member_required
 from django_ratelimit.decorators import ratelimit
 
@@ -17,11 +20,21 @@ from artsearch.views.context_builders import (
     SearchParams,
 )
 from artsearch.views.log_utils import log_search_query
+from artsearch.src.services.artwork_description.cache import get_cached_description
 from artsearch.src.services.artwork_description.service import generate_description
+from artsearch.src.utils.get_museums import get_museum_slugs
+from artsearch.src.services.qdrant_service import QdrantService, SearchFunctionArguments
+from artsearch.src.utils.qdrant_formatting import format_payload
 from artsearch.src.cache_registry import clear_all_caches, register_cache
 from artsearch.src.config import config
 from artsearch.src.constants.ui import EXAMPLE_QUERY_COUNTS
 from artsearch.models import ArtMapData
+
+logger = logging.getLogger(__name__)
+
+SIMILAR_ARTWORKS_ON_PAGE = 12
+# Deep Qdrant offsets get slow; nobody pages this far through similar artworks
+MAX_SIMILAR_OFFSET = 500
 
 
 def get_client_ip(group, request):
@@ -116,6 +129,153 @@ def update_museums(request):
     return render(request, "partials/dropdown.html", context)
 
 
+def get_artwork(museum_slug: str, object_number: str) -> dict | None:
+    """Fetch a single artwork formatted for display, or None if it doesn't exist."""
+    if museum_slug not in get_museum_slugs():
+        return None
+    qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
+    items = qdrant_service.get_items_by_object_number(
+        object_number=object_number,
+        object_museum=museum_slug,
+        with_payload=True,
+        limit=1,
+    )
+    if not items or items[0].payload is None:
+        return None
+    return format_payload(items[0].payload)
+
+
+def get_similar_artworks(
+    museum_slug: str, object_number: str, limit: int, offset: int = 0
+) -> tuple[list[dict], int]:
+    """
+    Visually similar artworks, excluding the artwork itself, plus the offset
+    to fetch the next batch from.
+
+    Uses the stored image vector, so no embedding API call is made. Returns no
+    artworks on failure so the artwork page still renders.
+    """
+    qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
+    search_args = SearchFunctionArguments(
+        query=f"{museum_slug}:{object_number}",
+        limit=limit + 1,  # room for the artwork itself, which is filtered out
+        offset=offset,
+        work_type_prefilter=None,
+        museum_prefilter=None,
+        object_number=object_number,
+        object_museum=museum_slug,
+    )
+    try:
+        results = qdrant_service.search_similar_images(search_args)
+    except Exception:
+        logger.exception(f"Similar search failed for {museum_slug}:{object_number}")
+        return [], offset
+
+    similar: list[dict] = []
+    consumed = 0
+    for result in results:
+        if len(similar) == limit:
+            break
+        consumed += 1
+        if not result["is_query_artwork"]:
+            similar.append(result)
+    return similar, offset + consumed
+
+
+def _similar_artworks_context(
+    museum_slug: str, object_number: str, offset: int = 0
+) -> dict:
+    similar, next_offset = get_similar_artworks(
+        museum_slug, object_number, SIMILAR_ARTWORKS_ON_PAGE, offset
+    )
+    more_url = None
+    if len(similar) == SIMILAR_ARTWORKS_ON_PAGE:
+        more_url = (
+            reverse("artwork-similar", args=[museum_slug, object_number])
+            + f"?offset={next_offset}"
+        )
+    return {"similar_artworks": similar, "similar_more_url": more_url}
+
+
+def artwork_page_view(
+    request: HttpRequest, museum_slug: str, object_number: str
+) -> HttpResponse:
+    """
+    Shareable page for a single artwork: image, metadata, similar artworks and
+    the AI description.
+
+    Only an already cached description is shown; generating a new one is left
+    to an explicit click, so crawlers visiting many pages don't trigger OpenAI calls.
+    """
+    artwork = get_artwork(museum_slug, object_number)
+    if artwork is None:
+        raise Http404("Artwork not found")
+
+    description = get_cached_description(museum_slug, object_number)
+    date = f" ({artwork['production_date']})" if artwork["production_date"] else ""
+    meta_description = description or (
+        f"{artwork['title']} by {artwork['artist']}{date}. {artwork['museum']}."
+    )
+    context = {
+        "artwork": artwork,
+        "description": description,
+        "meta_description": meta_description,
+        "description_url": reverse("get-artwork-description")
+        + "?"
+        + urlencode(
+            {
+                "museum": museum_slug,
+                "object_number": object_number,
+                "museum_db_id": artwork["museum_db_id"],
+            }
+        ),
+        "canonical_url": request.build_absolute_uri(
+            reverse("artwork-page", args=[museum_slug, object_number])
+        ),
+        **_similar_artworks_context(museum_slug, object_number),
+    }
+    return render(request, "artwork.html", context)
+
+
+@ratelimit(key=get_client_ip, rate="30/m", method="GET", block=False)
+@ratelimit(key=get_client_ip, rate="200/h", method="GET", block=False)
+def artwork_similar_view(
+    request: HttpRequest, museum_slug: str, object_number: str
+) -> HttpResponse:
+    """
+    HTMX endpoint for the artwork page's "Show more" similar artworks.
+
+    Rate limited and capped like the REST similar endpoint; when limited (or
+    past the cap) it returns no more cards, which also hides the button.
+    """
+    try:
+        offset = max(int(request.GET.get("offset", 0)), 0)
+    except ValueError:
+        offset = 0
+    if (
+        getattr(request, "limited", False)
+        or museum_slug not in get_museum_slugs()
+        or offset > MAX_SIMILAR_OFFSET
+    ):
+        return render(request, "partials/similar_artworks.html", {})
+    context = _similar_artworks_context(museum_slug, object_number, offset)
+    return render(request, "partials/similar_artworks.html", context)
+
+
+def robots_txt_view(request: HttpRequest) -> HttpResponse:
+    """Point crawlers at the sitemap and keep them off search endpoints (Jina API cost)."""
+    lines = [
+        "User-agent: *",
+        "Disallow: /admin/",
+        "Disallow: /api/",
+        "Disallow: /artworks/",
+        "Disallow: /htmx/",
+        "Disallow: /artwork/*/similar/",
+        f"Sitemap: {request.build_absolute_uri(reverse('sitemap-index'))}",
+    ]
+    return HttpResponse("\n".join(lines) + "\n", content_type="text/plain")
+
+
 @ratelimit(key=get_client_ip, rate="5/m", method="GET", block=False)
 @ratelimit(key=get_client_ip, rate="50/h", method="GET", block=False)
 def get_artwork_description_view(request: HttpRequest) -> HttpResponse:
@@ -157,6 +317,26 @@ def get_artwork_description_view(request: HttpRequest) -> HttpResponse:
         "object_number": object_number,
     }
 
+    return render(request, "partials/artwork_description.html", context)
+
+
+def get_cached_artwork_description_view(request: HttpRequest) -> HttpResponse:
+    """
+    HTMX/fetch endpoint for the artwork popup: return an already generated
+    description, or 204 if there is none. Never calls OpenAI, so it isn't
+    rate limited like get_artwork_description_view.
+    """
+    museum_slug = request.GET.get("museum", "")
+    object_number = request.GET.get("object_number", "")
+    description = get_cached_description(museum_slug, object_number)
+    if description is None:
+        return HttpResponse(status=204)
+    context = {
+        "description": description,
+        "rate_limited": False,
+        "museum_slug": museum_slug,
+        "object_number": object_number,
+    }
     return render(request, "partials/artwork_description.html", context)
 
 

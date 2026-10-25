@@ -166,6 +166,25 @@ def test_artwork_detail_returns_404_when_payload_is_none(mock_qdrant_service):
     assert response.json() == {"error": "Artwork not found"}
 
 
+@pytest.mark.integration
+def test_artwork_detail_handles_object_number_with_slash(mock_qdrant_service):
+    """SMK has thousands of object numbers like "KKS10208/5"."""
+    mock_qdrant_service.get_items_by_object_number.return_value = [
+        _make_scored_point(SAMPLE_PAYLOAD)
+    ]
+
+    with patch("artsearch.api.views.format_payload", return_value=FORMATTED_PAYLOAD):
+        response = Client().get("/api/artworks/smk/KKS10208/5/")
+
+    assert response.status_code == 200
+    mock_qdrant_service.get_items_by_object_number.assert_called_once_with(
+        object_number="KKS10208/5",
+        object_museum="smk",
+        with_payload=True,
+        limit=1,
+    )
+
+
 # ---- Search Tests ----
 
 
@@ -406,6 +425,15 @@ def test_similar_calls_handle_search_with_correct_query(mock_similar_deps):
         year_from=None,
         year_to=None,
     )
+
+
+@pytest.mark.integration
+def test_similar_handles_object_number_with_slash(mock_similar_deps):
+    response = Client().get("/api/artworks/smk/KKS10208/5/similar/")
+
+    assert response.status_code == 200
+    assert response.json()["object_number"] == "KKS10208/5"
+    assert mock_similar_deps["handle_search"].call_args.kwargs["query"] == "smk:KKS10208/5"
 
 
 @pytest.mark.integration

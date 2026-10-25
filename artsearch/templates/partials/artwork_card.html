@@ -1,3 +1,4 @@
+{% url 'artwork-page' result.museum_slug result.object_number as page_url %}
 <!-- Card container -->
 <div class="relative bg-white shadow-md rounded-lg overflow-hidden ring-1 ring-gray-200">
 
@@ -6,7 +7,7 @@
     src="{{ result.thumbnail_url }}"
        alt="{{ result.title }}"
        class="w-full h-auto max-h-96 object-contain cursor-pointer hover:opacity-80 transition"
-       onclick="openModal('{{ result.thumbnail_url }}', '{{ result.museum_slug }}', '{{ result.object_number }}', '{{ result.museum_db_id }}', '{{ result.title|escapejs }}', '{{ result.artist|escapejs }}', '{{ result.production_date|escapejs }}', '{{ result.source_url }}', '{{ result.api_url }}', '{{ result.museum|escapejs }}', {{ result.work_types|safe }})">
+       onclick="openModal('{{ result.thumbnail_url|escapejs }}', '{{ result.museum_slug|escapejs }}', '{{ result.object_number|escapejs }}', '{{ result.museum_db_id|escapejs }}', '{{ result.title|escapejs }}', '{{ result.artist|escapejs }}', '{{ result.production_date|escapejs }}', '{{ result.source_url|escapejs }}', '{{ result.api_url|escapejs }}', '{{ result.museum|escapejs }}', {{ result.work_types|safe }}, '{{ page_url|escapejs }}')">
 
   <!-- Text content -->
   <div class="pl-6 pr-4 py-4 sm:pl-4 sm:pr-4 flex flex-col h-full mb-2">
@@ -14,9 +15,15 @@
     <!-- Metadata block -->
     <div class="space-y-1">
 
-      <!-- Title -->
+      <!-- Title (links to the artwork page; the image opens the popup) -->
       <h3 class="text font-semibold text-gray-800 leading-snug">
+        {% if page_url %}
+        <a href="{{ page_url }}"
+           class="hover:text-blue-500 transition-colors"
+           title="Open this artwork's page, to share or bookmark it">{{ result.title }}</a>
+        {% else %}
         {{ result.title }}
+        {% endif %}
       </h3>
 
       {% if result.is_query_artwork %}
@@ -70,8 +77,9 @@
     <div class="mt-3">
       <button
         type="button"
+        title="Find artworks that look similar to this one"
         class="text-sm text-gray-500 hover:text-blue-500 transition-colors"
-        onclick="insertQuery('{{ result.find_similar_query }}')"
+        onclick="insertQuery('{{ result.find_similar_query|escapejs }}')"
         hx-get="{% url 'get-artworks' %}"
         hx-target="#search-results"
         hx-swap="innerHTML"
