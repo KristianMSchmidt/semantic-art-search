@@ -32,10 +32,11 @@ class JinaEmbedder:
     def generate_text_embedding(self, query: str) -> list[float]:
         return list(_cached_jina_text_embedding(query))
 
-    def generate_image_embedding(self, image_url: str) -> list[float]:
+    def generate_image_embedding(self, image: str) -> list[float]:
         """Generate image embedding using Jina CLIP v2 API.
 
-        Jina API accepts image URLs directly - it fetches the image server-side.
+        `image` is either a URL, which Jina fetches server-side, or base64-encoded
+        image data (used for uploaded images, see image_upload_service).
 
         Cost note: Jina tiles images >512px into 512×512 chunks, each costing 4,000
         tokens. Pre-resizing to 512×512 locally would reduce costs ~4× for typical
@@ -51,7 +52,7 @@ class JinaEmbedder:
             JINA_API_URL,
             headers=headers,
             json={
-                "input": [{"image": image_url}],
+                "input": [{"image": image}],
                 "model": JINA_MODEL,
                 "dimensions": JINA_DIMENSIONS,
             },

@@ -261,6 +261,24 @@ class QdrantService:
             year_to=search_function_args.year_to,
         )
 
+    def search_image_vector(
+        self,
+        query_vector: list[float],
+        search_function_args: SearchFunctionArguments,
+    ) -> list[dict]:
+        """Search for artworks visually similar to an image embedding (e.g. an uploaded image)."""
+        return self._search(
+            query_vector,
+            search_function_args.limit,
+            search_function_args.offset,
+            search_function_args.work_type_prefilter,
+            search_function_args.museum_prefilter,
+            object_number=None,
+            vector_name="image_jina",
+            year_from=search_function_args.year_from,
+            year_to=search_function_args.year_to,
+        )
+
     def search_similar_images(
         self,
         search_function_args: SearchFunctionArguments,
