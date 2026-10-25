@@ -3,13 +3,14 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>Semantic Art Search</title>
+		<title>{% block title %}Semantic Art Search{% endblock %}</title>
 		<link rel="manifest" href="{% static 'site.webmanifest' %}">
 		<link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<meta name="author" content="Kristian Møller Schmidt" />
 
+		{% block meta %}
 		<!-- SEO: Meta Description -->
 		<meta name="description" content="Search art collections using natural language — by theme, mood, or style — and find visually or semantically similar works across museums.">
 
@@ -27,6 +28,8 @@
 		<meta name="twitter:description" content="Search art collections using natural language — by theme, mood, or style — and find visually or semantically similar works across museums." />
 		<meta name="twitter:image" content="https://iip-thumb.smk.dk/iiif/jp2/kd17cx80w_KMSr171-crop.tif.jp2/full/!1024,/0/default.jpg" />
 
+		{% endblock %}
+
 		{% tailwind_css %}
 		<style>
         [x-cloak] {
@@ -35,6 +38,39 @@
     </style>
 		<script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 		<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+		<script>
+			// Share a link: the system share menu on touch devices, otherwise copy
+			// to the clipboard. Resolves to true when the link was copied, so the
+			// button can say so.
+			function shareLink(path, title) {
+				const url = new URL(path, window.location.origin).href;
+				if (navigator.share && window.matchMedia('(pointer: coarse)').matches) {
+					return navigator.share({ title, url }).then(() => false, () => false);
+				}
+				if (navigator.clipboard) {
+					return navigator.clipboard.writeText(url).then(() => true, () => {
+						window.prompt('Copy this link:', url);
+						return false;
+					});
+				}
+				window.prompt('Copy this link:', url);
+				return Promise.resolve(false);
+			}
+
+			// Alpine component for a Share button that briefly shows "Link copied"
+			function shareButton() {
+				return {
+					copied: false,
+					share(path, title) {
+						shareLink(path, title).then(copied => {
+							if (!copied) return;
+							this.copied = true;
+							setTimeout(() => { this.copied = false; }, 2000);
+						});
+					},
+				};
+			}
+		</script>
 	</head>
 
 	<body class="bg-gray-50 font-serif leading-normal tracking-normal">

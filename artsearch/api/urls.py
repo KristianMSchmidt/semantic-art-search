@@ -12,11 +12,13 @@ from artsearch.api.views import (
 urlpatterns = [
     path("museums/", museums_view),
     path("work-types/", work_types_view),
-    path("artworks/<str:museum_slug>/<str:object_number>/", artwork_detail_view),
+    # Object numbers can contain "/" (e.g. SMK "KKS10208/5"), hence <path:>.
+    # "similar/" must come first, or the detail route would swallow it.
     path(
-        "artworks/<str:museum_slug>/<str:object_number>/similar/",
+        "artworks/<str:museum_slug>/<path:object_number>/similar/",
         similar_view,
     ),
+    path("artworks/<str:museum_slug>/<path:object_number>/", artwork_detail_view),
     path("search/", search_view),
     path("random/", random_view),
 ]
