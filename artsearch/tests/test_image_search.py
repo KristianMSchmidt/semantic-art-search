@@ -7,19 +7,26 @@ cache holding the embeddings between requests are real.
 
 import base64
 import io
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.core.cache import caches
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
 from django.test import Client
+from django.utils import timezone
 from PIL import Image
 
+from artsearch.models import ImageSearchLog
 from artsearch.src.services.image_upload_service import (
     CACHE_ALIAS,
+    DAILY_EMBEDDING_CAP,
+    DailyCapReached,
     EMBED_IMAGE_SIZE,
     ImageUploadError,
     embed_uploaded_image,
+    embeddings_today,
     prepare_image,
 )
 
@@ -106,6 +113,7 @@ def test_prepare_image_rejects_unsupported_files(data):
 
 
 @pytest.mark.unit
+@pytest.mark.django_db
 def test_same_image_is_only_embedded_once(mock_jina):
     data = make_image_bytes()
 
@@ -115,6 +123,94 @@ def test_same_image_is_only_embedded_once(mock_jina):
     assert first_key == second_key
     assert first_vector == second_vector == FAKE_VECTOR
     assert mock_jina.generate_image_embedding.call_count == 1
+    statuses = list(ImageSearchLog.objects.values_list("status", flat=True))
+    assert sorted(statuses) == ["cached", "embedded"]
+
+
+# ---- Daily cap and usage stats ----
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_daily_cap_refuses_new_embeddings_but_not_cached_images(mock_jina):
+    cached_image = make_image_bytes(size=(100, 100))
+    embed_uploaded_image(cached_image)
+    ImageSearchLog.objects.bulk_create(
+        ImageSearchLog(status=ImageSearchLog.Status.EMBEDDED, source="web")
+        for _ in range(DAILY_EMBEDDING_CAP - 1)
+    )
+    mock_jina.generate_image_embedding.reset_mock()
+
+    with pytest.raises(DailyCapReached):
+        embed_uploaded_image(make_image_bytes(size=(200, 100)))
+    # An image embedded earlier today is still served from the cache
+    embed_uploaded_image(cached_image)
+
+    mock_jina.generate_image_embedding.assert_not_called()
+    assert ImageSearchLog.objects.filter(status="daily_cap").count() == 1
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_failed_jina_calls_count_toward_cap_but_bad_files_dont(mock_jina):
+    ImageSearchLog.objects.bulk_create(
+        ImageSearchLog(status=ImageSearchLog.Status.FAILED, source="web")
+        for _ in range(DAILY_EMBEDDING_CAP)
+    )
+    with pytest.raises(DailyCapReached):
+        embed_uploaded_image(make_image_bytes())
+
+    ImageSearchLog.objects.all().delete()
+    with pytest.raises(ImageUploadError):
+        embed_uploaded_image(b"not an image")
+    assert ImageSearchLog.objects.get().status == "rejected"
+    assert embeddings_today() == 0
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_upload_returns_429_when_daily_cap_reached(mock_jina):
+    ImageSearchLog.objects.bulk_create(
+        ImageSearchLog(status=ImageSearchLog.Status.EMBEDDED, source="web")
+        for _ in range(DAILY_EMBEDDING_CAP)
+    )
+
+    response = Client().post("/artworks/image/", {"image": make_upload()})
+
+    assert response.status_code == 429
+    assert "daily limit" in response.json()["error"]
+
+
+@pytest.mark.unit
+@pytest.mark.django_db
+def test_embeddings_from_previous_days_dont_count_toward_cap(mock_jina):
+    ImageSearchLog.objects.bulk_create(
+        ImageSearchLog(status=ImageSearchLog.Status.EMBEDDED, source="web")
+        for _ in range(DAILY_EMBEDDING_CAP)
+    )
+    ImageSearchLog.objects.update(timestamp=timezone.now() - timedelta(days=1))
+
+    embed_uploaded_image(make_image_bytes())
+
+    mock_jina.generate_image_embedding.assert_called_once()
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_image_search_stats_command_shows_counts_per_day():
+    ImageSearchLog.objects.create(status=ImageSearchLog.Status.EMBEDDED, source="web")
+    ImageSearchLog.objects.create(status=ImageSearchLog.Status.EMBEDDED, source="api")
+    ImageSearchLog.objects.create(status=ImageSearchLog.Status.CACHED, source="web")
+    out = io.StringIO()
+
+    call_command("image_search_stats", stdout=out)
+
+    today_line = next(
+        line for line in out.getvalue().splitlines()
+        if line.startswith(timezone.now().date().isoformat())
+    )
+    # embedded, cached, daily_cap, rejected, failed, total
+    assert today_line.split()[1:] == ["2", "1", "0", "0", "0", "3"]
 
 
 # ---- Web flow: upload, then search with the key ----
@@ -158,6 +254,7 @@ def test_search_with_expired_image_key_asks_for_new_upload(mock_qdrant):
 
 
 @pytest.mark.integration
+@pytest.mark.django_db
 def test_upload_rejects_non_image(mock_jina):
     upload = SimpleUploadedFile("notes.txt", b"hello", content_type="text/plain")
     response = Client().post("/artworks/image/", {"image": upload})
@@ -211,6 +308,7 @@ def test_api_image_search_returns_results(mock_jina, mock_qdrant):
 
 
 @pytest.mark.integration
+@pytest.mark.django_db
 def test_api_image_search_returns_json_error_when_embedding_fails(mock_jina):
     mock_jina.generate_image_embedding.side_effect = RuntimeError("Jina is down")
 
@@ -218,6 +316,7 @@ def test_api_image_search_returns_json_error_when_embedding_fails(mock_jina):
 
     assert response.status_code == 400
     assert "error" in response.json()
+    assert ImageSearchLog.objects.get().status == "failed"
 
 
 @pytest.mark.integration

@@ -24,6 +24,7 @@ from artsearch.views.log_utils import log_search_query
 from artsearch.src.services.artwork_description.cache import get_cached_description
 from artsearch.src.services.artwork_description.service import generate_description
 from artsearch.src.services.image_upload_service import (
+    DailyCapReached,
     ImageUploadError,
     embed_upload,
     get_uploaded_image_vector,
@@ -141,6 +142,8 @@ def upload_image_view(request: HttpRequest) -> JsonResponse:
         )
     try:
         image_key, _ = embed_upload(request.FILES.get("image"))
+    except DailyCapReached as e:
+        return JsonResponse({"error": str(e)}, status=429)
     except ImageUploadError as e:
         return JsonResponse({"error": str(e)}, status=400)
     return JsonResponse({"image_key": image_key})

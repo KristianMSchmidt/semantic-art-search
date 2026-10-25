@@ -11,6 +11,36 @@ class SearchLog(models.Model):
         return f"{self.query} @ {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
 
 
+class ImageSearchLog(models.Model):
+    """
+    One row per image upload for image search (the image itself is not stored).
+    EMBEDDED and FAILED rows may each have cost one Jina image embedding; their
+    count for today enforces the daily cap in image_upload_service.
+    """
+
+    class Status(models.TextChoices):
+        EMBEDDED = "embedded", "Embedded (Jina call)"
+        CACHED = "cached", "Cached (no Jina call)"
+        DAILY_CAP = "daily_cap", "Refused (daily cap reached)"
+        REJECTED = "rejected", "Rejected (not a usable image)"
+        FAILED = "failed", "Failed (Jina error)"
+
+    class Source(models.TextChoices):
+        WEB = "web", "Website"
+        API = "api", "REST API"
+
+    timestamp = models.DateTimeField(auto_now_add=True, editable=False)
+    status = models.CharField(max_length=20, choices=Status.choices, editable=False)
+    source = models.CharField(max_length=10, choices=Source.choices, editable=False)
+
+    class Meta:
+        # The daily cap counts today's rows by status on every new upload
+        indexes = [models.Index(fields=["status", "timestamp"])]
+
+    def __str__(self):
+        return f"{self.status} @ {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
+
+
 class ArtworkStats(models.Model):
     """
     Denormalized stats table for fast artwork counting queries.
