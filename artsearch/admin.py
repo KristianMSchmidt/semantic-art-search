@@ -13,9 +13,10 @@ class SearchLogAdmin(admin.ModelAdmin):
         "work_types",
         "year_from",
         "year_to",
+        "source",
         "username",
     )
-    list_filter = ("search_mode", "timestamp", "username")
+    list_filter = ("source", "search_mode", "timestamp", "username")
     search_fields = ("query",)
     ordering = ("-timestamp",)
 

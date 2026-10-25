@@ -697,6 +697,7 @@ def test_search_log_records_mode_and_filters(mock_qdrant_service):
 
     log = SearchLog.objects.get()
     assert log.query == "sunset"
+    assert log.source == "web"
     assert log.search_mode == "title"
     assert sorted(log.museums) == ["met", "smk"]
     assert log.work_types == ["painting"]

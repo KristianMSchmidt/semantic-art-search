@@ -22,6 +22,7 @@ from artsearch.src.services.image_upload_service import (
 from artsearch.src.services.qdrant_service import QdrantService
 from artsearch.src.services.search_service import handle_search, parse_year_range
 from artsearch.src.utils.qdrant_formatting import format_payload
+from artsearch.views.log_utils import log_api_search
 from artsearch.views.views import get_client_ip
 
 
@@ -174,6 +175,8 @@ def search_view(request):
         )
 
     params = _parse_search_params(request)
+    if params["offset"] == 0:
+        log_api_search(query, params)
 
     search_results = handle_search(query=query, **params)
 
