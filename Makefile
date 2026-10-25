@@ -73,6 +73,7 @@ prod_deploy: ## [PROD] Pull latest master and rebuild/restart the web container 
 	@git diff --quiet && git diff --cached --quiet || { echo "Uncommitted changes on server - aborting deploy"; git status --short; exit 1; }
 	git pull --ff-only
 	$(MAKE) prod_start
+	docker image prune -f  # each rebuild leaves the previous web image untagged
 
 prod_djangologs: ## [PROD] Show django logs
 	docker logs live-app-web-1
