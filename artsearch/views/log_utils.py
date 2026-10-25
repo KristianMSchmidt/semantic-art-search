@@ -33,12 +33,16 @@ def save_search_log(
     )
 
 
-def log_search_query(params: SearchParams) -> None:
+def log_search_query(params: SearchParams, image_search: bool = False) -> None:
     """
-    Saves a website search query, its mode and filters to the database.
+    Saves a website search, its mode and filters to the database.
+    image_search marks a search by uploaded image that is actually being run.
     """
-    query = params.query
-    if not query:
+    if image_search:
+        query, search_mode = "", SearchLog.SearchMode.UPLOAD
+    elif params.query:
+        query, search_mode = params.query, params.selected_search_mode
+    else:
         return
     user = params.request.user
     try:
@@ -47,7 +51,7 @@ def log_search_query(params: SearchParams) -> None:
         save_search_log(
             query=query,
             source=RequestSource.WEB,
-            search_mode=params.selected_search_mode,
+            search_mode=search_mode,
             museums=museums,
             work_types=work_types,
             year_from=year_from,
@@ -58,10 +62,11 @@ def log_search_query(params: SearchParams) -> None:
         print(f"Error logging search query: {e}")
 
 
-def log_api_search(query: str, params: dict) -> None:
+def log_api_search(query: str, params: dict, search_mode: str | None = None) -> None:
     """
     Saves a REST API search to the database. params is the dict from
-    the API's _parse_search_params (None filters mean everything).
+    the API's _parse_search_params (None filters mean everything);
+    search_mode overrides its mode (UPLOAD for image searches).
     """
     try:
         museums = params["museums"] or []
@@ -73,7 +78,7 @@ def log_api_search(query: str, params: dict) -> None:
         save_search_log(
             query=query,
             source=RequestSource.API,
-            search_mode=params["search_mode"],
+            search_mode=search_mode or params["search_mode"],
             museums=museums,
             work_types=work_types,
             year_from=params["year_from"],

@@ -9,14 +9,17 @@ class RequestSource(models.TextChoices):
 
 class SearchLog(models.Model):
     """
-    One row per new text search (first page only), from the website or the
-    REST API. Filter lists are empty when the filter covers everything; mode
-    and filters are null on rows logged before they were recorded.
+    One row per new search (first page only), from the website or the REST
+    API. Searches by uploaded image have mode UPLOAD and an empty query (the
+    uploads themselves, and their Jina cost, are in ImageSearchLog). Filter
+    lists are empty when the filter covers everything; mode and filters are
+    null on rows logged before they were recorded.
     """
 
     class SearchMode(models.TextChoices):
         IMAGE = "image", "Visual"
         TITLE = "title", "Title"
+        UPLOAD = "upload", "Uploaded image"
 
     query = models.TextField(editable=False)
     timestamp = models.DateTimeField(auto_now_add=True, editable=False)
