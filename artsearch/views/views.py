@@ -110,8 +110,8 @@ def get_artworks_view(request: HttpRequest) -> HttpResponse:
                 "error_type": "warning",
             }
             return render(request, "partials/artwork_response.html", context)
-    elif params.offset == 0:
-        log_search_query(params)
+    if params.offset == 0:
+        log_search_query(params, image_search=image_vector is not None)
     context = build_search_context(
         params, search_mode=params.selected_search_mode, image_vector=image_vector
     )

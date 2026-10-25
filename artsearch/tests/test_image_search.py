@@ -18,7 +18,7 @@ from django.test import Client
 from django.utils import timezone
 from PIL import Image
 
-from artsearch.models import ImageSearchLog
+from artsearch.models import ImageSearchLog, SearchLog
 from artsearch.src.services.image_upload_service import (
     CACHE_ALIAS,
     DAILY_EMBEDDING_CAP,
@@ -242,6 +242,19 @@ def test_upload_then_search_uses_image_vector_and_keeps_filters(mock_jina, mock_
     assert f"image={image_key}" in response.context["urls"]["get_artworks_with_params"]
     assert "Artworks resembling your image" in response.content.decode()
 
+    log = SearchLog.objects.get()
+    assert (log.query, log.search_mode, log.source) == ("", "upload", "web")
+    assert log.museums == ["smk"]
+    assert (log.year_from, log.year_to) == (1800, None)
+
+    # The next page is not a new search
+    with patch(
+        "artsearch.src.services.search_service.get_total_works_for_filters",
+        return_value=100,
+    ):
+        client.get("/artworks/", {"image": image_key, "query": "", "offset": "24"})
+    assert SearchLog.objects.count() == 1
+
 
 @pytest.mark.integration
 @pytest.mark.django_db
@@ -251,6 +264,7 @@ def test_search_with_expired_image_key_asks_for_new_upload(mock_qdrant):
     assert response.status_code == 200
     assert "upload the image again" in response.content.decode()
     mock_qdrant.search_image_vector.assert_not_called()
+    assert not SearchLog.objects.exists()
 
 
 @pytest.mark.integration
@@ -305,6 +319,9 @@ def test_api_image_search_returns_results(mock_jina, mock_qdrant):
     _, search_args = mock_qdrant.search_image_vector.call_args.args
     assert search_args.limit == 5
     assert search_args.museum_prefilter == ["smk"]
+    log = SearchLog.objects.get()
+    assert (log.query, log.search_mode, log.source) == ("", "upload", "api")
+    assert log.museums == ["smk"]
 
 
 @pytest.mark.integration
@@ -317,6 +334,7 @@ def test_api_image_search_returns_json_error_when_embedding_fails(mock_jina):
     assert response.status_code == 400
     assert "error" in response.json()
     assert ImageSearchLog.objects.get().status == "failed"
+    assert not SearchLog.objects.exists()
 
 
 @pytest.mark.integration

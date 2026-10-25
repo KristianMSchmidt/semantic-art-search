@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 
+from artsearch.models import SearchLog
 from artsearch.src.config import config
 from artsearch.src.constants.search_modes import (
     DEFAULT_SEARCH_MODE,
@@ -217,6 +218,9 @@ def search_image_view(request):
         return JsonResponse({"error": str(e)}, status=400)
 
     params = _parse_search_params(request)
+    if params["offset"] == 0:
+        log_api_search("", params, search_mode=SearchLog.SearchMode.UPLOAD)
+
     search_results = handle_search(
         query=None,
         image_vector=image_vector,
