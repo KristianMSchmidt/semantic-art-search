@@ -3,9 +3,26 @@ from django.contrib.postgres.indexes import GinIndex
 
 
 class SearchLog(models.Model):
+    """
+    One row per new text search (first page only). Filter lists are empty
+    when the filter covers everything; mode and filters are null on rows
+    logged before they were recorded.
+    """
+
+    class SearchMode(models.TextChoices):
+        IMAGE = "image", "Visual"
+        TITLE = "title", "Title"
+
     query = models.TextField(editable=False)
     timestamp = models.DateTimeField(auto_now_add=True, editable=False)
     username = models.CharField(max_length=255, editable=False, blank=True, null=True)
+    search_mode = models.CharField(
+        max_length=10, choices=SearchMode.choices, editable=False, null=True
+    )
+    museums = models.JSONField(editable=False, null=True)
+    work_types = models.JSONField(editable=False, null=True)
+    year_from = models.IntegerField(editable=False, null=True)
+    year_to = models.IntegerField(editable=False, null=True)
 
     def __str__(self):
         return f"{self.query} @ {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
