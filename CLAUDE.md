@@ -147,6 +147,8 @@ JSON API at `/api/`. Code in `artsearch/api/views.py` and `artsearch/api/urls.py
 
 Search, similar, and random endpoints are **rate-limited** (30/min, 200/hour per IP).
 
+New searches (first page only) from the website and `/api/search/` are logged in `SearchLog` with mode, narrowing filters, year range and `source` (`web`/`api`). Similar and random requests aren't logged.
+
 ## Coding Conventions
 
 - **Prefer simple, functional code** over complex OOP patterns

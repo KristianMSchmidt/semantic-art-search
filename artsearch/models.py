@@ -2,11 +2,16 @@ from django.db import models
 from django.contrib.postgres.indexes import GinIndex
 
 
+class RequestSource(models.TextChoices):
+    WEB = "web", "Website"
+    API = "api", "REST API"
+
+
 class SearchLog(models.Model):
     """
-    One row per new text search (first page only). Filter lists are empty
-    when the filter covers everything; mode and filters are null on rows
-    logged before they were recorded.
+    One row per new text search (first page only), from the website or the
+    REST API. Filter lists are empty when the filter covers everything; mode
+    and filters are null on rows logged before they were recorded.
     """
 
     class SearchMode(models.TextChoices):
@@ -23,6 +28,13 @@ class SearchLog(models.Model):
     work_types = models.JSONField(editable=False, null=True)
     year_from = models.IntegerField(editable=False, null=True)
     year_to = models.IntegerField(editable=False, null=True)
+    # Rows from before API searches were logged all came from the website
+    source = models.CharField(
+        max_length=10,
+        choices=RequestSource.choices,
+        default=RequestSource.WEB,
+        editable=False,
+    )
 
     def __str__(self):
         return f"{self.query} @ {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
@@ -42,9 +54,7 @@ class ImageSearchLog(models.Model):
         REJECTED = "rejected", "Rejected (not a usable image)"
         FAILED = "failed", "Failed (Jina error)"
 
-    class Source(models.TextChoices):
-        WEB = "web", "Website"
-        API = "api", "REST API"
+    Source = RequestSource
 
     timestamp = models.DateTimeField(auto_now_add=True, editable=False)
     status = models.CharField(max_length=20, choices=Status.choices, editable=False)

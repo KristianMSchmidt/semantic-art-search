@@ -9,6 +9,7 @@ from qdrant_client import models
 
 from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
 from artsearch.src.constants.work_types import SEARCHABLE_WORK_TYPES
+from artsearch.models import ArtworkStats, SearchLog
 
 
 # ---- Museums Endpoint Tests ----
@@ -294,6 +295,43 @@ def test_search_passes_filters(mock_search_deps):
         year_from=None,
         year_to=None,
     )
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_search_is_logged_with_api_source(mock_search_deps):
+    """API searches are logged like website ones, marked as source=api."""
+    # Two work types exist, so selecting one narrows the search
+    ArtworkStats.objects.create(
+        museum_slug="smk", object_number="A1", searchable_work_types=["painting"]
+    )
+    ArtworkStats.objects.create(
+        museum_slug="smk", object_number="A2", searchable_work_types=["print"]
+    )
+    client = Client()
+    client.get(
+        "/api/search/?query=landscape&model=title&museums=smk"
+        "&work_types=painting&year_from=1800"
+    )
+
+    log = SearchLog.objects.get()
+    assert log.query == "landscape"
+    assert log.source == "api"
+    assert log.search_mode == "title"
+    assert log.museums == ["smk"]
+    assert log.work_types == ["painting"]
+    assert (log.year_from, log.year_to) == (1800, None)
+    assert log.username is None
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_search_pagination_is_not_logged(mock_search_deps):
+    """Only the first page counts as a new search."""
+    client = Client()
+    client.get("/api/search/?query=landscape&offset=24")
+
+    assert not SearchLog.objects.exists()
 
 
 @pytest.mark.integration
