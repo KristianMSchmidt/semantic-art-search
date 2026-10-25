@@ -213,25 +213,25 @@ prod_load-images-retry-failed:  ## [PROD] Retry previously failed images for spe
 
 # ---------- ETL Load Embeddings ---------- #
 
-load-embeddings-smk:  ## [DEV] Generate CLIP embeddings for SMK museum
+load-embeddings-smk:  ## [DEV] Generate Jina embeddings for SMK museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum smk --batch-size 50 --delay 0.1 --batch-delay 2
 
-load-embeddings-cma:  ## [DEV] Generate CLIP embeddings for CMA museum
+load-embeddings-cma:  ## [DEV] Generate Jina embeddings for CMA museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum cma --batch-size 50 --delay 0.1 --batch-delay 2
 
-load-embeddings-rma:  ## [DEV] Generate CLIP embeddings for RMA museum
+load-embeddings-rma:  ## [DEV] Generate Jina embeddings for RMA museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum rma --batch-size 50 --delay 0.1 --batch-delay 2
 
-load-embeddings-met:  ## [DEV] Generate CLIP embeddings for MET museum
+load-embeddings-met:  ## [DEV] Generate Jina embeddings for MET museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum met --batch-size 50 --delay 0.1 --batch-delay 2
 
-load-embeddings-aic:  ## [DEV] Generate CLIP embeddings for AIC museum
+load-embeddings-aic:  ## [DEV] Generate Jina embeddings for AIC museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum aic --batch-size 50 --delay 0.1 --batch-delay 2
 
-load-embeddings-nga:  ## [DEV] Generate CLIP embeddings for NGA museum
+load-embeddings-nga:  ## [DEV] Generate Jina embeddings for NGA museum
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --museum nga --batch-size 50 --delay 0.1 --batch-delay 2
 
-load-embeddings-all:  ## [DEV] Generate CLIP embeddings for all museums
+load-embeddings-all:  ## [DEV] Generate Jina embeddings for all museums
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_embeddings --batch-size 100 --delay 0.1 --batch-delay 2
 
 # ---------- ETL Load Embeddings - Force Reload ---------- #
@@ -282,25 +282,25 @@ load-embeddings-nga-retry-failed:  ## [DEV] Retry previously failed embeddings f
 
 # ---------- ETL Load Embeddings [PROD] ---------- #
 
-prod_load-embeddings-smk:  ## [PROD] Generate CLIP embeddings for SMK museum
+prod_load-embeddings-smk:  ## [PROD] Generate Jina embeddings for SMK museum
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum smk --batch-size 50 --delay 0.1 --batch-delay 2
 
-prod_load-embeddings-cma:  ## [PROD] Generate CLIP embeddings for CMA museum
+prod_load-embeddings-cma:  ## [PROD] Generate Jina embeddings for CMA museum
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum cma --batch-size 50 --delay 0.1 --batch-delay 2
 
-prod_load-embeddings-rma:  ## [PROD] Generate CLIP embeddings for RMA museum
+prod_load-embeddings-rma:  ## [PROD] Generate Jina embeddings for RMA museum
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum rma --batch-size 50 --delay 0.1 --batch-delay 2
 
-prod_load-embeddings-met:  ## [PROD] Generate CLIP embeddings for MET museum
+prod_load-embeddings-met:  ## [PROD] Generate Jina embeddings for MET museum
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum met --batch-size 50 --delay 0.1 --batch-delay 2
 
-prod_load-embeddings-aic:  ## [PROD] Generate CLIP embeddings for AIC museum
+prod_load-embeddings-aic:  ## [PROD] Generate Jina embeddings for AIC museum
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum aic --batch-size 50 --delay 0.1 --batch-delay 2
 
-prod_load-embeddings-nga:  ## [PROD] Generate CLIP embeddings for NGA museum
+prod_load-embeddings-nga:  ## [PROD] Generate Jina embeddings for NGA museum
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --museum nga --batch-size 50 --delay 0.1 --batch-delay 2
 
-prod_load-embeddings-all:  ## [PROD] Generate CLIP embeddings for all museums
+prod_load-embeddings-all:  ## [PROD] Generate Jina embeddings for all museums
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_embeddings --batch-size 100 --delay 0.1 --batch-delay 2
 
 # ---------- ETL Load Embeddings - Force Reload [PROD] ---------- #

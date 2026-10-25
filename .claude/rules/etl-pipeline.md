@@ -87,7 +87,7 @@ Downloads thumbnails and uploads to S3-compatible storage.
 - Image quality: JPEG 85%, ~100-200KB
 - Configurable: `IMAGE_MAX_DIMENSION`, `IMAGE_JPEG_QUALITY` env vars
 
-## Stage 4: Load Embeddings (CLIP → Qdrant)
+## Stage 4: Load Embeddings (Jina → Qdrant)
 
 Generates embeddings and uploads to Qdrant vector database.
 
@@ -95,7 +95,7 @@ Generates embeddings and uploads to Qdrant vector database.
 
 **Active Vector System:**
 ```python
-ACTIVE_VECTOR_TYPES = ["image_clip", "image_jina"]
+ACTIVE_VECTOR_TYPES = ["image_jina", "text_jina"]  # CLIP vectors get zeros
 
 VECTOR_TYPE_TO_FIELD = {
     "image_clip": "image_vector_clip",
@@ -108,7 +108,7 @@ VECTOR_TYPE_TO_FIELD = {
 **Data Flow:**
 1. Query where `image_loaded=True` AND active vector is False
 2. Download image from S3 bucket
-3. Generate embedding (CLIP: 768 dims, Jina: 256 dims)
+3. Generate embedding via the Jina API (256 dims)
 4. Upload to Qdrant with named vectors + payload
 5. Set vector field to True
 

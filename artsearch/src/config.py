@@ -1,12 +1,7 @@
 import os
 from pathlib import Path
-import torch
 import dotenv
 from pydantic import BaseModel
-from typing import Literal
-
-
-ClipSelection = Literal["ViT-L/14"]
 
 
 class Config(BaseModel):
@@ -16,10 +11,8 @@ class Config(BaseModel):
     qdrant_collection_name_app: str
 
     django_secret_key: str
-    device: str = "cuda" if torch.cuda.is_available() else "cpu"
     allowed_hosts: list[str] = []
     debug: bool = False
-    clip_model_name: ClipSelection
 
     aws_bucket_region: str
     bucket_name_etl: str
@@ -60,7 +53,6 @@ def create_config():
     qdrant_collection_name_app = os.getenv("QDRANT_COLLECTION_NAME_APP")
     qdrant_collection_name_etl = os.getenv("QDRANT_COLLECTION_NAME_ETL")
     django_secret_key = os.getenv("DJANGO_SECRET_KEY")
-    device = os.getenv("DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
     debug = os.getenv("DEBUG", "False").lower() == "true"
     allowed_hosts = os.getenv("ALLOWED_HOSTS", "").split(",")
 
@@ -131,10 +123,8 @@ def create_config():
         qdrant_collection_name_etl=qdrant_collection_name_etl,
         qdrant_collection_name_app=qdrant_collection_name_app,
         django_secret_key=django_secret_key,
-        device=device,
         allowed_hosts=allowed_hosts,
         debug=debug,
-        clip_model_name="ViT-L/14",
         aws_bucket_region=aws_bucket_region,
         bucket_name_etl=bucket_name_etl,
         bucket_name_app=bucket_name_app,

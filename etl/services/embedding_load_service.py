@@ -33,7 +33,6 @@ def is_retryable_error(error: Exception) -> bool:
     - 410 Gone
     - Other 4xx errors (bad request, etc.)
     - Invalid image format/corrupted image
-    - CLIP model errors (e.g., invalid tensor size)
 
     Args:
         error: The exception raised during embedding generation
@@ -61,7 +60,7 @@ def is_retryable_error(error: Exception) -> bool:
         if any(code in error_msg for code in ["400", "401", "403", "404", "410"]):
             return False
 
-        # Image/CLIP-specific errors - don't retry
+        # Image-specific errors - don't retry
         if any(
             phrase in error_msg
             for phrase in [
@@ -105,14 +104,14 @@ VECTOR_TYPE_TO_FIELD = {
 
 class EmbeddingLoadService:
     """
-    Service for generating CLIP image embeddings and uploading to Qdrant.
+    Service for generating Jina embeddings and uploading to Qdrant.
 
     Simplified version that uses only the boolean vector fields for tracking.
     No hash-based change detection - keeps things simple.
 
     Features:
     - Only processes records where image_loaded=True
-    - CLIP image embedding generation from E0 bucket (our own storage)
+    - Jina embedding generation from E0 bucket (our own storage)
     - Qdrant collection creation with 4 named vectors
     - Active vector type system for incremental activation
     - Progress tracking using boolean fields (image_vector_clip, etc.)
