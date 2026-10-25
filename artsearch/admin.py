@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import SearchLog, ArtworkStats, ArtworkDescription, ArtMapData, ExampleQuery
+from .models import SearchLog, ImageSearchLog, ArtworkStats, ArtworkDescription, ArtMapData, ExampleQuery
 
 
 @admin.register(SearchLog)
@@ -8,6 +8,14 @@ class SearchLogAdmin(admin.ModelAdmin):
     list_display = ("query", "timestamp", "username")
     list_filter = ("timestamp", "username")
     search_fields = ("query",)
+    ordering = ("-timestamp",)
+
+
+@admin.register(ImageSearchLog)
+class ImageSearchLogAdmin(admin.ModelAdmin):
+    list_display = ("timestamp", "status", "source")
+    list_filter = ("status", "source", "timestamp")
+    date_hierarchy = "timestamp"
     ordering = ("-timestamp",)
 
 

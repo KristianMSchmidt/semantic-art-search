@@ -14,7 +14,9 @@ from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
 from artsearch.src.constants.search import MAX_QUERY_LENGTH
 from artsearch.src.constants.work_types import SEARCHABLE_WORK_TYPES
 from artsearch.src.services.image_upload_service import (
+    DailyCapReached,
     ImageUploadError,
+    Source,
     embed_upload,
 )
 from artsearch.src.services.qdrant_service import QdrantService
@@ -205,7 +207,9 @@ def search_image_view(request):
         )
 
     try:
-        _, image_vector = embed_upload(request.FILES.get("image"))
+        _, image_vector = embed_upload(request.FILES.get("image"), source=Source.API)
+    except DailyCapReached as e:
+        return JsonResponse({"error": str(e)}, status=429)
     except ImageUploadError as e:
         return JsonResponse({"error": str(e)}, status=400)
 

@@ -101,6 +101,12 @@ prod_art-map: ## [PROD] Generate UMAP 2D map data on production (saves to Postgr
 stats: ## Get work type stats
 	python -m artsearch.src.services.museum_stats_service
 
+image-search-stats: ## Image search uploads per day (Jina calls vs daily cap)
+	docker compose -f docker-compose.dev.yml exec web python manage.py image_search_stats
+
+prod_image-search-stats: ## [PROD] Image search uploads per day (Jina calls vs daily cap)
+	docker compose -f docker-compose.prod.yml exec web python manage.py image_search_stats
+
 
 # ---------- Qdrant Vector Database ---------- #
 
