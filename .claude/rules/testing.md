@@ -17,7 +17,7 @@ paths:
 - **What-focused**: Test business outcomes, not implementation details
 - **Integration over unit**: Test entire pipeline flows
 - **Fewer, better tests**: High-value tests that catch real problems
-- **Mock expensive dependencies**: External APIs (museum APIs, Jina), remote services (Qdrant, S3), slow operations (CLIP inference)
+- **Mock expensive dependencies**: External APIs (museum APIs, Jina), remote services (Qdrant, S3)
 - **Use real database**: PostgreSQL via pytest-django is fast and reliable - use `@pytest.mark.django_db` and fixtures, don't mock the ORM
 
 ### What to Mock vs What to Test Real
@@ -27,7 +27,6 @@ paths:
 | PostgreSQL | NO | Fast, Django handles test DB, catches real query bugs |
 | Qdrant | YES | External service, network-dependent |
 | S3/Linode Storage | YES | External service, costs money |
-| CLIP model | YES | Slow GPU inference |
 | Jina API | YES | External API, rate-limited |
 | Museum APIs | SOMETIMES | Mock for unit tests, real for integration tests |
 
