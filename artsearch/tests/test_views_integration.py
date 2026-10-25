@@ -18,7 +18,7 @@ from unittest.mock import patch, MagicMock
 from django.test import Client
 from django.urls import reverse
 
-from artsearch.models import ExampleQuery, ArtMapData
+from artsearch.models import ExampleQuery, ArtMapData, ArtworkStats, SearchLog
 
 
 @pytest.fixture
@@ -675,3 +675,43 @@ def test_art_map_view_handles_no_data(mock_qdrant_service):
 
     assert response.status_code == 200
     assert response.context["map_data_version"] == ""
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_search_log_records_mode_and_filters(mock_qdrant_service):
+    """A new search is logged with its mode, narrowing filters and year range."""
+    # Two work types exist, so selecting one narrows the search
+    ArtworkStats.objects.create(
+        museum_slug="smk", object_number="A1", searchable_work_types=["painting"]
+    )
+    ArtworkStats.objects.create(
+        museum_slug="smk", object_number="A2", searchable_work_types=["print"]
+    )
+    client = Client()
+    client.get(
+        reverse("get-artworks")
+        + "?query=sunset&model=title&museums=smk&museums=met"
+        + "&work_types=painting&year_from=1800&year_to=1900"
+    )
+
+    log = SearchLog.objects.get()
+    assert log.query == "sunset"
+    assert log.search_mode == "title"
+    assert sorted(log.museums) == ["met", "smk"]
+    assert log.work_types == ["painting"]
+    assert (log.year_from, log.year_to) == (1800, 1900)
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_search_log_stores_unfiltered_search_as_empty_filters(mock_qdrant_service):
+    """Filters covering everything are logged as empty lists, not every value."""
+    client = Client()
+    client.get(reverse("get-artworks") + "?query=sunset")
+
+    log = SearchLog.objects.get()
+    assert log.search_mode == "image"
+    assert log.museums == []
+    assert log.work_types == []
+    assert (log.year_from, log.year_to) == (None, None)

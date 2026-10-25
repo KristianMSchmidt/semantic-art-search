@@ -5,8 +5,17 @@ from .models import SearchLog, ImageSearchLog, ArtworkStats, ArtworkDescription,
 
 @admin.register(SearchLog)
 class SearchLogAdmin(admin.ModelAdmin):
-    list_display = ("query", "timestamp", "username")
-    list_filter = ("timestamp", "username")
+    list_display = (
+        "query",
+        "timestamp",
+        "search_mode",
+        "museums",
+        "work_types",
+        "year_from",
+        "year_to",
+        "username",
+    )
+    list_filter = ("search_mode", "timestamp", "username")
     search_fields = ("query",)
     ordering = ("-timestamp",)
 

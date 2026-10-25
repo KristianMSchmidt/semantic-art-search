@@ -293,12 +293,10 @@ def make_urls_with_params(
     }
 
 
-def make_home_url(params: SearchParams) -> str:
+def get_narrowing_filters(params: SearchParams) -> tuple[list[str], list[str]]:
     """
-    Make a shareable home page URL reflecting the current search.
-
-    Filters that cover everything, and the mode when browsing without a
-    query, are left out to keep the URL short.
+    Return the selected (museums, work_types), each empty when it covers
+    everything (no explicit work type filter counts as everything).
     """
     museums = params.selected_museums
     if set(museums) >= set(get_museum_slugs()):
@@ -308,6 +306,17 @@ def make_home_url(params: SearchParams) -> str:
         get_work_type_names()
     ):
         work_types = []
+    return museums, work_types
+
+
+def make_home_url(params: SearchParams) -> str:
+    """
+    Make a shareable home page URL reflecting the current search.
+
+    Filters that cover everything, and the mode when browsing without a
+    query, are left out to keep the URL short.
+    """
+    museums, work_types = get_narrowing_filters(params)
     return make_url_with_params(
         url_name="home",
         query=params.query,
