@@ -71,6 +71,18 @@ Local search is only meaningful if the dev Qdrant collection holds real prod vec
 
 See `QDRANT_MANAGEMENT.md` for details.
 
+### Local PostgreSQL Data
+
+The same flow mirrors the prod ETL/app tables into the dev DB (`make db-counts` shows rows per museum):
+
+1. On the server: `make prod_db-export` (data-only `pg_dump` into `db_dumps/`; `make prod_export-all` also takes a Qdrant snapshot so both match)
+2. Locally: `scp` the file into `db_dumps/` (the export prints the command)
+3. Locally: `make sync-db-local` (checks dev has the same migrations as the dump, then replaces the tables in one transaction, so a failed restore leaves dev unchanged)
+
+Synced tables: `etl_metadataraw`, `etl_transformeddata`, `artsearch_artworkstats`, `artsearch_artworkdescription`, `artsearch_artmapdata`, `artsearch_examplequery` (`DB_SYNC_TABLES` in `Makefile`). Search/image logs, users, sessions and Django framework tables are never copied. Dev Postgres must have the same major version as prod (17); `pg_dump` runs in a `postgres:17` container (`PG_CLIENT_IMAGE`), and the dev `db` container mounts `db_dumps/` read-only.
+
+Dev moved from Postgres 16 to 17 to match prod, and 17 won't start on a volume created by 16. To move an older dev DB, run `docker compose -f docker-compose.dev.yml exec -T db pg_dumpall -U devuser > backup.sql` while it is still on 16, then `docker compose -f docker-compose.dev.yml down`, `docker volume rm semantic-art-search_postgres_data`, start the db on 17 and pipe `backup.sql` into `psql -U devuser -d postgres` (the "already exists" errors for the role and database are expected).
+
 ### Deployment
 
 Deploy from merged `master`: on the server, in the repo, run `make prod_deploy` (aborts if the server checkout has local changes, then `git pull --ff-only` + `make prod_start`, then `docker image prune -f` to drop the previous, now untagged web image). Only the `web` container is rebuilt and recreated; Qdrant, nginx and the cloud database are untouched.

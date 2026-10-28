@@ -1,13 +1,14 @@
 services:
   # PostgreSQL database
   db:
-    image: postgres:16
+    image: postgres:17
     environment:
       POSTGRES_USER: devuser
       POSTGRES_PASSWORD: devpass
       POSTGRES_DB: artsearch_dev
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./db_dumps:/db_dumps:ro  # prod dumps for make sync-db-local
     ports:
       - "5432:5432"
     healthcheck:

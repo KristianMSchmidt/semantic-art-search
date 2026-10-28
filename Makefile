@@ -200,6 +200,96 @@ qdrant-check-vectors: ## Report zero-norm vectors per museum in the dev collecti
 prod_qdrant-check-vectors: ## [PROD] Report zero-norm vectors per museum in the prod collection
 	docker compose -f docker-compose.prod.yml exec web python manage.py check_qdrant_vectors
 
+# ---------- Syncing prod PostgreSQL to dev ---------- #
+# 1. On server:  make prod_db-export   (or prod_export-all for DB dump + Qdrant snapshot)
+# 2. Locally:    scp server:<repo>/db_dumps/<name>.dump db_dumps/
+# 3. Locally:    make sync-db-local
+#
+# Data-only dump of the ETL and app data tables. Logs (SearchLog, ImageSearchLog),
+# users, sessions and Django framework tables are left out. django_migrations is
+# dumped only so sync-db-local can check that dev has the same migrations applied.
+
+DB_SYNC_TABLES := etl_metadataraw etl_transformeddata artsearch_artworkstats \
+	artsearch_artworkdescription artsearch_artmapdata artsearch_examplequery
+# pg_dump/pg_restore must match the prod server major version (dev db uses the same image)
+PG_CLIENT_IMAGE := postgres:17
+comma := ,
+space := $() $()
+DB_SYNC_TABLES_SQL := $(subst $(space),$(comma) ,$(strip $(DB_SYNC_TABLES)))
+DEV_DB := docker compose -f docker-compose.dev.yml exec -T db
+DEV_PSQL := $(DEV_DB) psql -U devuser -d artsearch_dev
+DB_SYNC_COUNTS_SQL := \
+	WITH c AS ( \
+		SELECT 'raw' AS t, museum_slug, count(*) AS n FROM etl_metadataraw GROUP BY 2 \
+		UNION ALL SELECT 'transformed', museum_slug, count(*) FROM etl_transformeddata GROUP BY 2 \
+		UNION ALL SELECT 'stats', museum_slug, count(*) FROM artsearch_artworkstats GROUP BY 2 \
+		UNION ALL SELECT 'descriptions', museum_slug, count(*) FROM artsearch_artworkdescription GROUP BY 2 \
+	) \
+	SELECT museum_slug AS museum, \
+		coalesce(sum(n) FILTER (WHERE t = 'raw'), 0) AS metadataraw, \
+		coalesce(sum(n) FILTER (WHERE t = 'transformed'), 0) AS transformeddata, \
+		coalesce(sum(n) FILTER (WHERE t = 'stats'), 0) AS artworkstats, \
+		coalesce(sum(n) FILTER (WHERE t = 'descriptions'), 0) AS artworkdescription \
+	FROM c GROUP BY 1 ORDER BY 1; \
+	SELECT (SELECT count(*) FROM artsearch_artmapdata) AS artmapdata, \
+		(SELECT count(*) FROM artsearch_examplequery) AS examplequery;
+
+prod_db-export: ## [PROD] Dump ETL/app data tables (no logs or users) to db_dumps/ (for copying to dev)
+	@mkdir -p db_dumps
+	@NAME=artsearch-$$(date -u +%Y%m%dT%H%M%SZ).dump; \
+	eval "$$(docker compose -f docker-compose.prod.yml exec -T web python -c 'import shlex; from artsearch.src.config import config as c; print("PGENV " + "; ".join(f"export {k}={shlex.quote(v)}" for k, v in [("PGHOST", c.postgres_host), ("PGPORT", c.postgres_port), ("PGUSER", c.postgres_user), ("PGPASSWORD", c.postgres_password), ("PGDATABASE", c.postgres_db)]))' | sed -n 's/^PGENV //p')"; \
+	test -n "$$PGHOST" || { echo "Could not read DB settings from the web container (is it running?)"; exit 1; }; \
+	echo "Dumping $(DB_SYNC_TABLES) (data only, this can take a few minutes)..."; \
+	docker run --rm --user "$$(id -u):$$(id -g)" -e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE \
+		-v "$$(pwd)/db_dumps:/db_dumps" $(PG_CLIENT_IMAGE) \
+		pg_dump --data-only -Fc $(addprefix -t ,$(DB_SYNC_TABLES) django_migrations) -f /db_dumps/$$NAME \
+		|| { echo "Dump failed"; rm -f db_dumps/$$NAME; exit 1; }; \
+	echo "Saved $$(pwd)/db_dumps/$$NAME ($$(du -h db_dumps/$$NAME | cut -f1))"; \
+	echo "Copy it to your machine with:"; \
+	echo "  scp your-server-address:$$(pwd)/db_dumps/$$NAME db_dumps/"; \
+	echo "Then delete it here: rm $$(pwd)/db_dumps/$$NAME"
+
+prod_export-all: ## [PROD] Export DB dump and Qdrant snapshot together (keeps dev data consistent)
+	@$(MAKE) --no-print-directory prod_db-export
+	@$(MAKE) --no-print-directory prod_qdrant-snapshot-export
+
+sync-db-local: ## Replace dev ETL/app data tables with a prod dump (DUMP=path in db_dumps/, default: newest; SKIP_MIGRATION_CHECK=1)
+	@DUMP="$(DUMP)"; DUMP=$${DUMP:-$$(ls -t db_dumps/*.dump 2>/dev/null | head -1)}; \
+	test -f "$$DUMP" || { echo "No dump found. Run 'make prod_db-export' on the server and scp it to db_dumps/"; exit 1; }; \
+	test "$$(cd "$$(dirname "$$DUMP")" && pwd)" = "$$(pwd)/db_dumps" || { echo "The dump must be in db_dumps/ (mounted into the db container)"; exit 1; }; \
+	F=/db_dumps/$$(basename "$$DUMP"); \
+	if [ "$(SKIP_MIGRATION_CHECK)" != "1" ]; then \
+		echo "Checking that dev has the same migrations applied as the dump..."; \
+		TMP=$$(mktemp -d); trap 'rm -rf "$$TMP"' EXIT; \
+		$(DEV_DB) pg_restore -f - -t django_migrations "$$F" \
+			| awk -F '\t' '$$1 ~ /^[0-9]+$$/ && NF == 4 { print $$2 "\t" $$3 }' | sort > "$$TMP/prod"; \
+		test -s "$$TMP/prod" || { echo "Could not read django_migrations from $$DUMP"; exit 1; }; \
+		$(DEV_PSQL) -At -F "$$(printf '\t')" -c "SELECT app, name FROM django_migrations" > "$$TMP/dev.raw" \
+			|| { echo "Could not query the dev db (is it running? try 'make develop')"; exit 1; }; \
+		sort "$$TMP/dev.raw" > "$$TMP/dev"; \
+		if ! cmp -s "$$TMP/prod" "$$TMP/dev"; then \
+			echo "Migration state differs between the dump and dev:"; \
+			echo "  Only in dump:"; comm -23 "$$TMP/prod" "$$TMP/dev" | sed 's/^/    /'; \
+			echo "  Only in dev:"; comm -13 "$$TMP/prod" "$$TMP/dev" | sed 's/^/    /'; \
+			echo "Check out the code prod ran when the dump was taken and migrate, or rerun with SKIP_MIGRATION_CHECK=1."; \
+			exit 1; \
+		fi; \
+	fi; \
+	echo "Restoring $$DUMP into dev (replaces $(DB_SYNC_TABLES))..."; \
+	$(DEV_DB) bash -ec 'set -o pipefail; \
+		pg_restore -l "$$1" | grep -vE " public django_migrations(_id_seq)? " > /tmp/sync-db.list; \
+		{ echo "BEGIN;"; echo "SET lock_timeout = '\''10s'\'';"; echo "TRUNCATE $(DB_SYNC_TABLES_SQL) RESTART IDENTITY;"; \
+		  pg_restore -L /tmp/sync-db.list -f - "$$1"; echo "COMMIT;"; } \
+		| psql -q -v ON_ERROR_STOP=1 -U devuser -d artsearch_dev > /dev/null; \
+		rm -f /tmp/sync-db.list' sh "$$F" \
+		|| { echo "Restore failed; dev data is unchanged (the restore runs in one transaction)."; \
+			echo "A lock timeout means another session holds these tables: stop ETL commands/psql sessions and retry."; exit 1; }; \
+	echo ""; \
+	$(DEV_PSQL) -c "$(DB_SYNC_COUNTS_SQL)"
+
+db-counts: ## Show dev row counts per museum for the tables synced by sync-db-local
+	@$(DEV_PSQL) -c "$(DB_SYNC_COUNTS_SQL)"
+
 
 # ---------- Database Utilities ---------- #
 
