@@ -16,3 +16,5 @@ postgres_data
 .playwright-mcp/
 blogpost.md
 qdrant_snapshots
+db_dumps/*
+!db_dumps/.gitkeep

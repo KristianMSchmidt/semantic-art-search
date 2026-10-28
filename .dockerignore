@@ -15,3 +15,5 @@ media/
 tmp/
 *.tar.gz
 *.zip
+qdrant_snapshots/
+db_dumps/
