@@ -38,11 +38,37 @@
 <div class="container mx-auto p-4">
   <div class="grid gap-6 lg:grid-cols-3 lg:gap-8">
 
-    <!-- Image (kept in its own block so a deep-zoom viewer can replace it, see #103) -->
-    <div class="lg:col-span-2 bg-white rounded-lg shadow-md ring-1 ring-gray-200 p-2 sm:p-4 flex items-center justify-center">
+    <!-- Image: our thumbnail, replaced by a larger IIIF image from the museum once
+         that has loaded, plus deep zoom on the same IIIF source (#103) -->
+    <div class="lg:col-span-2 bg-white rounded-lg shadow-md ring-1 ring-gray-200 p-2 sm:p-4 flex flex-col items-center justify-center"
+         {% if iiif_info_url %}x-data="deepZoom('{{ iiif_info_url|escapejs }}', '{{ large_image_url|escapejs }}')"{% endif %}>
       <img src="{{ artwork.thumbnail_url }}"
+           {% if iiif_info_url %}x-ref="image" x-show="!zooming"{% endif %}
            alt="{{ artwork.title }}"
            class="w-full h-auto max-h-[80vh] object-contain">
+      {% if iiif_info_url %}
+        <div x-ref="viewer" x-show="zooming" x-cloak class="w-full h-[80vh] bg-gray-900 rounded"></div>
+        <div class="flex items-center gap-4 mt-2 min-h-[1.5rem]">
+          <button type="button"
+                  x-show="!zooming && !loading && !failed"
+                  @click="open()"
+                  title="Zoom in to see details of the full-resolution image"
+                  class="text-sm text-gray-500 hover:text-blue-500 transition-colors">
+            Zoom
+          </button>
+          <button type="button"
+                  x-show="zooming"
+                  x-cloak
+                  @click="close()"
+                  class="text-sm text-gray-500 hover:text-blue-500 transition-colors">
+            Close zoom
+          </button>
+          <span x-show="loading" x-cloak class="text-sm text-gray-500">Loading…</span>
+          <span x-show="failed" x-cloak class="text-sm text-gray-500">
+            Zoom isn't available for this image right now.
+          </span>
+        </div>
+      {% endif %}
     </div>
 
     <!-- Metadata and description -->
@@ -131,4 +157,90 @@
   </section>
   {% endif %}
 </div>
+
+{% if iiif_info_url %}
+<script>
+  // OpenSeadragon is only downloaded when the user clicks Zoom
+  const OPENSEADRAGON_URL = "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/";
+  const OPENSEADRAGON_SRI = "sha512-gPZzE+sKmE0kvcjMxW431ef5b5T5QOADV9Gij0isPw2oLATd1IZW7dmDmKh7F2e5BfwjQyAfFp3/OF0fVMOF7Q==";
+  let openSeadragonLoaded = null;
+
+  function loadOpenSeadragon() {
+    openSeadragonLoaded ??= new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = OPENSEADRAGON_URL + "openseadragon.min.js";
+      script.integrity = OPENSEADRAGON_SRI;
+      script.crossOrigin = "anonymous";
+      script.onload = resolve;
+      script.onerror = () => reject(new Error("Failed to load OpenSeadragon"));
+      document.head.appendChild(script);
+    });
+    return openSeadragonLoaded;
+  }
+
+  function deepZoom(infoUrl, largeImageUrl) {
+    // Outside Alpine's reactive data, which would wrap the viewer in proxies
+    let viewer = null;
+    return {
+      zooming: false,
+      loading: false,
+      failed: false,
+
+      init() {
+        // Swap in the larger image only once it has loaded, so a slow or failing
+        // museum server leaves our thumbnail in place
+        const large = new Image();
+        large.onload = () => { this.$refs.image.src = largeImageUrl; };
+        large.src = largeImageUrl;
+      },
+
+      async open() {
+        if (this.loading) return;  // already opening (e.g. a double click)
+        this.loading = true;
+        try {
+          await loadOpenSeadragon();
+        } catch (e) {
+          this.fail();
+          return;
+        }
+        this.zooming = true;
+        if (viewer) {
+          this.loading = false;
+          return;
+        }
+        // Wait until the viewer element is visible, so OpenSeadragon can measure it
+        await this.$nextTick();
+        viewer = OpenSeadragon({
+          element: this.$refs.viewer,
+          tileSources: infoUrl,
+          prefixUrl: OPENSEADRAGON_URL + "images/",
+          // Lets OpenSeadragon draw with WebGL; the IIIF servers send CORS
+          // headers on tiles too (info.json can't be loaded without CORS anyway)
+          crossOriginPolicy: "Anonymous",
+          showNavigator: true,
+          maxZoomPixelRatio: 2,
+        });
+        viewer.addOnceHandler("open", () => { this.loading = false; });
+        // The museum's IIIF server didn't answer (or blocked the request)
+        viewer.addOnceHandler("open-failed", () => this.fail());
+      },
+
+      close() {
+        this.zooming = false;
+        this.loading = false;  // also when closed while the viewer was still opening
+      },
+
+      fail() {
+        this.loading = false;
+        this.zooming = false;
+        this.failed = true;
+        if (viewer) {
+          viewer.destroy();
+          viewer = null;
+        }
+      },
+    };
+  }
+</script>
+{% endif %}
 {% endblock %}

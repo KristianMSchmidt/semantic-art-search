@@ -30,6 +30,11 @@ from artsearch.src.services.image_upload_service import (
     get_uploaded_image_vector,
 )
 from artsearch.src.utils.get_museums import get_museum_slugs
+from artsearch.src.utils.iiif import (
+    get_artwork_iiif_service_url,
+    get_iiif_info_url,
+    get_iiif_sized_image_url,
+)
 from artsearch.src.services.qdrant_service import QdrantService, SearchFunctionArguments
 from artsearch.src.utils.qdrant_formatting import format_payload
 from artsearch.src.cache_registry import clear_all_caches, register_cache
@@ -42,6 +47,9 @@ logger = logging.getLogger(__name__)
 SIMILAR_ARTWORKS_ON_PAGE = 12
 # Deep Qdrant offsets get slow; nobody pages this far through similar artworks
 MAX_SIMILAR_OFFSET = 500
+# Longest side (px) of the IIIF image shown on artwork pages instead of the
+# 800px bucket thumbnail; about 0.25-1 MB per image
+LARGE_IMAGE_SIZE = 1600
 
 
 def get_client_ip(group, request):
@@ -258,8 +266,13 @@ def artwork_page_view(
     meta_description = description or (
         f"{artwork['title']} by {artwork['artist']}{date}. {artwork['museum']}."
     )
+    # High-resolution image served by the museum's IIIF server, if it has one
+    iiif_service_url = get_artwork_iiif_service_url(museum_slug, object_number)
     context = {
         "artwork": artwork,
+        "iiif_info_url": iiif_service_url and get_iiif_info_url(iiif_service_url),
+        "large_image_url": iiif_service_url
+        and get_iiif_sized_image_url(iiif_service_url, LARGE_IMAGE_SIZE),
         "description": description,
         "meta_description": meta_description,
         "description_url": reverse("get-artwork-description")
@@ -380,6 +393,21 @@ def get_cached_artwork_description_view(request: HttpRequest) -> HttpResponse:
         "object_number": object_number,
     }
     return render(request, "partials/artwork_description.html", context)
+
+
+def get_large_image_url_view(request: HttpRequest) -> HttpResponse:
+    """
+    Fetch endpoint for the artwork popup: the URL of a larger IIIF image from the
+    museum, or 204 if it has none. DB-only, so not rate limited.
+    """
+    museum_slug = request.GET.get("museum", "")
+    object_number = request.GET.get("object_number", "")
+    iiif_service_url = get_artwork_iiif_service_url(museum_slug, object_number)
+    if iiif_service_url is None:
+        return HttpResponse(status=204)
+    return JsonResponse(
+        {"url": get_iiif_sized_image_url(iiif_service_url, LARGE_IMAGE_SIZE)}
+    )
 
 
 def art_map_view(request: HttpRequest) -> HttpResponse:
