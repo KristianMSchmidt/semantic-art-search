@@ -18,3 +18,4 @@ blogpost.md
 qdrant_snapshots
 db_dumps/*
 !db_dumps/.gitkeep
+.claude/worktrees/
