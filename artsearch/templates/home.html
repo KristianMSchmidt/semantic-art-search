@@ -270,6 +270,7 @@ title="View on GitHub"
 <div x-data="{
   open: false,
   url: '',
+  aspect: null,  // width / height of the current image
   showInfo: window.innerWidth >= 1024,
   scrollY: 0,
   title: '',
@@ -341,6 +342,13 @@ title="View on GitHub"
   },
   openWith(data) {
     this.url = data.url;
+    // The thumbnail is usually cached from the result card, so its aspect ratio
+    // is known right away; otherwise the image's load handler sets it
+    const thumbnail = new Image();
+    thumbnail.src = data.url;
+    this.aspect = thumbnail.complete && thumbnail.naturalWidth
+      ? thumbnail.naturalWidth / thumbnail.naturalHeight
+      : null;
     this.title = data.title || '';
     this.artist = data.artist || '';
     this.productionDate = data.productionDate || '';
@@ -358,6 +366,7 @@ title="View on GitHub"
     this.showInfo = window.innerWidth >= 1024;
     this.resetDescription();
     this.loadCachedDescription();
+    this.loadLargeImage();
     // iOS Safari scroll lock: position fixed approach
     this.scrollY = window.scrollY;
     document.body.style.position = 'fixed';
@@ -404,6 +413,22 @@ title="View on GitHub"
         if (key === `${this.museumSlug}:${this.objectNumber}`) this.descriptionChecking = false;
       });
   },
+  // Replace the thumbnail with a larger image from the museum's IIIF server,
+  // once that has fully loaded; artworks without one keep the thumbnail
+  loadLargeImage() {
+    const key = `${this.museumSlug}:${this.objectNumber}`;
+    const isCurrent = () => this.open && key === `${this.museumSlug}:${this.objectNumber}`;
+    const params = new URLSearchParams({museum: this.museumSlug, object_number: this.objectNumber});
+    fetch(`{% url 'get-large-image-url' %}?${params}`)
+      .then(response => response.status === 200 ? response.json() : null)
+      .then(data => {
+        if (!data || !isCurrent()) return;
+        const large = new Image();
+        large.onload = () => { if (isCurrent()) this.url = data.url; };
+        large.src = data.url;
+      })
+      .catch(() => {});
+  },
   resetDescription() {
     this.descriptionGenerated = false;
     this.descriptionLoaded = false;
@@ -438,9 +463,13 @@ title="View on GitHub"
 
   <!-- Image: uses whole viewport, never inside a scrollable parent -->
   <div class="w-screen h-screen flex items-center justify-center">
+    <!-- Sized to fit the screen (not the image's own pixel size), so swapping in
+         the larger image from loadLargeImage() sharpens it without a size jump -->
     <img :src="url"
          alt="Artwork"
          class="block max-w-[100vw] max-h-[100vh] select-none cursor-pointer"
+         :style="aspect ? `width: min(100vw, calc(100vh * ${aspect})); height: auto` : ''"
+         @load="aspect ??= $el.naturalWidth / $el.naturalHeight"
          @click.stop="showInfo = !showInfo"
          draggable="false">
   </div>

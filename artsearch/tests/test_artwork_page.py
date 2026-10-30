@@ -13,6 +13,7 @@ from qdrant_client import models
 
 from artsearch.models import ArtworkDescription, ArtworkStats
 from artsearch.sitemaps import artwork_page_path
+from etl.models import TransformedData
 from etl.services.bucket_service import get_bucket_image_url
 
 
@@ -110,6 +111,74 @@ def test_artwork_page_without_cached_description_offers_button_only(mock_qdrant)
     assert "Tell me about this artwork" in html
     assert "object_number=KKS10208%2F5" in html  # button requests the right artwork
     generate.assert_not_called()  # crawlers must not trigger OpenAI calls
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_artwork_page_gets_iiif_urls_from_transformed_data(mock_qdrant):
+    TransformedData.objects.create(
+        museum_slug="smk",
+        object_number="KKS10208/5",
+        museum_db_id="db-KKS10208/5",
+        searchable_work_types=["painting"],
+        thumbnail_url="https://iip-thumb.smk.dk/iiif/jp2/abc_kks10208-5.tif.jp2/full/!1024,/0/default.jpg",
+        image_url="https://iip.smk.dk/iiif/jp2/abc_kks10208-5.tif.jp2",
+    )
+
+    response = Client().get("/artwork/smk/KKS10208/5/")
+
+    service_url = "https://iip.smk.dk/iiif/jp2/abc_kks10208-5.tif.jp2"
+    assert response.context["iiif_info_url"] == f"{service_url}/info.json"
+    assert response.context["large_image_url"] == f"{service_url}/full/!1600,1600/0/default.jpg"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_artwork_page_without_iiif_image_has_no_iiif_urls(mock_qdrant):
+    # No TransformedData row, e.g. an SMK artwork without an IIIF image
+    response = Client().get("/artwork/smk/KKS10208/5/")
+
+    assert response.status_code == 200
+    assert response.context["iiif_info_url"] is None
+    assert response.context["large_image_url"] is None
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_large_image_endpoint_returns_iiif_image_for_popup():
+    TransformedData.objects.create(
+        museum_slug="rma",
+        object_number="SK-C-5",
+        museum_db_id="200107928",
+        searchable_work_types=["painting"],
+        thumbnail_url="https://iiif.micr.io/PJEZO/full/800,/0/default.jpg",
+        image_url="https://iiif.micr.io/PJEZO/full/max/0/default.jpg",
+    )
+
+    response = Client().get(
+        reverse("get-large-image-url"), {"museum": "rma", "object_number": "SK-C-5"}
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "url": "https://iiif.micr.io/PJEZO/full/!1600,1600/0/default.jpg"
+    }
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"museum": "rma", "object_number": "SK-C-5"},  # unknown artwork
+        {"museum": "rma"},  # missing object number
+        {},
+    ],
+)
+def test_large_image_endpoint_without_iiif_image_returns_204(params):
+    response = Client().get(reverse("get-large-image-url"), params)
+
+    assert response.status_code == 204
 
 
 @pytest.mark.integration

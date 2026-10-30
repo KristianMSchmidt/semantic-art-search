@@ -48,6 +48,11 @@ urlpatterns = [
         views.get_cached_artwork_description_view,
         name="get-cached-artwork-description",
     ),
+    path(
+        "artworks/large-image/",
+        views.get_large_image_url_view,
+        name="get-large-image-url",
+    ),
     path("htmx/update-work-types/", views.update_work_types, name="update-work-types"),
     path("htmx/update-museums/", views.update_museums, name="update-museums"),
     path("map/", views.art_map_view, name="art-map"),
