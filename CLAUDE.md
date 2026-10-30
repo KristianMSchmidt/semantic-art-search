@@ -47,6 +47,8 @@ This project requires unique public artwork identifiers. They must be public-fac
 - **Development**: `docker-compose.dev.yml` (includes local PostgreSQL)
 - **Production**: `docker-compose.prod.yml` (cloud PostgreSQL, nginx proxy)
 
+**Worktrees:** `docker-compose.dev.yml` sets the project name `semantic-art-search`, so all checkouts share one dev stack. To try a branch in a worktree, run `make develop` there: `web` is recreated to serve that checkout, keeping the same Postgres and Qdrant data; run it from the main checkout to switch back. New worktrees get `.env.dev` copied in via `.worktreeinclude` (Claude Code worktrees only; for others, copy it yourself). Run `make sync-db-local` from the main checkout, since `db` mounts `./db_dumps` from the checkout that started it.
+
 ### Commands
 
 Run `make help` for all commands.
