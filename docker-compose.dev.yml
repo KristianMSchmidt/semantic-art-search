@@ -1,3 +1,6 @@
+# Fixed project name, so every checkout (including worktrees) shares one dev stack
+name: semantic-art-search
+
 services:
   # PostgreSQL database
   db:

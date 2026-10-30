@@ -1,0 +1,2 @@
+# Gitignored files Claude Code copies into new worktrees (gitignore syntax)
+.env.dev
