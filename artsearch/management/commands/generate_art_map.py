@@ -11,11 +11,15 @@ from artsearch.src.constants.museums import (
     MUSEUM_SLUG_TO_INDEX,
     WORK_TYPE_TO_INDEX,
     OTHER_WORK_TYPE_INDEX,
+    get_century_index,
 )
 from artsearch.src.services.qdrant_service import QdrantService
 
 
-PAYLOAD_FIELDS = ["museum", "object_number", "title", "artists", "production_date", "searchable_work_types"]
+PAYLOAD_FIELDS = [
+    "museum", "object_number", "title", "artists", "production_date",
+    "production_date_start", "production_date_end", "searchable_work_types",
+]
 
 
 class Command(BaseCommand):
@@ -56,6 +60,7 @@ class Command(BaseCommand):
         artists = []
         production_dates = []
         work_types = []
+        centuries = []
 
         next_token = None
         batch_num = 0
@@ -102,6 +107,11 @@ class Command(BaseCommand):
                         wt_idx = WORK_TYPE_TO_INDEX[wt]
                         break
                 work_types.append(wt_idx)
+
+                centuries.append(get_century_index(
+                    payload.get("production_date_start"),
+                    payload.get("production_date_end"),
+                ))
 
             batch_num += 1
             if batch_num % 10 == 0:
@@ -157,6 +167,7 @@ class Command(BaseCommand):
         y_scaled = (coords[:, 1] * 1000).astype(np.float32)
         museum_arr = np.array(museums, dtype=np.uint8)
         work_type_arr = np.array(work_types, dtype=np.uint8)
+        century_arr = np.array(centuries, dtype=np.uint8)
 
         geometry_blob = (
             struct.pack("<I", count)
@@ -164,6 +175,7 @@ class Command(BaseCommand):
             + y_scaled.tobytes()
             + museum_arr.tobytes()
             + work_type_arr.tobytes()
+            + century_arr.tobytes()
         )
 
         # Build metadata-only JSON

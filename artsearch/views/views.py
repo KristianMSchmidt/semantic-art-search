@@ -421,6 +421,8 @@ def art_map_view(request: HttpRequest) -> HttpResponse:
         MUSEUM_SLUGS,
         MUSEUM_NAMES,
         WORK_TYPE_LABELS,
+        CENTURY_SLUGS,
+        CENTURY_NAMES,
     )
 
     map_data = ArtMapData.objects.first()
@@ -431,6 +433,8 @@ def art_map_view(request: HttpRequest) -> HttpResponse:
         "museum_slugs_json": json.dumps(MUSEUM_SLUGS),
         "museum_names_json": json.dumps(MUSEUM_NAMES),
         "work_type_labels_json": json.dumps(WORK_TYPE_LABELS),
+        "century_slugs_json": json.dumps(CENTURY_SLUGS),
+        "century_names_json": json.dumps(CENTURY_NAMES),
     }
     return render(request, "map.html", context)
 

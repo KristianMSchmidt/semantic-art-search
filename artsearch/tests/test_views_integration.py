@@ -623,6 +623,12 @@ def test_art_map_view_passes_version_to_template(mock_qdrant_service):
     assert len(museum_slugs) == len(museum_names)
     assert len(work_type_labels) > 0
 
+    century_slugs = json.loads(response.context["century_slugs_json"])
+    century_names = json.loads(response.context["century_names_json"])
+    assert len(century_slugs) == len(century_names)
+    assert century_slugs[-1] == "undated"  # the map treats the last group as undated
+
+
 
 @pytest.mark.integration
 @pytest.mark.django_db
