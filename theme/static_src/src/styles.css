@@ -28,7 +28,7 @@
     }
     /* Year and work type labels on artworks */
     .tag {
-        @apply rounded bg-paper px-2 py-0.5 text-sm text-muted;
+        @apply rounded bg-ink/[0.06] px-2 py-0.5 text-sm text-muted;
     }
     /* Text actions: Find similar, Share, Zoom */
     .link-action {

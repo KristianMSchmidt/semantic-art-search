@@ -1,7 +1,7 @@
 {% if rate_limited %}
-  <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded mt-2">
-    <p class="text-sm text-gray-700 font-medium">Rate limit exceeded</p>
-    <p class="text-sm text-gray-600 mt-1">
+  <div class="bg-amber-50 border-l-4 border-amber-600 p-3 rounded-r-md mt-2">
+    <p class="text-sm text-ink font-medium">Rate limit exceeded</p>
+    <p class="text-sm text-muted mt-1">
       Too many requests. Please try again in an hour.
     </p>
   </div>
@@ -18,8 +18,8 @@
       :title="'View API metadata from ' + museum">museum metadata</a>
   </p>
 {% else %}
-  <div class="bg-gray-50 border-l-4 border-gray-300 p-3 rounded mt-2">
-    <p class="text-sm text-gray-600">
+  <div class="bg-paper border-l-4 border-line p-3 rounded-r-md mt-2">
+    <p class="text-sm text-muted">
       Unable to generate description at this time. Please try again later.
     </p>
   </div>

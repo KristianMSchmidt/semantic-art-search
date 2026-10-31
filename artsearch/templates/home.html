@@ -266,7 +266,7 @@ title="View on GitHub"
             hx-trigger="revealed"
             hx-include="#search-form"
             hx-swap="outerHTML"
-            class="py-4 text-center text-gray-500">
+            class="py-4 text-center text-muted">
         </div>
     </div>
 </div>
@@ -881,7 +881,7 @@ title="View on GitHub"
 
     function showSearchMessage(message) {
         const el = document.getElementById('error-message');
-        el.className = 'bg-yellow-100 border-yellow-500 text-yellow-700 border-l-4 p-4 mb-4';
+        el.className = 'bg-amber-50 border-amber-600 text-amber-950 border-l-4 rounded-r-md p-4 mb-4';
         el.textContent = message;
     }
 
