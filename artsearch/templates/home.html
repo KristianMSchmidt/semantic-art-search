@@ -20,8 +20,14 @@
         hx-target="#search-results"
         hx-swap="innerHTML"
         hx-on:submit="return validateSearchInput()"
+        @htmx:before-request="if ($event.target === $el) searching = true"
+        @htmx:after-request="if ($event.target === $el) searching = false"
         x-data="{
             mode: '{{ selected_model }}',
+            // True while this form's search request is in flight, so the clicked
+            // mode button can show a spinner until the results arrive. The spinner
+            // is overlaid on the hidden label so the button keeps its width.
+            searching: false,
             setMode(value) {
                 // Write the input directly so the value is set before submit fires
                 this.mode = value;
@@ -190,19 +196,29 @@
                 type="submit"
                 @click="setMode('image')"
                 :class="mode === 'image' ? 'btn-primary' : 'btn-secondary'"
-                class="btn flex-1 sm:flex-none"
+                :aria-pressed="mode === 'image'"
+                class="btn relative flex-1 sm:flex-none"
                 title="Find artworks that look like your query"
             >
-                Visual Search
+                <svg x-show="searching && mode === 'image'" x-cloak class="absolute inset-0 m-auto w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span :class="searching && mode === 'image' && 'invisible'">Visual Search</span>
             </button>
             <button
                 type="submit"
                 @click="setMode('title'); $dispatch('clear-image')"
                 :class="mode === 'title' ? 'btn-primary' : 'btn-secondary'"
-                class="btn flex-1 sm:flex-none"
+                :aria-pressed="mode === 'title'"
+                class="btn relative flex-1 sm:flex-none"
                 title="Find artworks whose title matches your query"
             >
-                Title Search
+                <svg x-show="searching && mode === 'title'" x-cloak class="absolute inset-0 m-auto w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span :class="searching && mode === 'title' && 'invisible'">Title Search</span>
             </button>
         </div>
     </form>
@@ -223,11 +239,7 @@
                     x-show="{{ forloop.counter0 }} < visibleCount"
                     x-cloak
                     class="chip"
-                    onclick="insertQuery('{{ example.query }}', {{ example.all_work_types|yesno:'true,false' }})"
-                    hx-get="{% url 'get-artworks' %}"
-                    hx-target="#search-results"
-                    hx-swap="innerHTML"
-                    hx-include="#search-form"
+                    onclick="runExampleQuery('{{ example.query|escapejs }}', {{ example.all_work_types|yesno:'true,false' }})"
                 >
                     {{ example.query }}
                 </button>
@@ -691,6 +703,17 @@
                 }
             }
         }
+    }
+
+    // Example queries describe what artworks look like, so they always run as a
+    // visual search. Submitting the form (rather than a request of their own)
+    // also shows the spinner on the Visual Search button.
+    function runExampleQuery(query, allWorkTypes) {
+        insertQuery(query, allWorkTypes);
+        const form = document.getElementById('search-form');
+        Alpine.$data(form).setMode('image');
+        // Wait for Alpine to write the example's work types into the form inputs
+        Alpine.nextTick(() => form.requestSubmit());
     }
 
     function dropdownComponent({ items, selected, labelName }) {
