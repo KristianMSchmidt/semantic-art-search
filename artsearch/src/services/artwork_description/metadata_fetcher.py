@@ -5,6 +5,7 @@ import requests
 import xmltodict
 from etl.models import MetaDataRaw
 from artsearch.src.services.museum_clients.utils import get_museum_api_url
+from artsearch.src.services.museum_clients.aic_api_client import AIC_REQUEST_HEADERS
 from .metadata_processors import (
     clean_smk_metadata,
     clean_cma_metadata,
@@ -47,8 +48,9 @@ def fetch_and_clean_metadata(
         raise ValueError(f"Unsupported museum: {museum_slug}")
 
     # Fetch raw data
+    headers = AIC_REQUEST_HEADERS if museum_slug == "aic" else {}
     try:
-        response = requests.get(api_url, timeout=API_TIMEOUT)
+        response = requests.get(api_url, headers=headers, timeout=API_TIMEOUT)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         raise ValueError(f"Failed to fetch metadata from museum API: {str(e)}")

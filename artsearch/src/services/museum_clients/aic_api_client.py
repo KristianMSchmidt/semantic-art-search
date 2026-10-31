@@ -1,5 +1,11 @@
 from artsearch.src.services.museum_clients.base_client import MuseumAPIClient
 
+# AIC asks API clients to identify themselves with this header (https://api.artic.edu/docs/).
+# Since late 2026 their Cloudflare blocks python-requests calls that leave it out (HTTP 403).
+AIC_REQUEST_HEADERS = {
+    "AIC-User-Agent": "semantic-art-search (kmollerschmidt@gmail.com)",
+}
+
 
 class AICAPIClient(MuseumAPIClient):
     def get_object_url(self, museum_db_id: str) -> str:
