@@ -20,18 +20,18 @@
 <div x-data="artMap()" x-init="init()" class="relative" style="height: calc(100vh - 64px);">
 
     <!-- Loading spinner -->
-    <div x-show="loading" class="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+    <div x-show="loading" class="absolute inset-0 flex items-center justify-center bg-paper z-10">
         <div class="text-center">
             <svg class="animate-spin h-10 w-10 text-accent mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <p class="text-gray-600 text-sm">Loading art map...</p>
+            <p class="text-muted text-sm">Loading art map...</p>
         </div>
     </div>
 
     <!-- Error state -->
-    <div x-show="error" x-cloak class="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+    <div x-show="error" x-cloak class="absolute inset-0 flex items-center justify-center bg-paper z-10">
         <div class="text-center max-w-md px-4">
             <p class="text-red-600 text-sm" x-text="error"></p>
         </div>
@@ -42,10 +42,10 @@
 
     <!-- Hover tooltip -->
     <div x-show="tooltip.visible" x-cloak
-         class="fixed pointer-events-none z-30 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+         class="fixed pointer-events-none z-30 bg-white rounded-lg shadow-lg border border-line overflow-hidden"
          style="width: 400px;"
          :style="`left: ${tooltip.x + 12}px; top: ${tooltip.y + 12}px;`">
-        <div class="bg-gray-100 flex items-center justify-center" style="height: 280px;">
+        <div class="bg-paper flex items-center justify-center" style="height: 280px;">
             <img x-show="tooltip.imageUrl && !tooltip.imageError"
                  :src="tooltip.imageUrl"
                  alt=""
@@ -53,9 +53,9 @@
                  @error="tooltip.imageError = true">
         </div>
         <div class="px-3 py-2">
-            <p class="text-sm font-semibold text-gray-800 truncate" x-text="tooltip.title"></p>
-            <p class="text-xs text-gray-500 truncate" x-text="tooltip.artist"></p>
-            <p class="text-xs text-gray-400" x-text="tooltip.museum"></p>
+            <p class="text-sm font-semibold text-ink truncate" x-text="tooltip.title"></p>
+            <p class="text-xs text-muted truncate" x-text="tooltip.artist"></p>
+            <p class="text-xs text-muted/80" x-text="tooltip.museum"></p>
         </div>
     </div>
 
@@ -67,10 +67,10 @@
          x-transition:leave="transition ease-in duration-150"
          x-transition:leave-start="opacity-100 translate-y-0"
          x-transition:leave-end="opacity-0 translate-y-2"
-         class="absolute bottom-4 left-4 z-20 bg-white rounded-lg shadow-xl border border-gray-200 w-72 overflow-hidden"
+         class="absolute bottom-4 left-4 z-20 bg-white rounded-lg shadow-xl border border-line w-72 overflow-hidden"
          @click.outside="detail.visible = false">
         <!-- Thumbnail -->
-        <div class="relative bg-gray-100">
+        <div class="relative bg-paper">
             <img x-show="detail.imageUrl && !detail.imageError"
                  :src="detail.imageUrl"
                  :alt="detail.title"
@@ -83,9 +83,9 @@
         </div>
         <!-- Info -->
         <div class="p-3 space-y-1">
-            <h3 class="text-sm font-semibold text-gray-800 leading-snug" x-text="detail.title"></h3>
-            <p class="text-xs text-gray-500" x-text="detail.artist"></p>
-            <div class="flex items-center gap-2 text-xs text-gray-400">
+            <h3 class="text-sm font-semibold text-ink leading-snug" x-text="detail.title"></h3>
+            <p class="text-xs text-muted" x-text="detail.artist"></p>
+            <div class="flex items-center gap-2 text-xs text-muted/80">
                 <span x-text="detail.productionDate"></span>
                 <span>&middot;</span>
                 <span x-text="detail.museum"></span>
@@ -96,27 +96,27 @@
     <!-- Zoom controls -->
     <div class="absolute bottom-4 right-4 z-20 flex flex-col gap-1">
         <button @click="zoomIn()"
-                class="bg-white/90 backdrop-blur-sm shadow border border-gray-200 rounded-lg w-9 h-9 flex items-center justify-center text-gray-600 hover:bg-gray-100 text-lg font-bold transition">+</button>
+                class="bg-white/90 backdrop-blur-sm shadow border border-line rounded-lg w-9 h-9 flex items-center justify-center text-muted hover:bg-paper text-lg font-bold transition">+</button>
         <button @click="zoomOut()"
-                class="bg-white/90 backdrop-blur-sm shadow border border-gray-200 rounded-lg w-9 h-9 flex items-center justify-center text-gray-600 hover:bg-gray-100 text-lg font-bold transition">&minus;</button>
+                class="bg-white/90 backdrop-blur-sm shadow border border-line rounded-lg w-9 h-9 flex items-center justify-center text-muted hover:bg-paper text-lg font-bold transition">&minus;</button>
     </div>
 
     <!-- Legend -->
-    <div class="absolute z-20 bg-white/90 backdrop-blur-sm rounded-lg shadow border border-gray-200 px-4" style="left: 1rem; top: 1rem; padding-top: 0.75rem; padding-bottom: 0.75rem;">
+    <div class="absolute z-20 bg-white/90 backdrop-blur-sm rounded-lg shadow border border-line px-4" style="left: 1rem; top: 1rem; padding-top: 0.75rem; padding-bottom: 0.75rem;">
         <!-- Toggle -->
         <div class="flex gap-1 mb-2 text-xs">
             <button @click="setColorMode('work_type')"
-                    :class="colorMode === 'work_type' ? 'bg-accent text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    :class="colorMode === 'work_type' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
                     class="px-2 py-0.5 rounded transition-colors">Work type</button>
             <button @click="setColorMode('museum')"
-                    :class="colorMode === 'museum' ? 'bg-accent text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    :class="colorMode === 'museum' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
                     class="px-2 py-0.5 rounded transition-colors">Museum</button>
         </div>
         <!-- Legend items -->
         <template x-for="(item, i) in legendItems" :key="colorMode + '-' + i">
             <div class="flex items-center gap-2 py-0.5">
                 <span class="inline-block w-3 h-3 rounded-full" :style="`background: rgb(${item.color[0]}, ${item.color[1]}, ${item.color[2]})`"></span>
-                <span class="text-xs text-gray-600" x-text="item.label"></span>
+                <span class="text-xs text-muted" x-text="item.label"></span>
             </div>
         </template>
     </div>

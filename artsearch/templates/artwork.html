@@ -36,11 +36,19 @@
 
 {% block content %}
 <div class="container mx-auto p-4">
-  <div class="grid gap-6 lg:grid-cols-3 lg:gap-8">
+  <!-- Phones: title, image, details. Wide screens: image on the left, title
+       and details beside it like a museum wall label. -->
+  <div class="grid gap-4 lg:grid-cols-3 lg:grid-rows-[auto_1fr] lg:gap-x-8 lg:gap-y-0">
+
+    <!-- Title and artist -->
+    <div class="lg:col-start-3 lg:row-start-1 lg:pt-2">
+      <h1 class="text-xl lg:text-2xl font-semibold text-ink leading-snug">{{ artwork.title }}</h1>
+      <p class="lg:text-lg text-muted mt-1">{{ artwork.artist }}</p>
+    </div>
 
     <!-- Image: our thumbnail, replaced by a larger IIIF image from the museum once
          that has loaded, plus deep zoom on the same IIIF source (#103) -->
-    <div class="lg:col-span-2 bg-white rounded-lg ring-1 ring-line p-2 sm:p-4 flex flex-col items-center justify-center"
+    <div class="lg:col-span-2 lg:col-start-1 lg:row-start-1 lg:row-span-2 bg-white rounded-lg ring-1 ring-line p-2 sm:p-4 flex flex-col items-center justify-center"
          {% if iiif_info_url %}x-data="deepZoom('{{ iiif_info_url|escapejs }}', '{{ large_image_url|escapejs }}')"{% endif %}>
       <img src="{{ artwork.thumbnail_url }}"
            {% if iiif_info_url %}x-ref="image" x-show="!zooming" @click="open()" title="Click to zoom in"{% endif %}
@@ -74,12 +82,9 @@
       {% endif %}
     </div>
 
-    <!-- Metadata and description -->
-    <div class="bg-white rounded-lg ring-1 ring-line p-6 self-start">
-      <h1 class="text-2xl font-semibold text-ink leading-snug">{{ artwork.title }}</h1>
-      <p class="text-lg text-muted mt-1">{{ artwork.artist }}</p>
-
-      <div class="flex flex-wrap gap-1.5 mt-3">
+    <!-- Details and description -->
+    <div class="lg:col-start-3 lg:row-start-2 lg:mt-3">
+      <div class="flex flex-wrap gap-1.5">
         {% if artwork.production_date %}
           <span class="tag">{{ artwork.production_date }}</span>
         {% endif %}
@@ -136,7 +141,7 @@
                 class="btn-secondary btn-sm">
                 <span>Tell me about this artwork</span>
               </button>
-              <p id="description-spinner" class="htmx-indicator text-sm text-muted mt-3">
+              <p id="description-spinner" class="htmx-indicator text-sm text-muted mt-2">
                 Generating description...
               </p>
             </div>
