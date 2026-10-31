@@ -23,17 +23,6 @@
 <meta name="twitter:image" content="{{ artwork.thumbnail_url }}" />
 {% endblock %}
 
-{% block nav_links %}
-<a href="{% url 'home' %}"
-   class="text-muted hover:text-ink text-sm font-medium transition-colors">
-    Search
-</a>
-<a href="{% url 'art-map' %}"
-   class="text-muted hover:text-ink text-sm font-medium transition-colors">
-    Map
-</a>
-{% endblock %}
-
 {% block content %}
 <div class="container mx-auto p-4">
   <!-- Phones: title, image, details. Wide screens: image on the left, title
