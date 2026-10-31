@@ -239,11 +239,7 @@
                     x-show="{{ forloop.counter0 }} < visibleCount"
                     x-cloak
                     class="chip"
-                    onclick="insertQuery('{{ example.query }}', {{ example.all_work_types|yesno:'true,false' }})"
-                    hx-get="{% url 'get-artworks' %}"
-                    hx-target="#search-results"
-                    hx-swap="innerHTML"
-                    hx-include="#search-form"
+                    onclick="runExampleQuery('{{ example.query|escapejs }}', {{ example.all_work_types|yesno:'true,false' }})"
                 >
                     {{ example.query }}
                 </button>
@@ -707,6 +703,17 @@
                 }
             }
         }
+    }
+
+    // Example queries describe what artworks look like, so they always run as a
+    // visual search. Submitting the form (rather than a request of their own)
+    // also shows the spinner on the Visual Search button.
+    function runExampleQuery(query, allWorkTypes) {
+        insertQuery(query, allWorkTypes);
+        const form = document.getElementById('search-form');
+        Alpine.$data(form).setMode('image');
+        // Wait for Alpine to write the example's work types into the form inputs
+        Alpine.nextTick(() => form.requestSubmit());
     }
 
     function dropdownComponent({ items, selected, labelName }) {
