@@ -144,6 +144,10 @@ Every artwork has a shareable page at `/artwork/<museum_slug>/<object_number>/` 
 - **Sitemap**: `/sitemap.xml` (index) and `/sitemap-<section>.xml?p=N`, built from `ArtworkStats`, 10k URLs per page, cached for a day. Paths are built by `artwork_page_path()` (`artsearch/sitemaps.py`) rather than `reverse()`, which was too slow at this volume; a test keeps the two identical.
 - **robots.txt** points to the sitemap and disallows `/artworks/` (HTMX search), `/api/` and `/htmx/` so crawlers don't spend Jina API calls.
 
+## Art Map
+
+`/map/` (`map.html`, deck.gl) plots every artwork at precomputed UMAP coordinates of its `image_jina` vector, made offline by `make art-map` (`generate_art_map`) and stored in `ArtMapData` (binary geometry plus metadata JSON, served at `/map/data/...`). Clicking a dot opens a panel linking to the artwork page and to Find similar (`/?query=<slug>:<object_number>`). "Show on map" on artwork pages and in the search popup links to `/map/?artwork=<slug>/<object_number>` (`make_map_url()`), which flies to the artwork and rings it, or says it isn't on the map yet (artworks loaded after the last `make art-map`). The map keeps the selection and view (`x`, `y`, `z`) in the URL, so map links can be shared.
+
 ## REST API
 
 JSON API at `/api/`. Code in `artsearch/api/views.py` and `artsearch/api/urls.py`.
