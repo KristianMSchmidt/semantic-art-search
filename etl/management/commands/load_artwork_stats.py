@@ -10,12 +10,32 @@ Usage:
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.db.models import Exists, OuterRef
 from artsearch.models import ArtworkStats
+from etl.models import MetaDataRaw
 from artsearch.src.services.qdrant_service import QdrantService
 from artsearch.src.config import config
 import logging
 
 logger = logging.getLogger(__name__)
+
+# MET credit line of the Jefferson R. Burdick Collection: ~7k tobacco trade
+# cards and similar printed ephemera. Colourful, so without this they'd fill
+# a fifth of the default home page view.
+BURDICK_CREDIT_LINE = "Jefferson R. Burdick Collection"
+
+
+def mark_excluded_from_default_view() -> int:
+    """
+    Set ArtworkStats.excluded_from_default_view from raw museum metadata.
+    Returns the number of excluded artworks.
+    """
+    excluded_raw = MetaDataRaw.objects.filter(
+        museum_slug=OuterRef("museum_slug"),
+        object_number=OuterRef("object_number"),
+    ).filter(museum_slug="met", raw_json__creditLine__icontains=BURDICK_CREDIT_LINE)
+    ArtworkStats.objects.update(excluded_from_default_view=Exists(excluded_raw))
+    return ArtworkStats.objects.filter(excluded_from_default_view=True).count()
 
 
 class Command(BaseCommand):
@@ -70,6 +90,9 @@ class Command(BaseCommand):
         # Step 2: Perform atomic database update
         self.stdout.write("Updating database...")
         self._update_database(artwork_records, drop_existing, bulk_create_batch)
+
+        excluded = mark_excluded_from_default_view()
+        self.stdout.write(f"Excluded {excluded} artworks from the default view")
 
         self.stdout.write(
             self.style.SUCCESS(

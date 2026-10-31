@@ -306,12 +306,14 @@ def test_load_artwork_stats_updates_existing_rows_with_production_dates():
     """
     A plain reload (no --drop-existing) refreshes existing rows, so production
     dates added to Qdrant payloads reach the year filter without a full drop.
-    Duplicate points in Qdrant keep the first occurrence.
+    Duplicate points in Qdrant keep the first occurrence. The colourfulness
+    score isn't in Qdrant and survives the reload.
     """
     ArtworkStats.objects.create(
         museum_slug="smk",
         object_number="KMS1",
         searchable_work_types=["drawing"],
+        colorfulness=42.0,
     )
 
     point = Mock()
@@ -339,3 +341,65 @@ def test_load_artwork_stats_updates_existing_rows_with_production_dates():
     stats = ArtworkStats.objects.get(museum_slug="smk", object_number="KMS1")
     assert stats.searchable_work_types == ["painting"]
     assert (stats.production_date_start, stats.production_date_end) == (1600, 1650)
+    assert stats.colorfulness == 42.0
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_load_artwork_stats_excludes_burdick_trade_cards_from_default_view():
+    """
+    MET artworks credited to the Jefferson R. Burdick Collection (tobacco
+    trade cards) are excluded from the default view; a reload also clears
+    the flag when the credit line changes.
+    """
+    from etl.models import MetaDataRaw
+
+    def raw(museum, object_number, credit_line):
+        MetaDataRaw.objects.create(
+            museum_slug=museum,
+            object_number=object_number,
+            museum_db_id=object_number,
+            raw_json={"creditLine": credit_line},
+        )
+
+    burdick = "The Jefferson R. Burdick Collection, Gift of Jefferson R. Burdick"
+    raw("met", "CARD", burdick)
+    raw("met", "PAINTING", "Bequest of Someone, 1920")
+    raw("cma", "OTHER", burdick)  # only MET's credit lines are checked
+    ArtworkStats.objects.create(
+        museum_slug="met",
+        object_number="PAINTING",
+        searchable_work_types=["painting"],
+        excluded_from_default_view=True,
+    )
+
+    points = []
+    for museum, object_number in [
+        ("met", "CARD"),
+        ("met", "PAINTING"),
+        ("cma", "OTHER"),
+        ("smk", "NO_RAW"),
+    ]:
+        point = Mock()
+        point.id = f"{museum}-{object_number}"
+        point.payload = {
+            "museum": museum,
+            "object_number": object_number,
+            "searchable_work_types": ["print"],
+        }
+        points.append(point)
+    mock_qdrant_service = Mock()
+    mock_qdrant_service.fetch_points.return_value = (points, None)
+
+    with patch(
+        "etl.management.commands.load_artwork_stats.QdrantService",
+        return_value=mock_qdrant_service,
+    ):
+        call_command("load_artwork_stats", stdout=StringIO())
+
+    excluded = set(
+        ArtworkStats.objects.filter(excluded_from_default_view=True).values_list(
+            "object_number", flat=True
+        )
+    )
+    assert excluded == {"CARD"}

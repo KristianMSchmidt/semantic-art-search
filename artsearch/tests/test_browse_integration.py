@@ -91,7 +91,8 @@ def test_empty_query_returns_search_results_header(
     mock_random_artwork_ids.return_value = []
 
     client = Client()
-    url = reverse("get-artworks") + "?query="
+    # A filter, so the count isn't the colourful default view's own count
+    url = reverse("get-artworks") + "?query=&museums=smk"
 
     with patch(
         "artsearch.src.services.search_service.get_total_works_for_filters",
@@ -340,3 +341,124 @@ def test_browse_pagination_url_reuses_first_page_seed(
     first_page_seed = mock_random_artwork_ids.call_args.kwargs["seed"]
     next_page_url = response.context["urls"]["get_artworks_with_params"]
     assert f"seed={first_page_seed}" in next_page_url
+
+
+
+def _create_scored_artworks():
+    """
+    Two colourful artworks, one monochrome, one not scored yet and a
+    colourful one excluded from the default view.
+    """
+    from artsearch.models import ArtworkStats
+
+    for object_number, colorfulness, excluded in [
+        ("COLOUR1", 45.0, False),
+        ("COLOUR2", 25.0, False),
+        ("GREY", 3.0, False),
+        ("UNSCORED", None, False),
+        ("TRADE_CARD", 60.0, True),
+    ]:
+        ArtworkStats.objects.create(
+            museum_slug="smk",
+            object_number=object_number,
+            searchable_work_types=["print"],
+            production_date_start=1800,
+            production_date_end=1800,
+            colorfulness=colorfulness,
+            excluded_from_default_view=excluded,
+        )
+
+
+def _browse(mock_qdrant_service, colorful_default_view=True, **filters):
+    """Browse via handle_browse; returns (object numbers shown, total_works)."""
+    from artsearch.src.services.browse_service import handle_browse
+
+    mock_qdrant_service.get_items_by_ids.side_effect = lambda ids: [
+        object_number for _, object_number in ids
+    ]
+    filters = {
+        "museum_prefilter": None,
+        "work_type_prefilter": None,
+        "year_from": None,
+        "year_to": None,
+        **filters,
+    }
+    result = handle_browse(
+        offset=0,
+        limit=10,
+        seed="s",
+        total_works=5,
+        is_initial_load=False,
+        colorful_default_view=colorful_default_view,
+        **filters,
+    )
+    return set(result["results"]), result["total_works"]
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_default_browse_view_hides_monochrome_artworks(mock_qdrant_service):
+    """
+    The website's unfiltered view skips artworks scored as monochrome and
+    those excluded from it, and counts only what it shows. Unscored artworks still show, so a database
+    that isn't (fully) scored doesn't shrink to the few scored so far.
+    """
+    _create_scored_artworks()
+
+    shown, total = _browse(mock_qdrant_service)
+
+    assert shown == {"COLOUR1", "COLOUR2", "UNSCORED"}
+    assert total == 3
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "filters",
+    [
+        {"museum_prefilter": ["smk"]},
+        {"work_type_prefilter": ["print"]},
+        {"year_from": 1700},
+        {"year_to": 1900},
+    ],
+)
+def test_filtered_browse_shows_all_artworks(mock_qdrant_service, filters):
+    """Any filter browses the whole collection, colourful or not."""
+    _create_scored_artworks()
+
+    shown, total = _browse(mock_qdrant_service, **filters)
+
+    assert shown == {"COLOUR1", "COLOUR2", "GREY", "UNSCORED", "TRADE_CARD"}
+    assert total == 5
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_browse_without_colorful_default_view_shows_all_artworks(
+    mock_qdrant_service,
+):
+    """The API's random endpoint keeps sampling the whole collection."""
+    _create_scored_artworks()
+
+    shown, total = _browse(mock_qdrant_service, colorful_default_view=False)
+
+    assert shown == {"COLOUR1", "COLOUR2", "GREY", "UNSCORED", "TRADE_CARD"}
+    assert total == 5
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_home_page_browse_uses_colorful_default_view(mock_qdrant_service):
+    """The website's browse request opts in; the API's random endpoint doesn't."""
+    _create_scored_artworks()
+    mock_qdrant_service.get_items_by_ids.side_effect = lambda ids: []
+
+    with patch(
+        "artsearch.src.services.browse_service.get_random_artwork_ids",
+        return_value=[],
+    ) as mock_ids:
+        Client().get(reverse("get-artworks"), {"query": ""})
+        assert mock_ids.call_args.kwargs["min_colorfulness"] is not None
+
+        Client().get("/api/random/")
+        assert mock_ids.call_args.kwargs["min_colorfulness"] is None

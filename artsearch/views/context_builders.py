@@ -358,6 +358,7 @@ def build_search_context(
         year_from=year_from,
         year_to=year_to,
         image_vector=image_vector,
+        colorful_default_view=True,
     )
 
     # Only include seed in pagination URLs for browse mode

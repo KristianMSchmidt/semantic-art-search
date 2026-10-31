@@ -364,3 +364,18 @@ prod_load-artwork-stats:  ## [PROD] Load ArtworkStats table from Qdrant collecti
 
 prod_load-artwork-stats-drop:  ## [PROD] Load ArtworkStats table (drop existing records first)
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_artwork_stats --drop-existing
+
+# ---------- ETL Colourfulness Scores ---------- #
+# Scores ArtworkStats rows that have no score yet; run after load-artwork-stats
+
+compute-colorfulness:  ## [DEV] Score colourfulness of unscored artworks (default home page view)
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py compute_colorfulness
+
+compute-colorfulness-force:  ## [DEV] Rescore colourfulness of all artworks
+	docker compose -f docker-compose.dev.yml run --rm web python manage.py compute_colorfulness --force
+
+prod_compute-colorfulness:  ## [PROD] Score colourfulness of unscored artworks (default home page view)
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py compute_colorfulness
+
+prod_compute-colorfulness-force:  ## [PROD] Rescore colourfulness of all artworks
+	docker compose -f docker-compose.prod.yml run --rm web python manage.py compute_colorfulness --force
