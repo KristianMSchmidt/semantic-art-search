@@ -19,6 +19,9 @@ tailwind-install:  ## install tailwind
 tailwind-start:  ## start tailwind (should be running while developing)
 	python manage.py tailwind start
 
+tailwind-build:  ## rebuild the compiled CSS once, in the dev container
+	docker compose -f docker-compose.dev.yml exec -T -e npm_config_cache=/tmp/npm-cache web python manage.py tailwind build
+
 build:  ## Build or rebuild development docker image
 	docker compose -f docker-compose.dev.yml build
 

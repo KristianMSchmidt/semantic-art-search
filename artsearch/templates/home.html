@@ -36,15 +36,9 @@
         }"
         class="flex flex-col sm:flex-row sm:items-end space-y-2 sm:space-y-0 sm:space-x-2 mt-1">
 
-        <!-- Search Input with hint label -->
+        <!-- Search Input. Below 1024px the tagline sits here instead of beside the site name -->
         <div class="w-full sm:w-auto flex-grow">
-            <label
-                for="search-input"
-                x-data="{ updateHint() { this.$el.textContent = window.innerWidth >= 640 ? '{{ search_hint_desktop }}' : '{{ search_hint_mobile }}'; } }"
-                x-init="updateHint()"
-                @resize.window.debounce.150ms="updateHint()"
-                class="block text-sm text-muted mb-1"
-            >{{ search_hint_desktop }}</label>
+            <label for="search-input" class="block lg:hidden text-sm text-muted mb-1">Find art by subject, theme, style, and more</label>
             <!-- Search by image: pick, drop or paste an image. It is embedded
                  server-side and only the key of its cached embedding is sent with
                  searches (hidden "image" input), so filters and paging work as usual. -->
@@ -77,9 +71,10 @@
                     name="query"
                     value="{{ query|default:'' }}"
                     maxlength="500"
+                    aria-label="Search artworks"
                     x-data="rotatingPlaceholder()"
-                    :placeholder="!previewUrl && isMobile && !isFocused ? 'Try: ' + currentExample : ''"
-                    :class="{ 'placeholder-fade': isTransitioning, 'pl-36': previewUrl, 'ring-2 ring-accent': dragging }"
+                    :placeholder="previewUrl ? '' : (isMobile ? (isFocused ? '' : 'Try: ' + currentExample) : 'Search artworks...')"
+                    :class="{ 'placeholder-fade': isTransitioning && isMobile, 'pl-36': previewUrl, 'ring-2 ring-accent': dragging }"
                     @focus="pause()"
                     @blur="resume()"
                     @keydown.enter.prevent="$el.form.requestSubmit()"
