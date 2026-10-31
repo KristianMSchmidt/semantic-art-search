@@ -33,6 +33,11 @@ services:
   web:
     build: .
     command: /bin/sh -c /code/entrypoint.dev.sh
+    environment:
+      # npm runs Tailwind's scripts as the owner of the mounted checkout (uid 1000),
+      # who can't write root's ~/.npm; without this `tailwind build` fails after
+      # it has already deleted the compiled CSS
+      npm_config_cache: /tmp/npm-cache
     volumes:
       - .:/code
     ports:
