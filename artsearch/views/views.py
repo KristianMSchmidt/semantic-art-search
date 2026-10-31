@@ -287,6 +287,7 @@ def artwork_page_view(
         "canonical_url": request.build_absolute_uri(
             reverse("artwork-page", args=[museum_slug, object_number])
         ),
+        "map_url": make_map_url(museum_slug, object_number),
         **_similar_artworks_context(museum_slug, object_number),
     }
     return render(request, "artwork.html", context)
@@ -408,6 +409,11 @@ def get_large_image_url_view(request: HttpRequest) -> HttpResponse:
     return JsonResponse(
         {"url": get_iiif_sized_image_url(iiif_service_url, LARGE_IMAGE_SIZE)}
     )
+
+
+def make_map_url(museum_slug: str, object_number: str) -> str:
+    """Art map URL that flies to this artwork and selects it ("Show on map")."""
+    return f"{reverse('art-map')}?{urlencode({'artwork': f'{museum_slug}/{object_number}'})}"
 
 
 def art_map_view(request: HttpRequest) -> HttpResponse:

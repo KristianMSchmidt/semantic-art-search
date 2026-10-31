@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block content %}
-<div x-data="artMap()" x-init="init()" class="relative border-t border-line" style="height: calc(100vh - 68px);">
+<div x-data="artMap()" x-init="init()" @keydown.escape.window="closeDetail()" class="relative border-t border-line" style="height: calc(100vh - 68px);">
 
     <!-- Loading spinner -->
     <div x-show="loading" class="absolute inset-0 flex items-center justify-center bg-paper z-10">
@@ -21,6 +21,11 @@
             <p class="text-red-600 text-sm" x-text="error"></p>
         </div>
     </div>
+
+    <!-- Notice, e.g. when a linked artwork isn't on the map -->
+    <div x-show="notice" x-cloak x-transition.opacity
+         class="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-white rounded-lg shadow border border-line px-4 py-2 text-sm text-muted"
+         x-text="notice"></div>
 
     <!-- deck.gl canvas -->
     <canvas id="deck-canvas" class="w-full h-full"></canvas>
@@ -52,8 +57,7 @@
          x-transition:leave="transition ease-in duration-150"
          x-transition:leave-start="opacity-100 translate-y-0"
          x-transition:leave-end="opacity-0 translate-y-2"
-         class="absolute bottom-4 left-4 z-20 bg-white rounded-lg shadow-xl border border-line w-72 overflow-hidden"
-         @click.outside="detail.visible = false">
+         class="absolute bottom-4 left-4 z-20 bg-white rounded-lg shadow-xl border border-line w-72 overflow-hidden">
         <!-- Thumbnail -->
         <div class="relative bg-paper">
             <img x-show="detail.imageUrl && !detail.imageError"
@@ -61,7 +65,7 @@
                  :alt="detail.title"
                  class="w-full h-48 object-contain"
                  @error="detail.imageError = true">
-            <button @click="detail.visible = false"
+            <button @click="closeDetail()"
                     class="absolute top-2 right-2 bg-black/40 hover:bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs transition">
                 &times;
             </button>
@@ -74,6 +78,10 @@
                 <span x-text="detail.productionDate"></span>
                 <span>&middot;</span>
                 <span x-text="detail.museum"></span>
+            </div>
+            <div class="flex flex-wrap gap-x-4 gap-y-1 pt-2">
+                <a :href="detail.pagePath" class="link-action" title="Open the page for this artwork">Open artwork</a>
+                <a :href="detail.similarUrl" class="link-action" title="Find artworks that look similar to this one">Find similar</a>
             </div>
         </div>
     </div>
@@ -115,6 +123,9 @@ function artMap() {
     const MUSEUM_SLUGS = {{ museum_slugs_json|safe }};
     const MUSEUM_NAMES = {{ museum_names_json|safe }};
     const WORK_TYPE_LABELS = {{ work_type_labels_json|safe }};
+    const HOME_URL = '{% url "home" %}';
+    const ARTWORK_PAGE_URL = '{% url "artwork-page" "__slug__" "__object__" %}';
+    const SELECTED_ZOOM = 4;  // zoom level when flying to a linked artwork
 
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
@@ -168,7 +179,16 @@ function artMap() {
         },
 
         tooltip: { visible: false, x: 0, y: 0, title: '', artist: '', museum: '', imageUrl: '', imageError: false },
-        detail: { visible: false, imageUrl: '', title: '', artist: '', productionDate: '', museum: '', museumSlug: '', objectNumber: '', imageError: false },
+        detail: { visible: false, imageUrl: '', title: '', artist: '', productionDate: '', museum: '', museumSlug: '', objectNumber: '', pagePath: '', similarUrl: '', imageError: false },
+        notice: '',
+
+        // Point index of the selected artwork (ringed on the map, kept in the URL), or -1
+        selectedIndex: -1,
+        _pulseRadius: 0,
+        _pulseId: 0,
+        _urlTimer: null,
+        _artworksLayer: null,
+        _artworksLayerMode: null,
 
         _currentZoom: -0.5,
 
@@ -184,15 +204,154 @@ function artMap() {
 
         setColorMode(mode) {
             this.colorMode = mode;
+            this._render();
+        },
+
+        // The artworks layer is rebuilt only when the colour mode changes, so the
+        // per-frame pulse redraws just the ring
+        _render() {
             if (!this.deckgl) return;
-            const colorArray = mode === 'museum' ? this._museumColorArray : this._workTypeColorArray;
-            this.deckgl.setProps({
-                layers: [this._buildLayer(colorArray, mode)],
-            });
+            if (this._artworksLayerMode !== this.colorMode) {
+                const colorArray = this.colorMode === 'museum' ? this._museumColorArray : this._workTypeColorArray;
+                this._artworksLayer = this._buildLayer(colorArray, this.colorMode);
+                this._artworksLayerMode = this.colorMode;
+            }
+            const layers = [this._artworksLayer];
+            if (this.selectedIndex >= 0) layers.push(this._buildSelectedLayer());
+            this.deckgl.setProps({ layers });
         },
 
         _imageUrl(slug, objectNumber) {
             return `https://${BUCKET_REGION}.linodeobjects.com/${BUCKET_NAME}/${slug}_${objectNumber}.jpg`;
+        },
+
+        // Object numbers can contain '/', which the artwork route keeps as is
+        _artworkPagePath(slug, objectNumber) {
+            return ARTWORK_PAGE_URL
+                .replace('__slug__', encodeURIComponent(slug))
+                .replace('__object__', encodeURIComponent(objectNumber).replace(/%2F/g, '/'));
+        },
+
+        // Ring around the selected artwork; _pulseRadius briefly enlarges it
+        _buildSelectedLayer() {
+            const { deck } = window;
+            const i = this.selectedIndex;
+            return new deck.ScatterplotLayer({
+                id: 'selected',
+                data: [[this._positions[i * 2], this._positions[i * 2 + 1]]],
+                getPosition: (d) => d,
+                getRadius: 8 + this._pulseRadius,
+                radiusUnits: 'pixels',
+                filled: false,
+                stroked: true,
+                getLineColor: [31, 36, 33],
+                getLineWidth: 2.5,
+                lineWidthUnits: 'pixels',
+            });
+        },
+
+        _pulse() {
+            const id = ++this._pulseId;
+            const start = performance.now();
+            const step = (now) => {
+                if (id !== this._pulseId) return;
+                const t = (now - start) / 1600;
+                // Two rings shrinking from 24px onto the point
+                this._pulseRadius = t < 1 && this.selectedIndex >= 0 ? 24 * (1 - (t * 2) % 1) : 0;
+                this._render();
+                if (this._pulseRadius > 0) requestAnimationFrame(step);
+            };
+            requestAnimationFrame(step);
+        },
+
+        _select(idx) {
+            const m = this._metadata;
+            const museumIdx = this._museumIndices[idx];
+            const museumSlug = MUSEUM_SLUGS[museumIdx];
+            const objNum = m.object_number[idx];
+            this.selectedIndex = idx;
+            this.detail = {
+                visible: true,
+                imageError: false,
+                imageUrl: this._imageUrl(museumSlug, objNum),
+                title: m.title[idx] || 'Untitled',
+                artist: m.artist[idx] || 'Unknown',
+                productionDate: m.production_date[idx] || '',
+                museum: MUSEUM_NAMES[museumIdx],
+                museumSlug,
+                objectNumber: objNum,
+                pagePath: this._artworkPagePath(museumSlug, objNum),
+                similarUrl: `${HOME_URL}?${new URLSearchParams({ query: `${museumSlug}:${objNum}` })}`,
+            };
+            this._render();
+            this._updateUrl();
+        },
+
+        closeDetail() {
+            if (!this.detail.visible) return;
+            this.detail.visible = false;
+            this.selectedIndex = -1;
+            this._render();
+            this._updateUrl();
+        },
+
+        _findIndex(museumIdx, objectNumber) {
+            const objNums = this._metadata.object_number;
+            for (let i = 0; i < objNums.length; i++) {
+                if (objNums[i] === objectNumber && this._museumIndices[i] === museumIdx) return i;
+            }
+            return -1;
+        },
+
+        // ?artwork=<museum_slug>/<object_number> (from "Show on map"): select it,
+        // and fly to it unless the URL also sets the view
+        _selectFromUrl(hasView) {
+            const ref = new URLSearchParams(window.location.search).get('artwork');
+            if (!ref) return;
+            if (!this._metadata) {
+                this.notice = "Couldn't load the artwork details, so the linked artwork can't be shown.";
+                return;
+            }
+            const slash = ref.indexOf('/');
+            const museumIdx = MUSEUM_SLUGS.indexOf(ref.slice(0, slash));
+            const idx = slash > 0 && museumIdx >= 0 ? this._findIndex(museumIdx, ref.slice(slash + 1)) : -1;
+            if (idx < 0) {
+                this.notice = "This artwork isn't on the map yet.";
+                setTimeout(() => { this.notice = ''; }, 5000);
+                this._updateUrl();
+                return;
+            }
+            this._select(idx);
+            if (!hasView) {
+                this._viewTarget = [this._positions[idx * 2], this._positions[idx * 2 + 1]];
+                this._currentZoom = Math.max(this._currentZoom, SELECTED_ZOOM);
+                this.deckgl.setProps({ initialViewState: { target: this._viewTarget, zoom: this._currentZoom, transitionDuration: 1000 } });
+            }
+            this._pulse();
+        },
+
+        // View (?x=&y=&z=) from a shared map URL, or null
+        _viewFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const [x, y, z] = ['x', 'y', 'z'].map((k) => parseFloat(params.get(k)));
+            if (![x, y, z].every(Number.isFinite)) return null;
+            return { target: [x, y], zoom: z };
+        },
+
+        // Keep the selection and (once moved) the view in the URL, so it can be shared
+        _updateUrl() {
+            const params = new URLSearchParams();
+            if (this.selectedIndex >= 0) {
+                params.set('artwork', `${this.detail.museumSlug}/${this.detail.objectNumber}`);
+            }
+            if (this._viewTarget) {
+                // Map units run 0-1000; at high zoom one unit is hundreds of pixels
+                params.set('x', this._viewTarget[0].toFixed(3));
+                params.set('y', this._viewTarget[1].toFixed(3));
+                params.set('z', this._currentZoom.toFixed(2));
+            }
+            const query = params.toString();
+            history.replaceState(null, '', query ? `?${query}` : window.location.pathname);
         },
 
         _buildLayer(colorArray, colorMode) {
@@ -252,22 +411,7 @@ function artMap() {
 
         _onClick(info) {
             if (info.index < 0 || !this._metadata) return;
-            const idx = info.index;
-            const m = this._metadata;
-            const museumIdx = this._museumIndices[idx];
-            const museumSlug = MUSEUM_SLUGS[museumIdx];
-            const objNum = m.object_number[idx];
-            this.detail = {
-                visible: true,
-                imageError: false,
-                imageUrl: this._imageUrl(museumSlug, objNum),
-                title: m.title[idx] || 'Untitled',
-                artist: m.artist[idx] || 'Unknown',
-                productionDate: m.production_date[idx] || '',
-                museum: MUSEUM_NAMES[museumIdx],
-                museumSlug,
-                objectNumber: objNum,
-            };
+            this._select(info.index);
         },
 
         _parseGeometry(buffer) {
@@ -299,18 +443,27 @@ function artMap() {
 
                 this._museumIndices = geo.museum;
 
-                // The spinner stays up until deck.gl has drawn the points (onAfterRender)
-                this.createDeck(geo);
+                const view = this._viewFromUrl();
+                if (view) {
+                    this._viewTarget = view.target;
+                    this._currentZoom = view.zoom;
+                }
 
-                // Fire-and-forget metadata load
-                this._loadMetadata();
+                // The spinner stays up until deck.gl has drawn the points (onAfterRender)
+                let onFirstRender;
+                const rendered = new Promise((resolve) => { onFirstRender = resolve; });
+                this.createDeck(geo, view, onFirstRender);
+
+                // Metadata loads in the background; a linked artwork needs it to be found,
+                // and flying to it only works once deck.gl has drawn
+                Promise.all([this._loadMetadata(), rendered]).then(() => this._selectFromUrl(view !== null));
             } catch (e) {
                 this.error = e.message;
                 this.loading = false;
             }
         },
 
-        createDeck(geo) {
+        createDeck(geo, view, onFirstRender) {
             const { deck } = window;
             const self = this;
             const count = geo.count;
@@ -348,7 +501,7 @@ function artMap() {
             this.deckgl = new deck.Deck({
                 canvas: 'deck-canvas',
                 views: new deck.OrthographicView(),
-                initialViewState: {
+                initialViewState: view || {
                     target: [500, 500],
                     zoom: -0.5,
                 },
@@ -356,8 +509,14 @@ function artMap() {
                 pickingRadius: isTouch ? 25 : 0,
                 layers: [this._buildLayer(wtCA, 'work_type')],
                 getTooltip: () => null,
+                // Clicks on empty map space (not drags, which pan) close the detail panel
+                onClick: (info) => {
+                    if (info.index < 0) self.closeDetail();
+                },
                 onAfterRender: () => {
-                    if (self.loading) self.loading = false;
+                    if (!self.loading) return;
+                    self.loading = false;
+                    onFirstRender();
                 },
                 onError: (e) => {
                     self.error = 'The map could not be displayed in this browser.';
@@ -367,6 +526,8 @@ function artMap() {
                 onViewStateChange: ({ viewState }) => {
                     self._currentZoom = viewState.zoom;
                     self._viewTarget = viewState.target;
+                    clearTimeout(self._urlTimer);
+                    self._urlTimer = setTimeout(() => self._updateUrl(), 300);
                 },
             });
         },

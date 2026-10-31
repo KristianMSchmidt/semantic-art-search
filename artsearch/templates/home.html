@@ -575,6 +575,15 @@
           Find similar
         </button>
 
+        <!-- Show on map: the art map flies to this artwork -->
+        <a
+          x-show="museumSlug"
+          :href="'{% url 'art-map' %}?' + new URLSearchParams({artwork: `${museumSlug}/${objectNumber}`})"
+          title="See where this artwork sits among visually similar ones"
+          class="link-action">
+          Show on map
+        </a>
+
         <!-- Share button -->
         <button
           x-show="pageUrl"
