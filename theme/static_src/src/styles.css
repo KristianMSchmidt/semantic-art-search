@@ -6,7 +6,7 @@
 @layer components {
     .btn {
         @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg border px-4 py-2
-            transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2
+            transition active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2
             disabled:cursor-not-allowed disabled:opacity-50;
     }
     .btn-primary {
