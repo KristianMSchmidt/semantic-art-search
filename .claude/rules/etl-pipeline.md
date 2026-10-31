@@ -127,6 +127,10 @@ VECTOR_TYPE_TO_FIELD = {
 - 4 named vectors: `text_clip`, `image_clip`, `text_jina`, `image_jina`
 - Payload: museum, object_number, title, artist, production_date, work_types
 
+## After Loading: Artwork Stats and Colourfulness
+
+`make load-artwork-stats` copies Qdrant payloads into `ArtworkStats` (counts, filters, browse) and sets `excluded_from_default_view` from raw MET credit lines (tobacco trade cards). Then `make compute-colorfulness` downloads each new artwork's bucket thumbnail and stores a colourfulness score, used to pick colourful artworks for the default home page view. It only scores rows without a score (~80/s, so the full collection takes ~40 min); `*-force` rescores all.
+
 ## Pipeline Benefits
 
 - **Isolation**: Image downloads separate from embedding generation

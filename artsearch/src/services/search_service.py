@@ -201,6 +201,7 @@ def handle_search(
     year_from: int | None = None,
     year_to: int | None = None,
     image_vector: list[float] | None = None,
+    colorful_default_view: bool = False,
 ) -> SearchResult:
     """
     Handle the search logic based on the provided query and filters.
@@ -210,6 +211,8 @@ def handle_search(
 
     For browsing (no query), delegates to handle_browse which uses PostgreSQL
     for deterministic random ordering with proper pagination support.
+    colorful_default_view limits unfiltered browsing to colourful artworks
+    (the website's home page; see browse_service).
     """
     all_museum_slugs = get_museum_slugs()
     all_work_type_names = get_work_type_names()
@@ -239,6 +242,7 @@ def handle_search(
             is_initial_load=(query is None),
             year_from=year_from,
             year_to=year_to,
+            colorful_default_view=colorful_default_view,
         )
 
     try:

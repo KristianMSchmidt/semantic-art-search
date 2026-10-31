@@ -1,5 +1,6 @@
 # Images
 pillow==12.1.1
+numpy==2.4.6
 
 # Django
 Django==5.1.15

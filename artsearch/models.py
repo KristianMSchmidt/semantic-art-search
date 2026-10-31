@@ -81,6 +81,7 @@ class ArtworkStats(models.Model):
     - Count artworks per work type (with deduplication)
     - Count artworks matching museum + work type filters
     - Filter by production year range
+    - Sample colourful artworks for the default home page view
 
     Design: One row per artwork (not per work type) to avoid double-counting
     artworks with multiple work types. This makes counting queries simple and fast.
@@ -95,6 +96,21 @@ class ArtworkStats(models.Model):
     )
     production_date_start = models.IntegerField(null=True, blank=True)
     production_date_end = models.IntegerField(null=True, blank=True)
+    colorfulness = models.FloatField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Colour spread of the bucket thumbnail (0 = greyscale), set by "
+            "compute_colorfulness (null = not scored yet)"
+        ),
+    )
+    excluded_from_default_view = models.BooleanField(
+        default=False,
+        help_text=(
+            "Never shown in the default home page view (e.g. MET tobacco "
+            "trade cards); set by load_artwork_stats"
+        ),
+    )
 
     class Meta:
         constraints = [
