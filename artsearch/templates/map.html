@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block content %}
-<div x-data="artMap()" x-init="init()" @keydown.escape.window="closeDetail()" class="relative border-t border-line" style="height: calc(100vh - 68px);">
+<div x-data="artMap()" @keydown.escape.window="closeDetail()" class="relative border-t border-line" style="height: calc(100vh - 68px);">
 
     <!-- Loading spinner -->
     <div x-show="loading" class="absolute inset-0 flex items-center justify-center bg-paper z-10">
@@ -105,13 +105,26 @@
                     :class="colorMode === 'museum' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
                     class="px-2 py-0.5 rounded transition-colors">Museum</button>
         </div>
-        <!-- Legend items -->
-        <template x-for="(item, i) in legendItems" :key="colorMode + '-' + i">
-            <div class="flex items-center gap-2 py-0.5">
-                <span class="inline-block w-3 h-3 rounded-full" :style="`background: rgb(${item.color[0]}, ${item.color[1]}, ${item.color[2]})`"></span>
-                <span class="text-xs text-muted" x-text="item.label"></span>
-            </div>
+        <!-- Legend items: click to hide or show -->
+        <template x-for="item in legendItems" :key="colorMode + '-' + item.index">
+            <button type="button" @click="toggleHidden(item.index)"
+                    :title="item.hidden ? `Show ${item.label}` : `Hide ${item.label}`"
+                    :aria-pressed="!item.hidden"
+                    class="flex items-center gap-2 py-0.5 w-full text-left group">
+                <span class="inline-block w-3 h-3 rounded-full border transition"
+                      :style="item.hidden
+                          ? `border-color: rgb(${item.color.join(',')}); background: transparent`
+                          : `border-color: rgb(${item.color.join(',')}); background: rgb(${item.color.join(',')})`"></span>
+                <span class="text-xs transition group-hover:text-ink"
+                      :class="item.hidden ? 'text-muted/60 line-through' : 'text-muted'"
+                      x-text="item.label"></span>
+            </button>
         </template>
+        <!-- Filters, including ones set in the other colour mode -->
+        <div x-show="hiddenMuseums.length || hiddenWorkTypes.length" x-cloak class="mt-2 pt-2 border-t border-line text-xs text-muted space-y-0.5">
+            <p x-show="otherModeHiddenText" x-text="otherModeHiddenText"></p>
+            <button type="button" @click="showAll()" class="link-action">Show all</button>
+        </div>
     </div>
 </div>
 
@@ -168,14 +181,66 @@ function artMap() {
         _positions: null,
         _data: null,
 
+        // Indices of museums / work types hidden via the legend; both apply in either colour mode
+        hiddenMuseums: [],
+        hiddenWorkTypes: [],
+
         get legendItems() {
             if (this.colorMode === 'museum') {
-                return MUSEUM_NAMES.map((name, i) => ({ label: name, color: this.museumColors[i] }));
+                return MUSEUM_NAMES.map((name, i) => ({
+                    index: i, label: name, color: this.museumColors[i], hidden: this.hiddenMuseums.includes(i),
+                }));
             }
             return WORK_TYPE_LABELS.map((label, i) => ({
+                index: i,
                 label: label.charAt(0).toUpperCase() + label.slice(1),
                 color: this.workTypeColors[i],
+                hidden: this.hiddenWorkTypes.includes(i),
             }));
+        },
+
+        // Filters from the other colour mode aren't visible in the legend, so mention them
+        get otherModeHiddenText() {
+            const n = this.colorMode === 'museum' ? this.hiddenWorkTypes.length : this.hiddenMuseums.length;
+            if (!n) return '';
+            const noun = this.colorMode === 'museum' ? 'work type' : 'museum';
+            return `${n} ${noun}${n > 1 ? 's' : ''} hidden`;
+        },
+
+        toggleHidden(index) {
+            const key = this.colorMode === 'museum' ? 'hiddenMuseums' : 'hiddenWorkTypes';
+            const hidden = this[key];
+            // Kept sorted, so the same filters give the same layer key and URL
+            this[key] = hidden.includes(index)
+                ? hidden.filter((i) => i !== index)
+                : [...hidden, index].sort((a, b) => a - b);
+            this._filtersChanged();
+        },
+
+        showAll() {
+            this.hiddenMuseums = [];
+            this.hiddenWorkTypes = [];
+            this._filtersChanged();
+        },
+
+        _filtersChanged() {
+            this.tooltip.visible = false;
+            if (this.selectedIndex >= 0 && this._isHidden(this.selectedIndex)) {
+                this.closeDetail();
+            }
+            this._render();
+            this._updateUrl();
+        },
+
+        // Geometry from an older WORK_TYPE_LABELS may hold unknown indices; treat them as "other"
+        _workTypeOf(idx) {
+            const wt = this._workTypeIndices[idx];
+            return wt < WORK_TYPE_LABELS.length ? wt : WORK_TYPE_LABELS.length - 1;
+        },
+
+        _isHidden(idx) {
+            return this.hiddenMuseums.includes(this._museumIndices[idx])
+                || this.hiddenWorkTypes.includes(this._workTypeOf(idx));
         },
 
         tooltip: { visible: false, x: 0, y: 0, title: '', artist: '', museum: '', imageUrl: '', imageError: false },
@@ -184,11 +249,13 @@ function artMap() {
 
         // Point index of the selected artwork (ringed on the map, kept in the URL), or -1
         selectedIndex: -1,
+        // ?artwork= from the URL until _selectFromUrl has looked it up
+        _linkedArtwork: null,
         _pulseRadius: 0,
         _pulseId: 0,
         _urlTimer: null,
         _artworksLayer: null,
-        _artworksLayerMode: null,
+        _artworksLayerKey: null,
 
         _currentZoom: -0.5,
 
@@ -205,20 +272,26 @@ function artMap() {
         setColorMode(mode) {
             this.colorMode = mode;
             this._render();
+            this._updateUrl();
         },
 
-        // The artworks layer is rebuilt only when the colour mode changes, so the
-        // per-frame pulse redraws just the ring
+        // The artworks layer is rebuilt only when the colour mode or filters change,
+        // so the per-frame pulse redraws just the ring
         _render() {
             if (!this.deckgl) return;
-            if (this._artworksLayerMode !== this.colorMode) {
+            this.deckgl.setProps({ layers: this._layers() });
+        },
+
+        _layers() {
+            const key = `${this.colorMode}|${this.hiddenMuseums}|${this.hiddenWorkTypes}`;
+            if (this._artworksLayerKey !== key) {
                 const colorArray = this.colorMode === 'museum' ? this._museumColorArray : this._workTypeColorArray;
                 this._artworksLayer = this._buildLayer(colorArray, this.colorMode);
-                this._artworksLayerMode = this.colorMode;
+                this._artworksLayerKey = key;
             }
             const layers = [this._artworksLayer];
             if (this.selectedIndex >= 0) layers.push(this._buildSelectedLayer());
-            this.deckgl.setProps({ layers });
+            return layers;
         },
 
         _imageUrl(slug, objectNumber) {
@@ -306,7 +379,8 @@ function artMap() {
         // ?artwork=<museum_slug>/<object_number> (from "Show on map"): select it,
         // and fly to it unless the URL also sets the view
         _selectFromUrl(hasView) {
-            const ref = new URLSearchParams(window.location.search).get('artwork');
+            const ref = this._linkedArtwork;
+            this._linkedArtwork = null;
             if (!ref) return;
             if (!this._metadata) {
                 this.notice = "Couldn't load the artwork details, so the linked artwork can't be shown.";
@@ -320,6 +394,11 @@ function artMap() {
                 setTimeout(() => { this.notice = ''; }, 5000);
                 this._updateUrl();
                 return;
+            }
+            // Show the linked artwork even if the URL's filters would hide it
+            if (this._isHidden(idx)) {
+                this.hiddenMuseums = this.hiddenMuseums.filter((i) => i !== this._museumIndices[idx]);
+                this.hiddenWorkTypes = this.hiddenWorkTypes.filter((i) => i !== this._workTypeOf(idx));
             }
             this._select(idx);
             if (!hasView) {
@@ -338,11 +417,32 @@ function artMap() {
             return { target: [x, y], zoom: z };
         },
 
-        // Keep the selection and (once moved) the view in the URL, so it can be shared
+        // Colour mode (?color=museum) and legend filters (?hide_museums=smk,cma&hide_types=print)
+        _filtersFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('color') === 'museum') this.colorMode = 'museum';
+            const indices = (name, values) => [...new Set((params.get(name) || '').split(',')
+                .map((v) => values.indexOf(v)).filter((i) => i >= 0))].sort((a, b) => a - b);
+            this.hiddenMuseums = indices('hide_museums', MUSEUM_SLUGS);
+            this.hiddenWorkTypes = indices('hide_types', WORK_TYPE_LABELS);
+        },
+
+        // Keep the selection, colour mode, filters and (once moved) the view in the
+        // URL, so it can be shared
         _updateUrl() {
             const params = new URLSearchParams();
             if (this.selectedIndex >= 0) {
                 params.set('artwork', `${this.detail.museumSlug}/${this.detail.objectNumber}`);
+            } else if (this._linkedArtwork) {
+                // Not looked up yet (metadata still loading); keep it for _selectFromUrl
+                params.set('artwork', this._linkedArtwork);
+            }
+            if (this.colorMode !== 'work_type') params.set('color', this.colorMode);
+            if (this.hiddenMuseums.length) {
+                params.set('hide_museums', this.hiddenMuseums.map((i) => MUSEUM_SLUGS[i]).join(','));
+            }
+            if (this.hiddenWorkTypes.length) {
+                params.set('hide_types', this.hiddenWorkTypes.map((i) => WORK_TYPE_LABELS[i]).join(','));
             }
             if (this._viewTarget) {
                 // Map units run 0-1000; at high zoom one unit is hundreds of pixels
@@ -350,7 +450,8 @@ function artMap() {
                 params.set('y', this._viewTarget[1].toFixed(3));
                 params.set('z', this._currentZoom.toFixed(2));
             }
-            const query = params.toString();
+            // Commas need no escaping in a query string; keep the filter lists readable
+            const query = params.toString().replace(/%2C/g, ',');
             history.replaceState(null, '', query ? `?${query}` : window.location.pathname);
         },
 
@@ -358,12 +459,23 @@ function artMap() {
             const { deck } = window;
             const self = this;
             const positions = this._positions;
+            const museums = this._museumIndices;
+            const workTypeOf = (idx) => this._workTypeOf(idx);
+            const visible = (count, hidden) => [...Array(count).keys()].filter((i) => !hidden.includes(i));
             return new deck.ScatterplotLayer({
                 id: 'artworks',
                 data: this._data,
                 getPosition: (_, { index }) => [positions[index * 2], positions[index * 2 + 1]],
                 getFillColor: (_, { index }) => [colorArray[index * 3], colorArray[index * 3 + 1], colorArray[index * 3 + 2], 200],
                 updateTriggers: { getFillColor: colorMode },
+                // Legend filters run on the GPU: hidden points are neither drawn nor picked.
+                // (luma.gl logs harmless "uniform ... not present" warnings for this extension)
+                extensions: [new deck.DataFilterExtension({ filterSize: 0, categorySize: 2 })],
+                getFilterCategory: (_, { index }) => [museums[index], workTypeOf(index)],
+                filterCategories: [
+                    visible(MUSEUM_SLUGS.length, this.hiddenMuseums),
+                    visible(WORK_TYPE_LABELS.length, this.hiddenWorkTypes),
+                ],
                 radiusMinPixels: 1.5,
                 radiusMaxPixels: 6,
                 radiusUnits: 'pixels',
@@ -435,6 +547,15 @@ function artMap() {
         },
 
         async init() {
+            // Read the URL before anything is awaited: legend clicks during loading
+            // rewrite it from this state
+            this._filtersFromUrl();
+            this._linkedArtwork = new URLSearchParams(window.location.search).get('artwork');
+            const view = this._viewFromUrl();
+            if (view) {
+                this._viewTarget = view.target;
+                this._currentZoom = view.zoom;
+            }
             try {
                 const resp = await fetch('{% url "art-map-geometry" %}?v={{ map_data_version }}');
                 if (!resp.ok) throw new Error('Map data not found. Run: make art-map');
@@ -442,12 +563,7 @@ function artMap() {
                 const geo = this._parseGeometry(buffer);
 
                 this._museumIndices = geo.museum;
-
-                const view = this._viewFromUrl();
-                if (view) {
-                    this._viewTarget = view.target;
-                    this._currentZoom = view.zoom;
-                }
+                this._workTypeIndices = geo.workType;
 
                 // The spinner stays up until deck.gl has drawn the points (onAfterRender)
                 let onFirstRender;
@@ -507,7 +623,9 @@ function artMap() {
                 },
                 controller: true,
                 pickingRadius: isTouch ? 25 : 0,
-                layers: [this._buildLayer(wtCA, 'work_type')],
+                // Colour mode and filters may come from the URL. Layers must be passed
+                // here: the filter extension fails if set before deck.gl is initialised
+                layers: this._layers(),
                 getTooltip: () => null,
                 // Clicks on empty map space (not drags, which pan) close the detail panel
                 onClick: (info) => {
