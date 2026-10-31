@@ -3,13 +3,13 @@
 
 {% block nav_links %}
 <a href="{% url 'art-map' %}"
-   class="text-blue-100 hover:text-blue-50 text-sm font-medium">
+   class="text-muted hover:text-ink text-sm font-medium transition-colors">
     Map
 </a>
 <a
 href="https://github.com/KristianMSchmidt/semantic-art-search/blob/master/README.md"
 target="_blank" rel="noopener noreferrer"
-class="text-blue-100 hover:text-blue-50"
+class="text-muted hover:text-ink transition-colors"
 title="View on GitHub"
 >
     <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24" aria-hidden="true">
@@ -55,7 +55,7 @@ title="View on GitHub"
                 x-data="{ updateHint() { this.$el.textContent = window.innerWidth >= 640 ? '{{ search_hint_desktop }}' : '{{ search_hint_mobile }}'; } }"
                 x-init="updateHint()"
                 @resize.window.debounce.150ms="updateHint()"
-                class="block text-sm text-gray-500 mb-1"
+                class="block text-sm text-muted mb-1"
             >{{ search_hint_desktop }}</label>
             <!-- Search by image: pick, drop or paste an image. It is embedded
                  server-side and only the key of its cached embedding is sent with
@@ -74,13 +74,13 @@ title="View on GitHub"
                 <div
                     x-show="previewUrl"
                     x-cloak
-                    class="absolute left-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 bg-gray-100 border border-gray-200 rounded-md pl-0.5 pr-1 py-0.5"
+                    class="absolute left-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 bg-paper border border-line rounded-md pl-0.5 pr-1 py-0.5"
                     title="Searching by your image. It is used for this search only and not stored."
                 >
                     <img :src="previewUrl" alt="Your image" class="h-7 w-7 object-cover rounded">
-                    <span class="text-sm text-gray-700 whitespace-nowrap">Your image</span>
+                    <span class="text-sm text-ink whitespace-nowrap">Your image</span>
                     <button type="button" @click="clear(); $refs.imageKey.form.requestSubmit()"
-                        class="text-gray-500 hover:text-gray-800 px-0.5 leading-none text-lg"
+                        class="text-muted hover:text-ink px-0.5 leading-none text-lg"
                         aria-label="Remove image">&times;</button>
                 </div>
                 <input
@@ -92,20 +92,20 @@ title="View on GitHub"
                     x-data="rotatingPlaceholder()"
                     x-init="init()"
                     :placeholder="!previewUrl && isMobile && !isFocused ? 'Try: ' + currentExample : ''"
-                    :class="{ 'placeholder-fade': isTransitioning, 'pl-36': previewUrl, 'ring-2 ring-blue-400': dragging }"
-                    @focus="pause(); $el.style.borderColor='rgb(156 163 175)'"
-                    @blur="resume(); $el.style.borderColor='rgb(209 213 219)'"
+                    :class="{ 'placeholder-fade': isTransitioning, 'pl-36': previewUrl, 'ring-2 ring-accent': dragging }"
+                    @focus="pause()"
+                    @blur="resume()"
                     @keydown.enter.prevent="$el.form.requestSubmit()"
                     @input="if (previewUrl) clear()"
                     @paste="pasteImage($event)"
                     @resize.window.debounce.150ms="checkMobile()"
-                    class="w-full pl-3 pr-11 py-2 border border-gray-300 rounded-lg focus:outline-none transition-colors"
+                    class="w-full pl-3 pr-11 py-2 bg-white border border-line rounded-lg focus:outline-none focus:ring-0 focus:border-muted transition-colors"
                 />
                 <button
                     type="button"
                     @click="$refs.file.click()"
                     :disabled="uploading"
-                    class="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-gray-500 hover:text-blue-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-muted hover:text-accent hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                     title="Search by image: find artworks that look like a photo or picture of yours (you can also drop or paste one). Your image is not stored."
                     aria-label="Search by image"
                 >
@@ -120,6 +120,10 @@ title="View on GitHub"
                 </button>
             </div>
         </div>
+
+        <!-- Filters: one row of three on phones. Their panels are positioned
+             against this row there, so they get its full width. -->
+        <div class="relative grid grid-cols-3 gap-2 sm:flex sm:static">
 
         <!-- Museum Dropdown -->
         <div
@@ -154,19 +158,19 @@ title="View on GitHub"
         <!-- Production Year Range -->
         <div
             id="year-range"
-            class="relative w-full sm:w-auto"
+            class="w-full sm:w-auto sm:relative"
             x-data="yearRange('{{ year_from|default_if_none:'' }}', '{{ year_to|default_if_none:'' }}')"
         >
             <button
                 type="button"
                 @click="open = !open"
-                class="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none flex items-center justify-center hover:bg-gray-100 hover:border-gray-400 whitespace-nowrap"
+                class="btn-secondary w-full sm:w-auto max-sm:px-2 max-sm:text-sm"
                 x-text="buttonLabel"
             >All Years</button>
             <div
                 x-show="open"
                 @click.away="open = false"
-                class="absolute right-0 mt-1 w-full sm:w-64 bg-white border border-gray-300 rounded-md shadow-lg z-20 p-3 space-y-3"
+                class="absolute left-0 right-0 sm:left-auto mt-1 sm:w-64 bg-white border border-line rounded-lg shadow-lg z-20 p-3 space-y-3"
                 x-cloak
             >
                 <div class="flex items-center gap-2">
@@ -174,24 +178,25 @@ title="View on GitHub"
                         x-model="from" @input="from = cleanYear(from)" placeholder="From"
                         aria-label="From year"
                         @keydown.enter.prevent="apply(from, to)"
-                        class="w-full min-w-0 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <span class="text-gray-500">–</span>
+                        class="w-full min-w-0 px-2 py-1 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent">
+                    <span class="text-muted">–</span>
                     <input type="text" inputmode="numeric" name="year_to"
                         x-model="to" @input="to = cleanYear(to)" placeholder="To"
                         aria-label="To year"
                         @keydown.enter.prevent="apply(from, to)"
-                        class="w-full min-w-0 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full min-w-0 px-2 py-1 border border-line rounded-md focus:outline-none focus:ring-2 focus:ring-accent">
                 </div>
                 <div class="flex flex-wrap gap-1">
                     <template x-for="preset in presets" :key="preset.label">
                         <button type="button"
                             @click="apply(preset.from, preset.to)"
-                            :class="from === preset.from && to === preset.to ? 'bg-blue-500 text-white border-blue-500' : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'"
-                            class="border px-2 py-0.5 rounded-full text-sm"
+                            :class="from === preset.from && to === preset.to && 'chip-active'"
+                            class="chip"
                             x-text="preset.label"></button>
                     </template>
                 </div>
             </div>
+        </div>
         </div>
 
         <!-- Search mode is chosen by which button is clicked. Enter in the search
@@ -203,8 +208,8 @@ title="View on GitHub"
             <button
                 type="submit"
                 @click="setMode('image')"
-                :class="mode === 'image' ? 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600' : 'bg-white text-blue-600 border-blue-300 hover:bg-blue-50'"
-                class="flex-1 sm:flex-none whitespace-nowrap border px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                :class="mode === 'image' ? 'btn-primary' : 'btn-secondary'"
+                class="btn flex-1 sm:flex-none"
                 title="Find artworks that look like your query"
             >
                 Visual Search
@@ -212,8 +217,8 @@ title="View on GitHub"
             <button
                 type="submit"
                 @click="setMode('title'); $dispatch('clear-image')"
-                :class="mode === 'title' ? 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600' : 'bg-white text-blue-600 border-blue-300 hover:bg-blue-50'"
-                class="flex-1 sm:flex-none whitespace-nowrap border px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                :class="mode === 'title' ? 'btn-primary' : 'btn-secondary'"
+                class="btn flex-1 sm:flex-none"
                 title="Find artworks whose title matches your query"
             >
                 Title Search
@@ -236,7 +241,7 @@ title="View on GitHub"
                     type="button"
                     x-show="{{ forloop.counter0 }} < visibleCount"
                     x-cloak
-                    class="bg-gray-100 text-gray-600 border border-gray-200 px-3 py-1 rounded-full text-sm hover:bg-gray-200 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                    class="chip"
                     onclick="insertQuery('{{ example.query }}', {{ example.all_work_types|yesno:'true,false' }})"
                     hx-get="{% url 'get-artworks' %}"
                     hx-target="#search-results"
@@ -441,7 +446,8 @@ title="View on GitHub"
 }"
      x-show="open"
      x-cloak
-     class="fixed inset-0 z-50 bg-black/95 h-screen supports-[height:100svh]:h-svh w-screen"
+     class="fixed inset-0 z-50 bg-black/95 h-screen supports-[height:100svh]:h-svh w-screen [--panel:0px]"
+     :class="showInfo && 'lg:[--panel:24rem]'"
      style="touch-action: none;"
      @keydown.escape.window="if (open) close()"
      @keydown.space.window="if (open) { $event.prevent
@@ -461,31 +467,37 @@ title="View on GitHub"
     </button>
   </div>
 
-  <!-- Image: uses whole viewport, never inside a scrollable parent -->
-  <div class="w-screen h-screen flex items-center justify-center">
+  <!-- Image: uses whole viewport, never inside a scrollable parent. On wide
+       screens the open info panel takes --panel from the right, and the image
+       fits in the space left of it; clicking the image toggles the panel. -->
+  <div class="w-screen h-screen flex items-center justify-center pr-[var(--panel)]">
     <!-- Sized to fit the screen (not the image's own pixel size), so swapping in
          the larger image from loadLargeImage() sharpens it without a size jump -->
     <img :src="url"
          alt="Artwork"
-         class="block max-w-[100vw] max-h-[100vh] select-none cursor-pointer"
-         :style="aspect ? `width: min(100vw, calc(100vh * ${aspect})); height: auto` : ''"
+         class="block max-w-[calc(100vw-var(--panel))] max-h-[100vh] select-none cursor-pointer"
+         :style="aspect ? `width: min(calc(100vw - var(--panel)), calc(100vh * ${aspect})); height: auto` : ''"
          @load="aspect ??= $el.naturalWidth / $el.naturalHeight"
          @click.stop="showInfo = !showInfo"
          draggable="false">
   </div>
 
-  <!-- Info hint - shows when metadata is hidden on mobile -->
+  <!-- Info hint - shows when metadata is hidden -->
   <style>
     @keyframes subtle-pulse {
       0%, 32%, 100% { opacity: 0.7; transform: scale(1); }
       25% { opacity: 1; transform: scale(1.08); }
     }
+    @media (prefers-reduced-motion: reduce) {
+      .info-hint { animation: none !important; }
+    }
   </style>
   <button x-show="!showInfo"
           @click.stop="showInfo = true"
-          class="absolute bottom-4 right-4 lg:hidden bg-white/20 backdrop-blur-sm rounded-full p-3 text-white"
+          class="info-hint absolute bottom-4 right-4 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full p-3 text-white"
           style="animation: subtle-pulse 4s ease-in-out infinite;"
-          title="Tap for info">
+          title="Show details"
+          aria-label="Show details">
     <svg class="w-6 h-6" viewBox="0 0 20 20" fill="currentColor">
       <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
     </svg>
@@ -499,7 +511,7 @@ title="View on GitHub"
        x-transition:leave="transition ease-in duration-150"
        x-transition:leave-start="opacity-100 translate-y-0 lg:translate-x-0"
        x-transition:leave-end="opacity-0 translate-y-4 lg:translate-x-4"
-       class="absolute bottom-0 left-0 right-0 lg:left-auto lg:top-0 lg:bottom-0 lg:w-96 bg-white text-gray-900 border-t lg:border-t-0 lg:border-l border-gray-200 max-h-[45vh] lg:max-h-none overflow-y-auto p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+       class="absolute bottom-0 left-0 right-0 lg:left-auto lg:top-0 lg:bottom-0 lg:w-96 bg-white text-ink border-t lg:border-t-0 lg:border-l border-line max-h-[45vh] lg:max-h-none overflow-y-auto p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
        :style="(isDragging || isAnimating) ? `transform: translateY(${dragY}px); transition: ${isDragging ? 'none' : 'transform 150ms ease-in'};` : ''"
        @touchstart="onTouchStart"
        @touchmove="onTouchMove"
@@ -508,44 +520,54 @@ title="View on GitHub"
 
     <!-- Handle bar for swipe-to-dismiss (mobile only) -->
     <div class="lg:hidden flex justify-center -mt-3 mb-3">
-      <div class="w-10 h-1 bg-gray-300 rounded-full"></div>
+      <div class="w-10 h-1 bg-line rounded-full"></div>
     </div>
+
+    <!-- Hide the panel to see the image on the whole screen (wide screens;
+         phones swipe the drawer down instead) -->
+    <button type="button"
+            @click="showInfo = false"
+            class="hidden lg:inline-flex float-right -mt-2 -mr-2 ml-2 p-1.5 rounded-md text-muted hover:text-ink hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            title="Hide details and show the image on the whole screen (or click the image)"
+            aria-label="Hide details">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+      </svg>
+    </button>
 
     <!-- Metadata block -->
     <div class="space-y-1">
       <!-- Title (links to the artwork page) -->
-      <h3 class="text font-semibold text-gray-800 leading-snug">
+      <h3 class="text-lg font-semibold text-ink leading-snug">
         <a x-show="pageUrl" :href="pageUrl" x-text="title"
-           class="hover:text-blue-500 transition-colors"
+           class="hover:text-accent transition-colors"
            title="Open this artwork's page, to share or bookmark it"></a>
         <span x-show="!pageUrl" x-text="title"></span>
       </h3>
 
       <!-- Artist -->
-      <p class="text-base text-gray-500" x-text="artist"></p>
+      <p class="text-muted" x-text="artist"></p>
 
       <!-- Production date and Work Types -->
-      <div class="flex flex-wrap gap-2 mt-1">
+      <div class="flex flex-wrap gap-1.5 pt-1">
         <span x-show="productionDate"
               x-text="productionDate"
-              class="text-sm bg-gray-200 text-gray-700 px-2 py-0.5 rounded-md font-medium">
+              class="tag">
         </span>
         <template x-for="workType in workTypes" :key="workType">
-          <span x-text="workType"
-                class="text-sm bg-gray-200 text-gray-700 px-2 py-0.5 rounded-md font-medium">
-          </span>
+          <span x-text="workType" class="tag"></span>
         </template>
       </div>
     </div>
 
-    <!-- Museum link and Find similar button -->
+    <!-- Museum link, then Find similar and Share -->
     <div class="mt-4 space-y-2">
       <!-- Museum link -->
       <div x-show="museum && sourceUrl">
         <a :href="sourceUrl"
            target="_blank"
            rel="noopener noreferrer"
-           class="text-sm text-gray-500 inline-flex items-center gap-1 hover:text-blue-500 transition-colors"
+           class="link-muted"
            :title="'View this artwork on the ' + museum + ' website'">
           <span x-text="museum"></span>
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
@@ -556,12 +578,13 @@ title="View on GitHub"
         </a>
       </div>
 
-      <!-- Find similar button -->
-      <div x-show="showFindSimilar">
+      <div class="flex flex-wrap gap-x-5 gap-y-2">
+        <!-- Find similar button -->
         <button
+          x-show="showFindSimilar"
           type="button"
           title="Find artworks that look similar to this one"
-          class="text-sm text-gray-500 hover:text-blue-500 transition-colors"
+          class="link-action"
           @click="insertQuery(findSimilarQuery); close()"
           hx-get="{% url 'get-artworks' %}"
           hx-target="#search-results"
@@ -569,16 +592,15 @@ title="View on GitHub"
           hx-include="#search-form">
           Find similar
         </button>
-      </div>
 
-      <!-- Share button -->
-      <div x-show="pageUrl">
+        <!-- Share button -->
         <button
+          x-show="pageUrl"
           type="button"
           x-data="shareButton()"
           @click="share(pageUrl, title)"
           title="Share a link to this artwork"
-          class="text-sm text-gray-500 hover:text-blue-500 transition-colors"
+          class="link-action"
           x-text="copied ? 'Link copied' : 'Share'">
           Share
         </button>
@@ -586,13 +608,13 @@ title="View on GitHub"
     </div>
 
     <!-- Description section -->
-    <div class="mt-3 sm:mt-6">
+    <div class="mt-5 sm:mt-6">
       <!-- State 1: Initial - Generate button -->
-      <div x-show="!descriptionGenerated && !descriptionChecking" class="text-center py-4">
+      <div x-show="!descriptionGenerated && !descriptionChecking">
         <button
           @click="generateDescription()"
-          class="inline-flex items-center gap-2 px-4 py-2 text-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg shadow-md hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+          class="btn-secondary btn-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-accent" viewBox="0 0 20 20" fill="currentColor">
             <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd" />
           </svg>
           <span>Tell me about this artwork</span>
@@ -601,21 +623,21 @@ title="View on GitHub"
 
       <!-- State 2: Loading - Inline spinner -->
       <div x-show="descriptionGenerated && !descriptionLoaded" class="flex items-center justify-center py-8">
-        <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <svg class="animate-spin h-8 w-8 text-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <p class="ml-3 text-sm text-gray-600 font-medium">Generating description...</p>
+        <p class="ml-3 text-sm text-muted font-medium">Generating description...</p>
       </div>
 
       <!-- State 3: Loaded - Description content with regenerate option -->
       <div x-show="descriptionLoaded">
         <!-- Heading and regenerate button -->
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-semibold text-gray-700">About this artwork</h3>
+          <h3 class="text-sm font-semibold text-ink">About this artwork</h3>
           <button
             @click="generateDescription(true)"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-700 font-medium text-xs rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200">
+            class="btn-secondary btn-sm text-xs gap-1.5">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
             </svg>

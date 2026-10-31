@@ -3,12 +3,12 @@
 
 {% block nav_links %}
 <a href="{% url 'home' %}"
-   class="text-blue-100 hover:text-blue-50 text-sm font-medium">
+   class="text-muted hover:text-ink text-sm font-medium transition-colors">
     Search
 </a>
 <a href="https://github.com/KristianMSchmidt/semantic-art-search/blob/master/README.md"
    target="_blank" rel="noopener noreferrer"
-   class="text-blue-100 hover:text-blue-50"
+   class="text-muted hover:text-ink transition-colors"
    title="View on GitHub">
     <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.207 11.387.6.11.793-.26.793-.577v-2.234c-3.338.724-4.033-1.61-4.033-1.61-.547-1.387-1.335-1.756-1.335-1.756-1.092-.746.083-.731.083-.731 1.206.084 1.84 1.238 1.84 1.238 1.073 1.837 2.812 1.306 3.497.998.11-.777.42-1.305.763-1.605-2.665-.305-5.466-1.332-5.466-5.931 0-1.31.467-2.381 1.235-3.221-.124-.303-.535-1.527.117-3.176 0 0 1.008-.322 3.3 1.23.957-.266 1.984-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.29-1.552 3.296-1.23 3.296-1.23.653 1.649.242 2.873.118 3.176.77.84 1.233 1.911 1.233 3.221 0 4.61-2.804 5.624-5.475 5.921.43.372.814 1.102.814 2.222v3.293c0 .32.192.694.8.576C20.565 21.796 24 17.297 24 12c0-6.63-5.37-12-12-12z"/>
@@ -22,7 +22,7 @@
     <!-- Loading spinner -->
     <div x-show="loading" class="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
         <div class="text-center">
-            <svg class="animate-spin h-10 w-10 text-blue-500 mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg class="animate-spin h-10 w-10 text-accent mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
@@ -106,10 +106,10 @@
         <!-- Toggle -->
         <div class="flex gap-1 mb-2 text-xs">
             <button @click="setColorMode('work_type')"
-                    :class="colorMode === 'work_type' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    :class="colorMode === 'work_type' ? 'bg-accent text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
                     class="px-2 py-0.5 rounded transition-colors">Work type</button>
             <button @click="setColorMode('museum')"
-                    :class="colorMode === 'museum' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    :class="colorMode === 'museum' ? 'bg-accent text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
                     class="px-2 py-0.5 rounded transition-colors">Museum</button>
         </div>
         <!-- Legend items -->

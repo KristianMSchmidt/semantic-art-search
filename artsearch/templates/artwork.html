@@ -25,11 +25,11 @@
 
 {% block nav_links %}
 <a href="{% url 'home' %}"
-   class="text-blue-100 hover:text-blue-50 text-sm font-medium">
+   class="text-muted hover:text-ink text-sm font-medium transition-colors">
     Search
 </a>
 <a href="{% url 'art-map' %}"
-   class="text-blue-100 hover:text-blue-50 text-sm font-medium">
+   class="text-muted hover:text-ink text-sm font-medium transition-colors">
     Map
 </a>
 {% endblock %}
@@ -40,12 +40,12 @@
 
     <!-- Image: our thumbnail, replaced by a larger IIIF image from the museum once
          that has loaded, plus deep zoom on the same IIIF source (#103) -->
-    <div class="lg:col-span-2 bg-white rounded-lg shadow-md ring-1 ring-gray-200 p-2 sm:p-4 flex flex-col items-center justify-center"
+    <div class="lg:col-span-2 bg-white rounded-lg ring-1 ring-line p-2 sm:p-4 flex flex-col items-center justify-center"
          {% if iiif_info_url %}x-data="deepZoom('{{ iiif_info_url|escapejs }}', '{{ large_image_url|escapejs }}')"{% endif %}>
       <img src="{{ artwork.thumbnail_url }}"
-           {% if iiif_info_url %}x-ref="image" x-show="!zooming"{% endif %}
+           {% if iiif_info_url %}x-ref="image" x-show="!zooming" @click="open()" title="Click to zoom in"{% endif %}
            alt="{{ artwork.title }}"
-           class="w-full h-auto max-h-[80vh] object-contain">
+           class="w-full h-auto max-h-[80vh] object-contain{% if iiif_info_url %} cursor-zoom-in{% endif %}">
       {% if iiif_info_url %}
         <div x-ref="viewer" x-show="zooming" x-cloak class="w-full h-[80vh] bg-gray-900 rounded"></div>
         <div class="flex items-center gap-4 mt-2 min-h-[1.5rem]">
@@ -53,18 +53,21 @@
                   x-show="!zooming && !loading && !failed"
                   @click="open()"
                   title="Zoom in to see details of the full-resolution image"
-                  class="text-sm text-gray-500 hover:text-blue-500 transition-colors">
-            Zoom
+                  class="link-action">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5" /><path stroke-linecap="round" d="M16 16l4.5 4.5M11 8.5v5M8.5 11h5" />
+            </svg>
+            Zoom in
           </button>
           <button type="button"
                   x-show="zooming"
                   x-cloak
                   @click="close()"
-                  class="text-sm text-gray-500 hover:text-blue-500 transition-colors">
+                  class="link-action">
             Close zoom
           </button>
-          <span x-show="loading" x-cloak class="text-sm text-gray-500">Loading…</span>
-          <span x-show="failed" x-cloak class="text-sm text-gray-500">
+          <span x-show="loading" x-cloak class="text-sm text-muted">Loading…</span>
+          <span x-show="failed" x-cloak class="text-sm text-muted">
             Zoom isn't available for this image right now.
           </span>
         </div>
@@ -72,30 +75,26 @@
     </div>
 
     <!-- Metadata and description -->
-    <div class="bg-white rounded-lg shadow-md ring-1 ring-gray-200 p-6 self-start">
-      <h1 class="text-xl font-semibold text-gray-800 leading-snug">{{ artwork.title }}</h1>
-      <p class="text-base text-gray-500 mt-1">{{ artwork.artist }}</p>
+    <div class="bg-white rounded-lg ring-1 ring-line p-6 self-start">
+      <h1 class="text-2xl font-semibold text-ink leading-snug">{{ artwork.title }}</h1>
+      <p class="text-lg text-muted mt-1">{{ artwork.artist }}</p>
 
-      <div class="flex flex-wrap gap-2 mt-3">
+      <div class="flex flex-wrap gap-1.5 mt-3">
         {% if artwork.production_date %}
-          <span class="text-sm bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md font-medium">
-            {{ artwork.production_date }}
-          </span>
+          <span class="tag">{{ artwork.production_date }}</span>
         {% endif %}
         {% for work_type in artwork.work_types %}
-          <span class="text-sm bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md font-medium">
-            {{ work_type }}
-          </span>
+          <span class="tag">{{ work_type }}</span>
         {% endfor %}
       </div>
 
-      <p class="text-sm text-gray-500 mt-3">{{ artwork.object_number }}</p>
+      <p class="text-sm text-muted mt-3">{{ artwork.object_number }}</p>
 
       <p class="mt-4">
         <a href="{{ artwork.source_url }}"
            target="_blank"
            rel="noopener noreferrer"
-           class="text-sm text-gray-500 inline-flex items-center gap-1 hover:text-blue-500 transition-colors"
+           class="link-muted"
            title="View this artwork on the {{ artwork.museum }} website">
           {{ artwork.museum }}
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
@@ -112,7 +111,7 @@
           x-data="shareButton()"
           @click="share('{{ canonical_url|escapejs }}', '{{ artwork.title|escapejs }}')"
           title="Share a link to this artwork"
-          class="text-sm text-gray-500 hover:text-blue-500 transition-colors"
+          class="link-action"
           x-text="copied ? 'Link copied' : 'Share'">
           Share
         </button>
@@ -122,22 +121,22 @@
       <div class="mt-6"
            x-data="{ apiUrl: '{{ artwork.api_url|escapejs }}', museum: '{{ artwork.museum|escapejs }}', loaded: {{ description|yesno:'true,false' }} }">
         <!-- Heading only once there is a description; until then just the button -->
-        <h2 x-show="loaded" {% if not description %}x-cloak{% endif %} class="text-sm font-semibold text-gray-700">About this artwork</h2>
+        <h2 x-show="loaded" {% if not description %}x-cloak{% endif %} class="text-sm font-semibold text-ink">About this artwork</h2>
         <div id="artwork-description" class="break-words" @htmx:after-swap="loaded = true">
           {% if description %}
             {% include "partials/artwork_description.html" %}
           {% else %}
-            <div class="text-center py-4">
+            <div>
               <button
                 hx-get="{{ description_url }}"
                 hx-target="#artwork-description"
                 hx-swap="innerHTML"
                 hx-indicator="#description-spinner"
                 hx-disabled-elt="this"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg shadow-md hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                class="btn-secondary btn-sm">
                 <span>Tell me about this artwork</span>
               </button>
-              <p id="description-spinner" class="htmx-indicator text-sm text-gray-600 font-medium mt-3">
+              <p id="description-spinner" class="htmx-indicator text-sm text-muted mt-3">
                 Generating description...
               </p>
             </div>
@@ -150,7 +149,7 @@
   <!-- Similar artworks -->
   {% if similar_artworks %}
   <section class="mt-10">
-    <h2 class="text-lg font-semibold text-gray-800 mb-4">Similar artworks</h2>
+    <h2 class="text-xl font-semibold text-ink mb-4">Similar artworks</h2>
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
       {% include "partials/similar_artworks.html" %}
     </div>
