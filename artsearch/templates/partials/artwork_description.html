@@ -6,15 +6,15 @@
     </p>
   </div>
 {% elif description %}
-  <p class="text-sm text-gray-600 leading-relaxed mt-2">
+  <p class="text-sm text-ink/80 leading-relaxed mt-2">
     {{ description }}
   </p>
-  <p class="text-xs text-gray-400 mt-3 italic">
+  <p class="text-xs text-muted mt-3 italic">
     AI-generated description based on artwork image and available <a
       :href="apiUrl"
       target="_blank"
       rel="noopener noreferrer"
-      class="text-gray-500 underline hover:text-blue-500"
+      class="text-muted underline hover:text-accent"
       :title="'View API metadata from ' + museum">museum metadata</a>
   </p>
 {% else %}

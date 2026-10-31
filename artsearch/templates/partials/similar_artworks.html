@@ -2,14 +2,14 @@
   {% url 'artwork-page' result.museum_slug result.object_number as page_url %}
   {% if page_url %}
   <a href="{{ page_url }}"
-     class="block bg-white rounded-lg shadow-md ring-1 ring-gray-200 overflow-hidden hover:opacity-80 transition">
+     class="block bg-white rounded-lg ring-1 ring-line overflow-hidden hover:ring-muted/60 transition">
     <img loading="lazy"
          src="{{ result.thumbnail_url }}"
          alt="{{ result.title }}"
-         class="w-full h-40 object-contain bg-gray-50">
+         class="w-full h-40 object-contain bg-paper/60">
     <div class="p-2">
-      <p class="text-sm font-semibold text-gray-800 leading-snug line-clamp-2">{{ result.title }}</p>
-      <p class="text-xs text-gray-500 mt-1 line-clamp-1">{{ result.artist }}</p>
+      <p class="text-sm font-semibold text-ink leading-snug line-clamp-2">{{ result.title }}</p>
+      <p class="text-xs text-muted mt-1 line-clamp-1">{{ result.artist }}</p>
     </div>
   </a>
   {% endif %}
@@ -24,7 +24,7 @@
       hx-target="closest div"
       hx-swap="outerHTML"
       hx-disabled-elt="this"
-      class="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors"
+      class="btn-secondary btn-sm"
       title="Load more artworks that look similar to this one">
       Show more
     </button>

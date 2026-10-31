@@ -42,7 +42,21 @@ module.exports = {
         // '../../**/*.py'
     ],
     theme: {
-        extend: {},
+        extend: {
+            // A quiet gallery wall, so the artworks carry the colour. Shared
+            // button, chip and tag styles are in src/styles.css.
+            colors: {
+                paper: '#F2F2EE',
+                ink: '#1F2421',
+                muted: '#4F5652',
+                line: '#D8DBD5',
+                accent: {
+                    DEFAULT: '#2F5D50',
+                    dark: '#244A40',
+                    tint: '#E6EEEA',
+                },
+            },
+        },
     },
     plugins: [
         /**

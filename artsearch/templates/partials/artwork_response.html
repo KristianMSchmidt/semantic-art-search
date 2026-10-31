@@ -19,7 +19,7 @@
 
 {% if not error_message %}
     {% if is_first_batch and header_text %}
-        <p class="text-sm text-gray-500 mb-2">
+        <p class="text-sm text-muted mb-2">
             {{ header_text }}
         </p>
     {% elif is_first_batch %}
@@ -28,13 +28,13 @@
 
     {% if is_first_batch and total_works == 0 %}
         <div class="text-center mt-8">
-            <p class="text-lg text-gray-600">
+            <p class="text-lg text-muted">
             No artworks match your selected filters.
             </p>
         </div>
     {% else %}
           <div
-            class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4
+            class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 items-start
                   {% if not is_first_batch %}mt-4{% endif %}"
           >
             {% for result in results %}

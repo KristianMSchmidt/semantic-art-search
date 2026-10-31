@@ -73,13 +73,13 @@
 		</script>
 	</head>
 
-	<body class="bg-gray-50 font-serif leading-normal tracking-normal">
+	<body class="bg-paper text-ink font-serif leading-normal tracking-normal">
 
 		<!-- Base Navbar -->
-		<nav class="bg-blue-500 p-4">
+		<nav class="border-b border-line px-4 py-3">
 			<div class="container mx-auto flex justify-between items-center">
 				<!-- Website Name -->
-				<a href="{% url 'home' %}" class="text-blue-50 text-lg font-bold">Semantic Art Search</a>
+				<a href="{% url 'home' %}" class="text-ink text-xl font-bold tracking-tight hover:text-accent transition-colors">Semantic Art Search</a>
 				<!-- Navbar links -->
 				<div class="flex space-x-4 items-center">
 					{% block nav_links %}

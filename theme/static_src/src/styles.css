@@ -1,3 +1,41 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Shared controls, so buttons, chips and tags look the same everywhere */
+@layer components {
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg border px-4 py-2
+            transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2
+            disabled:cursor-not-allowed disabled:opacity-50;
+    }
+    .btn-primary {
+        @apply btn border-accent bg-accent text-white hover:border-accent-dark hover:bg-accent-dark;
+    }
+    .btn-secondary {
+        @apply btn border-line bg-white text-ink hover:border-muted/60 hover:bg-paper;
+    }
+    .btn-sm {
+        @apply px-3 py-1.5 text-sm;
+    }
+    /* Example queries and year presets */
+    .chip {
+        @apply rounded-full border border-line bg-white px-3 py-1 text-sm text-muted transition-colors
+            hover:border-muted/60 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent;
+    }
+    .chip-active {
+        @apply border-accent bg-accent text-white hover:border-accent hover:text-white;
+    }
+    /* Year and work type labels on artworks */
+    .tag {
+        @apply rounded bg-paper px-2 py-0.5 text-sm text-muted;
+    }
+    /* Text actions: Find similar, Share, Zoom */
+    .link-action {
+        @apply inline-flex items-center gap-1 text-sm text-accent underline-offset-4 transition-colors
+            hover:text-accent-dark hover:underline focus:outline-none focus-visible:underline;
+    }
+    .link-muted {
+        @apply inline-flex items-center gap-1 text-sm text-muted transition-colors hover:text-ink;
+    }
+}

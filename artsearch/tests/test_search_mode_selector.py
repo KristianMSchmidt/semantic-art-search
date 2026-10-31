@@ -402,14 +402,14 @@ def test_artwork_card_score_one_is_not_treated_as_query_artwork():
         "find_similar_query": "smk:KMS2",
     }
     html = render_to_string("partials/artwork_card.html", {"result": result})
-    assert "bg-green-100" not in html
+    assert "bg-accent-tint" not in html
     assert "insertQuery(" in html
 
     html = render_to_string(
         "partials/artwork_card.html",
         {"result": {**result, "is_query_artwork": True}},
     )
-    assert "bg-green-100" in html
+    assert "bg-accent-tint" in html
     assert "insertQuery(" not in html
 
 
