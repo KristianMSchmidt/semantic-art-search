@@ -102,7 +102,7 @@
     <!-- Legend -->
     <div class="absolute z-20 bg-white/90 backdrop-blur-sm rounded-lg shadow border border-line px-4" style="left: 1rem; top: 1rem; padding-top: 0.75rem; padding-bottom: 0.75rem;">
         <!-- Toggle -->
-        <div class="flex gap-1 mb-2 text-xs">
+        <div class="flex items-center gap-1 text-xs" :class="legendOpen && 'mb-2'">
             <button @click="setColorMode('work_type')"
                     :class="colorMode === 'work_type' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
                     class="px-2 py-0.5 rounded transition-colors">Work type</button>
@@ -113,7 +113,19 @@
             <button x-show="hasCenturies || colorMode === 'century'" x-cloak @click="setColorMode('century')"
                     :class="colorMode === 'century' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
                     class="px-2 py-0.5 rounded transition-colors">Century</button>
+            <!-- Collapse the legend items (collapsed by default on small screens) -->
+            <button type="button" @click="legendOpen = !legendOpen"
+                    :title="legendOpen ? 'Hide legend' : 'Show legend'"
+                    :aria-expanded="legendOpen"
+                    class="ml-1 -mr-1 w-6 h-6 flex items-center justify-center rounded text-muted hover:bg-paper hover:text-ink transition-colors">
+                <svg class="w-4 h-4 transition-transform" :class="legendOpen && 'rotate-180'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
         </div>
+        <!-- While collapsed, still say that filters are on -->
+        <p x-show="!legendOpen && hiddenCountText" x-cloak class="mt-1 text-xs text-muted" x-text="hiddenCountText"></p>
+        <div x-show="legendOpen" x-cloak class="overflow-y-auto" style="max-height: calc(100vh - 68px - 12rem);">
         <!-- Legend items: click to hide or show -->
         <template x-for="item in legendItems" :key="colorMode + '-' + item.index">
             <button type="button" @click="toggleHidden(item.index)"
@@ -139,6 +151,7 @@
                 <button type="button" @click="hideAll()" :disabled="legendItems.every((item) => item.hidden)"
                         class="link-action disabled:opacity-40 disabled:pointer-events-none">Hide all</button>
             </div>
+        </div>
         </div>
     </div>
 </div>
@@ -222,6 +235,9 @@ function artMap() {
         hiddenWorkTypes: [],
         hiddenCenturies: [],
 
+        // The legend items take up much of a phone screen, so start collapsed there
+        legendOpen: window.matchMedia('(min-width: 640px)').matches,
+
         _hiddenKey(mode) {
             return { museum: 'hiddenMuseums', work_type: 'hiddenWorkTypes', century: 'hiddenCenturies' }[mode];
         },
@@ -245,16 +261,26 @@ function artMap() {
             }));
         },
 
-        // Filters from the other colour mode aren't visible in the legend, so mention them
-        get otherModeHiddenText() {
-            const parts = Object.entries(MODE_NOUNS)
-                .filter(([mode]) => mode !== this.colorMode)
-                .map(([mode, [one, many]]) => {
+        // e.g. "2 museums, 1 century hidden", counting the given colour modes' filters
+        _hiddenSummary(modes) {
+            const parts = modes
+                .map((mode) => {
                     const n = this[this._hiddenKey(mode)].length;
+                    const [one, many] = MODE_NOUNS[mode];
                     return n ? `${n} ${n > 1 ? many : one}` : '';
                 })
                 .filter(Boolean);
             return parts.length ? `${parts.join(', ')} hidden` : '';
+        },
+
+        // Filters from the other colour mode aren't visible in the legend, so mention them
+        get otherModeHiddenText() {
+            return this._hiddenSummary(Object.keys(MODE_NOUNS).filter((mode) => mode !== this.colorMode));
+        },
+
+        // All filters, for the collapsed legend
+        get hiddenCountText() {
+            return this._hiddenSummary(Object.keys(MODE_NOUNS));
         },
 
         toggleHidden(index) {
