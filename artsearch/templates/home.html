@@ -72,7 +72,6 @@
                     value="{{ query|default:'' }}"
                     maxlength="500"
                     x-data="rotatingPlaceholder()"
-                    x-init="init()"
                     :placeholder="!previewUrl && isMobile && !isFocused ? 'Try: ' + currentExample : ''"
                     :class="{ 'placeholder-fade': isTransitioning, 'pl-36': previewUrl, 'ring-2 ring-accent': dragging }"
                     @focus="pause()"
