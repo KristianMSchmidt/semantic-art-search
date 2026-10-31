@@ -27,6 +27,11 @@
          class="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-white rounded-lg shadow border border-line px-4 py-2 text-sm text-muted"
          x-text="notice"></div>
 
+    <!-- Hint when the filters leave nothing on the map -->
+    <div x-show="!loading && allHiddenText" x-cloak
+         class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none text-sm text-muted text-center px-4"
+         x-text="allHiddenText"></div>
+
     <!-- deck.gl canvas -->
     <canvas id="deck-canvas" class="w-full h-full"></canvas>
 
@@ -124,10 +129,16 @@
                       x-text="item.label"></span>
             </button>
         </template>
-        <!-- Filters, including ones set in the other colour mode -->
-        <div x-show="hiddenMuseums.length || hiddenWorkTypes.length || hiddenCenturies.length" x-cloak class="mt-2 pt-2 border-t border-line text-xs text-muted space-y-0.5">
-            <p x-show="otherModeHiddenText" x-text="otherModeHiddenText"></p>
-            <button type="button" @click="showAll()" class="link-action">Show all</button>
+        <!-- Filters, including ones set in the other colour modes -->
+        <div class="mt-2 pt-2 border-t border-line text-xs text-muted space-y-0.5">
+            <p x-show="otherModeHiddenText" x-cloak x-text="otherModeHiddenText"></p>
+            <div class="flex gap-3">
+                <!-- Both act on the current colour mode only -->
+                <button type="button" @click="showAll()" :disabled="!legendItems.some((item) => item.hidden)"
+                        class="link-action disabled:opacity-40 disabled:pointer-events-none">Show all</button>
+                <button type="button" @click="hideAll()" :disabled="legendItems.every((item) => item.hidden)"
+                        class="link-action disabled:opacity-40 disabled:pointer-events-none">Hide all</button>
+            </div>
         </div>
     </div>
 </div>
@@ -145,6 +156,7 @@ function artMap() {
     const UNDATED_CENTURY = CENTURY_SLUGS.length - 1;
     // Legend noun per colour mode, for "2 museums, 1 century hidden"
     const MODE_NOUNS = { museum: ['museum', 'museums'], work_type: ['work type', 'work types'], century: ['century', 'centuries'] };
+    const MODE_BUTTONS = { museum: 'Museum', work_type: 'Work type', century: 'Century' };
     const HOME_URL = '{% url "home" %}';
     const ARTWORK_PAGE_URL = '{% url "artwork-page" "__slug__" "__object__" %}';
     const SELECTED_ZOOM = 4;  // zoom level when flying to a linked artwork
@@ -255,10 +267,23 @@ function artMap() {
             this._filtersChanged();
         },
 
+        // When every museum, work type or century is hidden no point can show; say how to get them back
+        get allHiddenText() {
+            const counts = { museum: MUSEUM_SLUGS.length, work_type: WORK_TYPE_LABELS.length, century: CENTURY_SLUGS.length };
+            if (this[this._hiddenKey(this.colorMode)].length === counts[this.colorMode]) {
+                return 'Everything is hidden. Click a legend item to show it.';
+            }
+            const mode = Object.keys(counts).find((m) => this[this._hiddenKey(m)].length === counts[m]);
+            return mode ? `All ${MODE_NOUNS[mode][1]} are hidden. Switch to ${MODE_BUTTONS[mode]} to show some.` : '';
+        },
+
+        hideAll() {
+            this[this._hiddenKey(this.colorMode)] = this.legendItems.map((item) => item.index);
+            this._filtersChanged();
+        },
+
         showAll() {
-            this.hiddenMuseums = [];
-            this.hiddenWorkTypes = [];
-            this.hiddenCenturies = [];
+            this[this._hiddenKey(this.colorMode)] = [];
             this._filtersChanged();
         },
 
