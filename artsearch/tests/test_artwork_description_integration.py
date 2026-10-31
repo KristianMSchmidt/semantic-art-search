@@ -16,6 +16,9 @@ from django.test import Client, RequestFactory
 from django.urls import reverse
 from artsearch.models import ArtworkDescription
 from artsearch.views.views import get_artwork_description_view
+from artsearch.src.services.artwork_description.metadata_fetcher import (
+    fetch_and_clean_metadata,
+)
 
 
 @pytest.mark.integration
@@ -414,3 +417,11 @@ def test_cached_description_endpoint_returns_saved_description_only():
     assert "A saved description." in saved.content.decode()
     assert missing.status_code == 204  # popup then shows the generate button
     generate.assert_not_called()
+
+
+@pytest.mark.integration
+def test_fetch_aic_metadata_from_real_api():
+    """AIC's Cloudflare returns 403 to requests without the AIC-User-Agent header."""
+    metadata = fetch_and_clean_metadata("aic", "1928.610", "27992")
+
+    assert metadata["title"]

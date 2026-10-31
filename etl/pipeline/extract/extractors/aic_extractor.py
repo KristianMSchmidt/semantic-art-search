@@ -2,6 +2,7 @@ import logging
 import requests
 import time
 from typing import Any
+from artsearch.src.services.museum_clients.aic_api_client import AIC_REQUEST_HEADERS
 from etl.pipeline.extract.helpers.upsert_raw_data import store_raw_data
 
 
@@ -56,7 +57,9 @@ def fetch_raw_data_from_aic_api(
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = http_session.get(base_url, params=query, timeout=30)
+            response = http_session.get(
+                base_url, params=query, headers=AIC_REQUEST_HEADERS, timeout=30
+            )
             response.raise_for_status()
             break
         except requests.RequestException as e:
