@@ -13,6 +13,7 @@ from django.urls import reverse
 from qdrant_client import QdrantClient, models
 
 from artsearch.models import ArtworkStats
+from artsearch.src.constants.museums import CENTURY_SLUGS, get_century_index
 from artsearch.src.services.browse_service import get_random_artwork_ids
 from artsearch.src.services.museum_stats_service import get_total_works_for_filters
 from artsearch.src.services.qdrant_service import (
@@ -267,3 +268,30 @@ def test_api_search_passes_year_range():
     assert response.status_code == 200
     _, kwargs = mock_handle_search.call_args
     assert (kwargs["year_from"], kwargs["year_to"]) == (1800, 1899)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "start, end, expected",
+    [
+        (-4800, None, "before-1400"),
+        (1399, 1410, "before-1400"),
+        (1400, None, "1400s"),
+        (1650, 1700, "1600s"),
+        (1899, None, "1800s"),
+        (1900, None, "from-1900"),
+        (2021, None, "from-1900"),
+        (None, 1650, "1600s"),  # no start year: use the end year
+        (None, None, "undated"),
+    ],
+)
+def test_get_century_index(start, end, expected):
+    """
+    Art map century groups: by start year, clamped at both ends.
+
+    Potential bugs this could catch:
+    - Off-by-one at century boundaries
+    - Ancient or modern years falling outside the groups
+    - Artworks with only an end year counted as undated
+    """
+    assert CENTURY_SLUGS[get_century_index(start, end)] == expected

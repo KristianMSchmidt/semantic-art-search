@@ -43,3 +43,21 @@ WORK_TYPE_LABELS = [
 ]
 WORK_TYPE_TO_INDEX = {wt: i for i, wt in enumerate(WORK_TYPE_LABELS)}
 OTHER_WORK_TYPE_INDEX = WORK_TYPE_LABELS.index("other")
+
+# Art map century groups, in time order ("undated" last). Slugs go in map URLs
+CENTURY_SLUGS = [
+    "before-1400", "1400s", "1500s", "1600s", "1700s", "1800s", "from-1900", "undated",
+]
+CENTURY_NAMES = [
+    "Before 1400", "1400s", "1500s", "1600s", "1700s", "1800s", "1900s and later", "Undated",
+]
+UNDATED_CENTURY_INDEX = CENTURY_SLUGS.index("undated")
+FIRST_CENTURY_YEAR = 1400  # start of the first group after "before-1400"
+
+
+def get_century_index(start: int | None, end: int | None) -> int:
+    """Art map century group of an artwork, by production start year (end if no start)."""
+    year = start if start is not None else end
+    if year is None:
+        return UNDATED_CENTURY_INDEX
+    return min(max((year - FIRST_CENTURY_YEAR) // 100 + 1, 0), UNDATED_CENTURY_INDEX - 1)

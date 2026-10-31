@@ -104,6 +104,10 @@
             <button @click="setColorMode('museum')"
                     :class="colorMode === 'museum' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
                     class="px-2 py-0.5 rounded transition-colors">Museum</button>
+            <!-- Maps generated before centuries were added have no year data -->
+            <button x-show="hasCenturies || colorMode === 'century'" x-cloak @click="setColorMode('century')"
+                    :class="colorMode === 'century' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
+                    class="px-2 py-0.5 rounded transition-colors">Century</button>
         </div>
         <!-- Legend items: click to hide or show -->
         <template x-for="item in legendItems" :key="colorMode + '-' + item.index">
@@ -121,7 +125,7 @@
             </button>
         </template>
         <!-- Filters, including ones set in the other colour mode -->
-        <div x-show="hiddenMuseums.length || hiddenWorkTypes.length" x-cloak class="mt-2 pt-2 border-t border-line text-xs text-muted space-y-0.5">
+        <div x-show="hiddenMuseums.length || hiddenWorkTypes.length || hiddenCenturies.length" x-cloak class="mt-2 pt-2 border-t border-line text-xs text-muted space-y-0.5">
             <p x-show="otherModeHiddenText" x-text="otherModeHiddenText"></p>
             <button type="button" @click="showAll()" class="link-action">Show all</button>
         </div>
@@ -136,6 +140,11 @@ function artMap() {
     const MUSEUM_SLUGS = {{ museum_slugs_json|safe }};
     const MUSEUM_NAMES = {{ museum_names_json|safe }};
     const WORK_TYPE_LABELS = {{ work_type_labels_json|safe }};
+    const CENTURY_SLUGS = {{ century_slugs_json|safe }};
+    const CENTURY_NAMES = {{ century_names_json|safe }};
+    const UNDATED_CENTURY = CENTURY_SLUGS.length - 1;
+    // Legend noun per colour mode, for "2 museums, 1 century hidden"
+    const MODE_NOUNS = { museum: ['museum', 'museums'], work_type: ['work type', 'work types'], century: ['century', 'centuries'] };
     const HOME_URL = '{% url "home" %}';
     const ARTWORK_PAGE_URL = '{% url "artwork-page" "__slug__" "__object__" %}';
     const SELECTED_ZOOM = 4;  // zoom level when flying to a linked artwork
@@ -174,21 +183,46 @@ function artMap() {
             [52, 73, 94],     // miniature - dark blue-gray
             [149, 165, 166],  // other - gray
         ],
+        // Plasma ramp from oldest to newest, so time order reads as a gradient
+        centuryColors: [
+            [13, 8, 135],     // before 1400 - dark blue
+            [84, 2, 163],     // 1400s - indigo
+            [139, 10, 165],   // 1500s - purple
+            [185, 50, 137],   // 1600s - magenta
+            [219, 92, 104],   // 1700s - pink-red
+            [244, 136, 73],   // 1800s - orange
+            [252, 179, 47],   // 1900s and later - gold
+            [149, 165, 166],  // undated - gray
+        ],
 
         // Pre-built color arrays (filled in createDeck)
         _museumColorArray: null,
         _workTypeColorArray: null,
+        _centuryColorArray: null,
+        // Century group per point, or null for geometry generated before centuries were added
+        _centuryIndices: null,
+        hasCenturies: false,
         _positions: null,
         _data: null,
 
-        // Indices of museums / work types hidden via the legend; both apply in either colour mode
+        // Indices of museums / work types / centuries hidden via the legend; all apply in every colour mode
         hiddenMuseums: [],
         hiddenWorkTypes: [],
+        hiddenCenturies: [],
+
+        _hiddenKey(mode) {
+            return { museum: 'hiddenMuseums', work_type: 'hiddenWorkTypes', century: 'hiddenCenturies' }[mode];
+        },
 
         get legendItems() {
             if (this.colorMode === 'museum') {
                 return MUSEUM_NAMES.map((name, i) => ({
                     index: i, label: name, color: this.museumColors[i], hidden: this.hiddenMuseums.includes(i),
+                }));
+            }
+            if (this.colorMode === 'century') {
+                return CENTURY_NAMES.map((name, i) => ({
+                    index: i, label: name, color: this.centuryColors[i], hidden: this.hiddenCenturies.includes(i),
                 }));
             }
             return WORK_TYPE_LABELS.map((label, i) => ({
@@ -201,14 +235,18 @@ function artMap() {
 
         // Filters from the other colour mode aren't visible in the legend, so mention them
         get otherModeHiddenText() {
-            const n = this.colorMode === 'museum' ? this.hiddenWorkTypes.length : this.hiddenMuseums.length;
-            if (!n) return '';
-            const noun = this.colorMode === 'museum' ? 'work type' : 'museum';
-            return `${n} ${noun}${n > 1 ? 's' : ''} hidden`;
+            const parts = Object.entries(MODE_NOUNS)
+                .filter(([mode]) => mode !== this.colorMode)
+                .map(([mode, [one, many]]) => {
+                    const n = this[this._hiddenKey(mode)].length;
+                    return n ? `${n} ${n > 1 ? many : one}` : '';
+                })
+                .filter(Boolean);
+            return parts.length ? `${parts.join(', ')} hidden` : '';
         },
 
         toggleHidden(index) {
-            const key = this.colorMode === 'museum' ? 'hiddenMuseums' : 'hiddenWorkTypes';
+            const key = this._hiddenKey(this.colorMode);
             const hidden = this[key];
             // Kept sorted, so the same filters give the same layer key and URL
             this[key] = hidden.includes(index)
@@ -220,6 +258,7 @@ function artMap() {
         showAll() {
             this.hiddenMuseums = [];
             this.hiddenWorkTypes = [];
+            this.hiddenCenturies = [];
             this._filtersChanged();
         },
 
@@ -238,9 +277,14 @@ function artMap() {
             return wt < WORK_TYPE_LABELS.length ? wt : WORK_TYPE_LABELS.length - 1;
         },
 
+        _centuryOf(idx) {
+            return this._centuryIndices ? this._centuryIndices[idx] : UNDATED_CENTURY;
+        },
+
         _isHidden(idx) {
             return this.hiddenMuseums.includes(this._museumIndices[idx])
-                || this.hiddenWorkTypes.includes(this._workTypeOf(idx));
+                || this.hiddenWorkTypes.includes(this._workTypeOf(idx))
+                || this.hiddenCenturies.includes(this._centuryOf(idx));
         },
 
         tooltip: { visible: false, x: 0, y: 0, title: '', artist: '', museum: '', imageUrl: '', imageError: false },
@@ -283,9 +327,11 @@ function artMap() {
         },
 
         _layers() {
-            const key = `${this.colorMode}|${this.hiddenMuseums}|${this.hiddenWorkTypes}`;
+            const key = `${this.colorMode}|${this.hiddenMuseums}|${this.hiddenWorkTypes}|${this.hiddenCenturies}`;
             if (this._artworksLayerKey !== key) {
-                const colorArray = this.colorMode === 'museum' ? this._museumColorArray : this._workTypeColorArray;
+                const colorArray = {
+                    museum: this._museumColorArray, work_type: this._workTypeColorArray, century: this._centuryColorArray,
+                }[this.colorMode];
                 this._artworksLayer = this._buildLayer(colorArray, this.colorMode);
                 this._artworksLayerKey = key;
             }
@@ -399,6 +445,7 @@ function artMap() {
             if (this._isHidden(idx)) {
                 this.hiddenMuseums = this.hiddenMuseums.filter((i) => i !== this._museumIndices[idx]);
                 this.hiddenWorkTypes = this.hiddenWorkTypes.filter((i) => i !== this._workTypeOf(idx));
+                this.hiddenCenturies = this.hiddenCenturies.filter((i) => i !== this._centuryOf(idx));
             }
             this._select(idx);
             if (!hasView) {
@@ -417,14 +464,16 @@ function artMap() {
             return { target: [x, y], zoom: z };
         },
 
-        // Colour mode (?color=museum) and legend filters (?hide_museums=smk,cma&hide_types=print)
+        // Colour mode (?color=museum|century) and legend filters
+        // (?hide_museums=smk,cma&hide_types=print&hide_centuries=1500s,undated)
         _filtersFromUrl() {
             const params = new URLSearchParams(window.location.search);
-            if (params.get('color') === 'museum') this.colorMode = 'museum';
+            if (['museum', 'century'].includes(params.get('color'))) this.colorMode = params.get('color');
             const indices = (name, values) => [...new Set((params.get(name) || '').split(',')
                 .map((v) => values.indexOf(v)).filter((i) => i >= 0))].sort((a, b) => a - b);
             this.hiddenMuseums = indices('hide_museums', MUSEUM_SLUGS);
             this.hiddenWorkTypes = indices('hide_types', WORK_TYPE_LABELS);
+            this.hiddenCenturies = indices('hide_centuries', CENTURY_SLUGS);
         },
 
         // Keep the selection, colour mode, filters and (once moved) the view in the
@@ -444,6 +493,9 @@ function artMap() {
             if (this.hiddenWorkTypes.length) {
                 params.set('hide_types', this.hiddenWorkTypes.map((i) => WORK_TYPE_LABELS[i]).join(','));
             }
+            if (this.hiddenCenturies.length) {
+                params.set('hide_centuries', this.hiddenCenturies.map((i) => CENTURY_SLUGS[i]).join(','));
+            }
             if (this._viewTarget) {
                 // Map units run 0-1000; at high zoom one unit is hundreds of pixels
                 params.set('x', this._viewTarget[0].toFixed(3));
@@ -461,6 +513,7 @@ function artMap() {
             const positions = this._positions;
             const museums = this._museumIndices;
             const workTypeOf = (idx) => this._workTypeOf(idx);
+            const centuryOf = (idx) => this._centuryOf(idx);
             const visible = (count, hidden) => [...Array(count).keys()].filter((i) => !hidden.includes(i));
             return new deck.ScatterplotLayer({
                 id: 'artworks',
@@ -470,11 +523,12 @@ function artMap() {
                 updateTriggers: { getFillColor: colorMode },
                 // Legend filters run on the GPU: hidden points are neither drawn nor picked.
                 // (luma.gl logs harmless "uniform ... not present" warnings for this extension)
-                extensions: [new deck.DataFilterExtension({ filterSize: 0, categorySize: 2 })],
-                getFilterCategory: (_, { index }) => [museums[index], workTypeOf(index)],
+                extensions: [new deck.DataFilterExtension({ filterSize: 0, categorySize: 3 })],
+                getFilterCategory: (_, { index }) => [museums[index], workTypeOf(index), centuryOf(index)],
                 filterCategories: [
                     visible(MUSEUM_SLUGS.length, this.hiddenMuseums),
                     visible(WORK_TYPE_LABELS.length, this.hiddenWorkTypes),
+                    visible(CENTURY_SLUGS.length, this.hiddenCenturies),
                 ],
                 radiusMinPixels: 1.5,
                 radiusMaxPixels: 6,
@@ -532,7 +586,9 @@ function artMap() {
             const y = new Float32Array(buffer, 4 + count * 4, count);
             const museum = new Uint8Array(buffer, 4 + count * 8, count);
             const workType = new Uint8Array(buffer, 4 + count * 9, count);
-            return { count, x, y, museum, workType };
+            // Century groups were appended later; older geometry ends after the work types
+            const century = buffer.byteLength >= 4 + count * 11 ? new Uint8Array(buffer, 4 + count * 10, count) : null;
+            return { count, x, y, museum, workType, century };
         },
 
         async _loadMetadata() {
@@ -564,6 +620,14 @@ function artMap() {
 
                 this._museumIndices = geo.museum;
                 this._workTypeIndices = geo.workType;
+                this._centuryIndices = geo.century;
+                this.hasCenturies = geo.century !== null;
+                if (!this.hasCenturies) {
+                    // A century URL shared after the next `make art-map`; fall back until then
+                    if (this.colorMode === 'century') this.colorMode = 'work_type';
+                    this.hiddenCenturies = [];
+                    this._updateUrl();
+                }
 
                 // The spinner stays up until deck.gl has drawn the points (onAfterRender)
                 let onFirstRender;
@@ -592,25 +656,20 @@ function artMap() {
             }
             this._positions = positions;
 
-            // Pre-build museum color array
-            const museumCA = new Uint8Array(count * 3);
-            for (let i = 0; i < count; i++) {
-                const c = this.museumColors[geo.museum[i]];
-                museumCA[i * 3] = c[0];
-                museumCA[i * 3 + 1] = c[1];
-                museumCA[i * 3 + 2] = c[2];
-            }
-            this._museumColorArray = museumCA;
-
-            // Pre-build work type color array
-            const wtCA = new Uint8Array(count * 3);
-            for (let i = 0; i < count; i++) {
-                const c = this.workTypeColors[geo.workType[i]] || this.workTypeColors[this.workTypeColors.length - 1];
-                wtCA[i * 3] = c[0];
-                wtCA[i * 3 + 1] = c[1];
-                wtCA[i * 3 + 2] = c[2];
-            }
-            this._workTypeColorArray = wtCA;
+            // Pre-build a color array per colour mode; unknown indices get the last ("other"/"undated") colour
+            const buildColorArray = (indices, colors) => {
+                const ca = new Uint8Array(count * 3);
+                for (let i = 0; i < count; i++) {
+                    const c = colors[indices[i]] || colors[colors.length - 1];
+                    ca[i * 3] = c[0];
+                    ca[i * 3 + 1] = c[1];
+                    ca[i * 3 + 2] = c[2];
+                }
+                return ca;
+            };
+            this._museumColorArray = buildColorArray(geo.museum, this.museumColors);
+            this._workTypeColorArray = buildColorArray(geo.workType, this.workTypeColors);
+            if (geo.century) this._centuryColorArray = buildColorArray(geo.century, this.centuryColors);
 
             this._data = { length: count };
 
