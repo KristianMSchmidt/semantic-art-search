@@ -288,6 +288,7 @@ def test_robots_txt_points_to_sitemap_and_blocks_search_endpoints():
     assert "Disallow: /artworks/" in body  # HTMX search endpoint (Jina API cost)
     assert "Disallow: /api/" in body
     assert "Disallow: /artwork/*/similar/" in body  # HTMX fragment, not a page
+    assert "Disallow: /map/search/" in body  # map search box (Jina API cost)
 
 
 @pytest.mark.integration

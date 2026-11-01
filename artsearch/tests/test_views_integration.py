@@ -722,3 +722,61 @@ def test_search_log_stores_unfiltered_search_as_empty_filters(mock_qdrant_servic
     assert log.museums == []
     assert log.work_types == []
     assert (log.year_from, log.year_to) == (None, None)
+
+
+# ---- Art map search ----
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_art_map_search_returns_top_matches_and_logs_them(mock_qdrant_service):
+    """The map's search box gets (museum, object number) pairs of a Visual Search."""
+    mock_qdrant_service.search_text.return_value = [
+        {"museum_slug": "smk", "object_number": "KMS1"},
+        {"museum_slug": "met", "object_number": "Burdick 218, N220.35"},
+    ]
+
+    response = Client().get(reverse("art-map-search") + "?query=ships in a storm")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "results": [["smk", "KMS1"], ["met", "Burdick 218, N220.35"]]
+    }
+    args, kwargs = mock_qdrant_service.search_text.call_args
+    assert args[0].limit == 200
+    assert args[0].museum_prefilter is None
+    assert args[0].work_type_prefilter is None
+    assert kwargs["search_mode"] == "image"
+    log = SearchLog.objects.get()
+    assert (log.query, log.source, log.search_mode) == ("ships in a storm", "map", "image")
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+@pytest.mark.parametrize("query", ["", "   ", "x" * 501])
+def test_art_map_search_rejects_empty_or_long_queries(mock_qdrant_service, query):
+    response = Client().get(reverse("art-map-search"), {"query": query})
+
+    assert response.status_code == 400
+    assert response.json()["error"]
+    mock_qdrant_service.search_text.assert_not_called()
+    assert not SearchLog.objects.exists()
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_art_map_search_reports_unknown_artwork(mock_qdrant_service):
+    response = Client().get(reverse("art-map-search") + "?query=smk:NOPE")
+
+    assert response.status_code == 400
+    assert "No artworks found" in response.json()["error"]
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_art_map_search_rate_limited(mock_qdrant_service):
+    with patch("django_ratelimit.decorators.is_ratelimited", return_value=True):
+        response = Client().get(reverse("art-map-search") + "?query=ships")
+
+    assert response.status_code == 429
+    mock_qdrant_service.search_text.assert_not_called()

@@ -20,7 +20,7 @@ from artsearch.views.context_builders import (
     get_active_example_queries,
     SearchParams,
 )
-from artsearch.views.log_utils import log_search_query
+from artsearch.views.log_utils import log_map_search, log_search_query
 from artsearch.src.services.artwork_description.cache import get_cached_description
 from artsearch.src.services.artwork_description.service import generate_description
 from artsearch.src.services.image_upload_service import (
@@ -36,6 +36,8 @@ from artsearch.src.utils.iiif import (
     get_iiif_sized_image_url,
 )
 from artsearch.src.services.qdrant_service import QdrantService, SearchFunctionArguments
+from artsearch.src.services.search_service import QueryParsingError, search_map_artworks
+from artsearch.src.constants.search import MAX_QUERY_LENGTH
 from artsearch.src.utils.qdrant_formatting import format_payload
 from artsearch.src.cache_registry import clear_all_caches, register_cache
 from artsearch.src.config import config
@@ -47,6 +49,11 @@ logger = logging.getLogger(__name__)
 SIMILAR_ARTWORKS_ON_PAGE = 12
 # Deep Qdrant offsets get slow; nobody pages this far through similar artworks
 MAX_SIMILAR_OFFSET = 500
+# The website search and the art map's search box share one per-IP rate limit
+# budget, so the map doesn't add more Jina calls per IP
+SEARCH_RATE_GROUP = "text-search"
+# Matches highlighted by the art map's search box
+MAP_SEARCH_RESULTS = 200
 # Longest side (px) of the IIIF image shown on artwork pages instead of the
 # 800px bucket thumbnail; about 0.25-1 MB per image
 LARGE_IMAGE_SIZE = 1600
@@ -83,8 +90,8 @@ def home_view(request: HttpRequest) -> HttpResponse:
     return render(request, "home.html", context)
 
 
-@ratelimit(key=get_client_ip, rate="30/m", method="GET", block=False)
-@ratelimit(key=get_client_ip, rate="200/h", method="GET", block=False)
+@ratelimit(key=get_client_ip, rate="30/m", method="GET", block=False, group=SEARCH_RATE_GROUP)
+@ratelimit(key=get_client_ip, rate="200/h", method="GET", block=False, group=SEARCH_RATE_GROUP)
 def get_artworks_view(request: HttpRequest) -> HttpResponse:
     """
     HTMX endpoint for fetching artwork results (initial search or pagination).
@@ -326,6 +333,7 @@ def robots_txt_view(request: HttpRequest) -> HttpResponse:
         "Disallow: /api/",
         "Disallow: /artworks/",
         "Disallow: /htmx/",
+        "Disallow: /map/search/",
         "Disallow: /artwork/*/similar/",
         f"Sitemap: {request.build_absolute_uri(reverse('sitemap-index'))}",
     ]
@@ -435,8 +443,44 @@ def art_map_view(request: HttpRequest) -> HttpResponse:
         "work_type_labels_json": json.dumps(WORK_TYPE_LABELS),
         "century_slugs_json": json.dumps(CENTURY_SLUGS),
         "century_names_json": json.dumps(CENTURY_NAMES),
+        "max_query_length": MAX_QUERY_LENGTH,
     }
     return render(request, "map.html", context)
+
+
+@ratelimit(key=get_client_ip, rate="30/m", method="GET", block=False, group=SEARCH_RATE_GROUP)
+@ratelimit(key=get_client_ip, rate="200/h", method="GET", block=False, group=SEARCH_RATE_GROUP)
+def art_map_search_view(request: HttpRequest) -> JsonResponse:
+    """
+    JSON endpoint for the art map's search box: the top Visual Search matches
+    as [museum_slug, object_number] pairs, which the map highlights. One Jina
+    call per query, so rate limited like the website search.
+    """
+    if getattr(request, "limited", False):
+        return JsonResponse(
+            {"error": "Too many searches. Please wait a moment before trying again."},
+            status=429,
+        )
+    query = request.GET.get("query", "").strip()
+    if not query:
+        return JsonResponse({"error": "Enter something to search for."}, status=400)
+    if len(query) > MAX_QUERY_LENGTH:
+        return JsonResponse(
+            {"error": f"Query too long (max {MAX_QUERY_LENGTH} characters)"},
+            status=400,
+        )
+    log_map_search(request, query)
+    try:
+        results = search_map_artworks(query, MAP_SEARCH_RESULTS)
+    except QueryParsingError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Art map search failed")
+        return JsonResponse(
+            {"error": "Something went wrong with the search. Please try again."},
+            status=500,
+        )
+    return JsonResponse({"results": results})
 
 
 @register_cache
