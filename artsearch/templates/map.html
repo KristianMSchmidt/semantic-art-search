@@ -99,8 +99,9 @@
                 class="bg-white/90 backdrop-blur-sm shadow border border-line rounded-lg w-9 h-9 flex items-center justify-center text-muted hover:bg-paper text-lg font-bold transition">&minus;</button>
     </div>
 
-    <!-- Legend -->
-    <div class="absolute z-20 bg-white/90 backdrop-blur-sm rounded-lg shadow border border-line px-4" style="left: 1rem; top: 1rem; padding-top: 0.75rem; padding-bottom: 0.75rem;">
+    <!-- Legend, shown once the map has drawn: until the geometry loads we don't know
+         whether there is a Century mode, and the panel would float over the spinner -->
+    <div x-show="!loading && !error" x-cloak class="absolute z-20 bg-white/90 backdrop-blur-sm rounded-lg shadow border border-line px-4" style="left: 1rem; top: 1rem; padding-top: 0.75rem; padding-bottom: 0.75rem;">
         <!-- Toggle -->
         <div class="flex items-center gap-1 text-xs" :class="legendOpen && 'mb-2'">
             <button @click="setColorMode('work_type')"
@@ -654,8 +655,8 @@ function artMap() {
         },
 
         async init() {
-            // Read the URL before anything is awaited: legend clicks during loading
-            // rewrite it from this state
+            // Read the URL before anything is awaited: the legend and _updateUrl
+            // work from this state
             this._filtersFromUrl();
             this._linkedArtwork = new URLSearchParams(window.location.search).get('artwork');
             const view = this._viewFromUrl();
