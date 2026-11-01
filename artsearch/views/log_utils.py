@@ -1,3 +1,5 @@
+from django.http import HttpRequest
+
 from artsearch.models import RequestSource, SearchLog
 from artsearch.src.services.museum_stats_service import get_work_type_names
 from artsearch.src.utils.get_museums import get_museum_slugs
@@ -60,6 +62,24 @@ def log_search_query(params: SearchParams, image_search: bool = False) -> None:
         )
     except Exception as e:
         print(f"Error logging search query: {e}")
+
+
+def log_map_search(request: HttpRequest, query: str) -> None:
+    """Saves a search from the art map's search box (Visual, unfiltered)."""
+    user = request.user
+    try:
+        save_search_log(
+            query=query,
+            source=RequestSource.MAP,
+            search_mode=SearchLog.SearchMode.IMAGE,
+            museums=[],
+            work_types=[],
+            year_from=None,
+            year_to=None,
+            username=user.username if user.is_authenticated else None,
+        )
+    except Exception as e:
+        print(f"Error logging map search query: {e}")
 
 
 def log_api_search(query: str, params: dict, search_mode: str | None = None) -> None:

@@ -167,6 +167,25 @@ def _execute_query_search(
     return qdrant_service.search_text(search_arguments, search_mode=search_mode)
 
 
+def search_map_artworks(query: str, limit: int) -> list[tuple[str, str]]:
+    """
+    (museum_slug, object_number) of the top Visual Search matches for the art
+    map's search box, which highlights them. Unfiltered: the map applies its
+    own legend filters. A museum:object_number query finds similar artworks
+    (no Jina call). Raises QueryParsingError for an unknown artwork.
+    """
+    results = _execute_query_search(
+        query=query,
+        offset=0,
+        limit=limit,
+        museum_prefilter=None,
+        work_type_prefilter=None,
+        all_museum_slugs=get_museum_slugs(),
+        search_mode="image",
+    )
+    return [(hit["museum_slug"], hit["object_number"]) for hit in results]
+
+
 def _execute_image_vector_search(
     image_vector: list[float],
     offset: int,

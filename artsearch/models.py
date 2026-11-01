@@ -5,12 +5,13 @@ from django.contrib.postgres.indexes import GinIndex
 class RequestSource(models.TextChoices):
     WEB = "web", "Website"
     API = "api", "REST API"
+    MAP = "map", "Art map"
 
 
 class SearchLog(models.Model):
     """
-    One row per new search (first page only), from the website or the REST
-    API. Searches by uploaded image have mode UPLOAD and an empty query (the
+    One row per new search (first page only), from the website, the REST
+    API or the art map's search box. Searches by uploaded image have mode UPLOAD and an empty query (the
     uploads themselves, and their Jina cost, are in ImageSearchLog). Filter
     lists are empty when the filter covers everything; mode and filters are
     null on rows logged before they were recorded.
