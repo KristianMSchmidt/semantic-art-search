@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block head_extra %}
+{% if map_data_version %}
+<!-- Start downloading the map geometry with the page instead of after deck.gl and Alpine have loaded -->
+<link rel="preload" href="{% url "art-map-geometry" %}?v={{ map_data_version }}" as="fetch" crossorigin>
+{% endif %}
+{% endblock head_extra %}
+
 {% block content %}
 <div x-data="artMap()" @keydown.escape.window="closeDetail()" class="relative border-t border-line" style="height: calc(100vh - 68px);">
 
@@ -196,7 +203,7 @@
     </div>
 </div>
 
-<script src="https://unpkg.com/deck.gl@9.1/dist.min.js"></script>
+<script src="https://unpkg.com/deck.gl@9.1.15/dist.min.js"></script>
 <script>
 function artMap() {
     const BUCKET_REGION = '{{ bucket_region }}';
@@ -220,6 +227,13 @@ function artMap() {
     // "<museum index>/<object number>" -> point index, built on first use. Kept out of
     // the Alpine state so its many entries aren't made reactive
     let pointLookup = null;
+    // deck.gl binary attributes for the artworks layer (positions, RGBA colours per
+    // colour mode), built once in createDeck. Also kept out of the Alpine state: deck.gl
+    // reads them directly instead of calling an accessor per point, which (through
+    // Alpine's proxies) took seconds for ~180k points
+    let pointAttributes = null;
+    // Last legend-filter mask for the artworks layer, with the hidden lists it was built for
+    let visibilityMask = null;
 
     return {
         loading: true,
@@ -265,15 +279,10 @@ function artMap() {
             [149, 165, 166],  // undated - gray
         ],
 
-        // Pre-built color arrays (filled in createDeck)
-        _museumColorArray: null,
-        _workTypeColorArray: null,
-        _centuryColorArray: null,
         // Century group per point, or null for geometry generated before centuries were added
         _centuryIndices: null,
         hasCenturies: false,
         _positions: null,
-        _data: null,
 
         // Indices of museums / work types / centuries hidden via the legend; all apply in every colour mode
         hiddenMuseums: [],
@@ -367,7 +376,8 @@ function artMap() {
             this._updateUrl();
         },
 
-        // Geometry from an older WORK_TYPE_LABELS may hold unknown indices; treat them as "other"
+        // Geometry from an older WORK_TYPE_LABELS may hold unknown indices; treat them as "other".
+        // _visibilityMask() inlines this and _centuryOf for speed; keep them in step
         _workTypeOf(idx) {
             const wt = this._workTypeIndices[idx];
             return wt < WORK_TYPE_LABELS.length ? wt : WORK_TYPE_LABELS.length - 1;
@@ -497,13 +507,14 @@ function artMap() {
             const self = this;
             const positions = this._positions;
             const data = this.search.indices.filter((idx) => !this._isHidden(idx)).reverse();
+            const colors = colorArray.value;
             // Picking reports the index into `data`; hand the handlers the point index
             const pointInfo = (info) => ({ ...info, index: info.index >= 0 ? data[info.index] : -1 });
             return new deck.ScatterplotLayer({
                 id: 'search-results',
                 data,
                 getPosition: (idx) => [positions[idx * 2], positions[idx * 2 + 1]],
-                getFillColor: (idx) => [colorArray[idx * 3], colorArray[idx * 3 + 1], colorArray[idx * 3 + 2], 255],
+                getFillColor: (idx) => [colors[idx * 4], colors[idx * 4 + 1], colors[idx * 4 + 2], 255],
                 getRadius: 5,
                 radiusUnits: 'pixels',
                 stroked: true,
@@ -555,10 +566,8 @@ function artMap() {
         _layers() {
             const key = `${this.colorMode}|${this.hiddenMuseums}|${this.hiddenWorkTypes}|${this.hiddenCenturies}|${this._searchVersion}`;
             if (this._artworksLayerKey !== key) {
-                const colorArray = {
-                    museum: this._museumColorArray, work_type: this._workTypeColorArray, century: this._centuryColorArray,
-                }[this.colorMode];
-                this._artworksLayer = this._buildLayer(colorArray, this.colorMode, this.search.active);
+                const colorArray = pointAttributes.colors[this.colorMode];
+                this._artworksLayer = this._buildLayer(colorArray, this.search.active);
                 this._searchLayer = this.search.active ? this._buildSearchLayer(colorArray) : null;
                 this._artworksLayerKey = key;
             }
@@ -741,30 +750,54 @@ function artMap() {
             history.replaceState(null, '', query ? `?${query}` : window.location.pathname);
         },
 
-        _buildLayer(colorArray, colorMode, dimmed) {
+        // 1 for points the legend filters leave visible, 0 for hidden ones
+        _visibilityMask() {
+            // Colour mode and search changes rebuild the layer too; reuse the mask then
+            const key = `${this.hiddenMuseums}|${this.hiddenWorkTypes}|${this.hiddenCenturies}`;
+            if (visibilityMask && visibilityMask.key === key) return visibilityMask.value;
+            const museums = this._museumIndices;
+            const workTypes = this._workTypeIndices;
+            const centuries = this._centuryIndices;
+            const lastWorkType = WORK_TYPE_LABELS.length - 1;
+            // Lookup tables (indices are uint8) so the loop below needs no includes()
+            const table = (hidden) => {
+                const t = new Uint8Array(256);
+                hidden.forEach((i) => { t[i] = 1; });
+                return t;
+            };
+            const hiddenMuseum = table(this.hiddenMuseums);
+            const hiddenWorkType = table(this.hiddenWorkTypes);
+            const hiddenCentury = table(this.hiddenCenturies);
+            const mask = new Float32Array(museums.length);
+            for (let i = 0; i < mask.length; i++) {
+                // Same fallbacks as _workTypeOf and _centuryOf
+                const wt = workTypes[i] <= lastWorkType ? workTypes[i] : lastWorkType;
+                const century = centuries ? centuries[i] : UNDATED_CENTURY;
+                mask[i] = hiddenMuseum[museums[i]] | hiddenWorkType[wt] | hiddenCentury[century] ? 0 : 1;
+            }
+            visibilityMask = { key, value: mask };
+            return mask;
+        },
+
+        _buildLayer(colorArray, dimmed) {
             const { deck } = window;
             const self = this;
-            const positions = this._positions;
-            const museums = this._museumIndices;
-            const workTypeOf = (idx) => this._workTypeOf(idx);
-            const centuryOf = (idx) => this._centuryOf(idx);
-            const visible = (count, hidden) => [...Array(count).keys()].filter((i) => !hidden.includes(i));
-            const alpha = dimmed ? SEARCH_DIM_ALPHA : 200;
             return new deck.ScatterplotLayer({
                 id: 'artworks',
-                data: this._data,
-                getPosition: (_, { index }) => [positions[index * 2], positions[index * 2 + 1]],
-                getFillColor: (_, { index }) => [colorArray[index * 3], colorArray[index * 3 + 1], colorArray[index * 3 + 2], alpha],
-                updateTriggers: { getFillColor: [colorMode, dimmed] },
+                data: {
+                    length: this._museumIndices.length,
+                    attributes: {
+                        getPosition: pointAttributes.position,
+                        getFillColor: colorArray,
+                        getFilterValue: { value: this._visibilityMask(), size: 1 },
+                    },
+                },
+                // Colours carry alpha 200; dimming for a search scales that to SEARCH_DIM_ALPHA
+                opacity: dimmed ? SEARCH_DIM_ALPHA / 200 : 1,
                 // Legend filters run on the GPU: hidden points are neither drawn nor picked.
                 // (luma.gl logs harmless "uniform ... not present" warnings for this extension)
-                extensions: [new deck.DataFilterExtension({ filterSize: 0, categorySize: 3 })],
-                getFilterCategory: (_, { index }) => [museums[index], workTypeOf(index), centuryOf(index)],
-                filterCategories: [
-                    visible(MUSEUM_SLUGS.length, this.hiddenMuseums),
-                    visible(WORK_TYPE_LABELS.length, this.hiddenWorkTypes),
-                    visible(CENTURY_SLUGS.length, this.hiddenCenturies),
-                ],
+                extensions: [new deck.DataFilterExtension({ filterSize: 1 })],
+                filterRange: [0.5, 1],
                 radiusMinPixels: 1.5,
                 radiusMaxPixels: 6,
                 radiusUnits: 'pixels',
@@ -826,9 +859,12 @@ function artMap() {
             return { count, x, y, museum, workType, century };
         },
 
-        async _loadMetadata() {
+        // Starts once the geometry is in (so the two don't share bandwidth), and parses
+        // (~0.3s for ~18 MB of JSON) only after `rendered`, so it doesn't delay the first frame
+        async _loadMetadata(rendered) {
             try {
                 const resp = await fetch('{% url "art-map-data" %}?v={{ map_data_version }}');
+                await rendered;
                 if (resp.ok) {
                     this._metadata = await resp.json();
                 }
@@ -873,8 +909,8 @@ function artMap() {
 
                 // Metadata loads in the background; a linked artwork needs it to be found,
                 // and flying to it only works once deck.gl has drawn
-                this._metadataLoaded = this._loadMetadata();
-                Promise.all([this._metadataLoaded, rendered]).then(() => {
+                this._metadataLoaded = this._loadMetadata(rendered);
+                this._metadataLoaded.then(() => {
                     this._selectFromUrl(view !== null);
                     // A shared search (?q=); keep the shared view or the linked artwork in view
                     if (this.searchQuery) this.runSearch(view === null && this.selectedIndex < 0);
@@ -898,22 +934,28 @@ function artMap() {
             }
             this._positions = positions;
 
-            // Pre-build a color array per colour mode; unknown indices get the last ("other"/"undated") colour
-            const buildColorArray = (indices, colors) => {
-                const ca = new Uint8Array(count * 3);
+            // Pre-build an RGBA colour array per colour mode; unknown indices get the last
+            // ("other"/"undated") colour. Palettes are unwrapped from Alpine's proxies first.
+            const buildColorArray = (indices, palette) => {
+                const colors = Alpine.raw(palette).map((c) => Alpine.raw(c));
+                const ca = new Uint8Array(count * 4);
                 for (let i = 0; i < count; i++) {
                     const c = colors[indices[i]] || colors[colors.length - 1];
-                    ca[i * 3] = c[0];
-                    ca[i * 3 + 1] = c[1];
-                    ca[i * 3 + 2] = c[2];
+                    ca[i * 4] = c[0];
+                    ca[i * 4 + 1] = c[1];
+                    ca[i * 4 + 2] = c[2];
+                    ca[i * 4 + 3] = 200;
                 }
-                return ca;
+                return { value: ca, size: 4, normalized: true };
             };
-            this._museumColorArray = buildColorArray(geo.museum, this.museumColors);
-            this._workTypeColorArray = buildColorArray(geo.workType, this.workTypeColors);
-            if (geo.century) this._centuryColorArray = buildColorArray(geo.century, this.centuryColors);
-
-            this._data = { length: count };
+            pointAttributes = {
+                position: { value: positions, size: 2 },
+                colors: {
+                    museum: buildColorArray(geo.museum, this.museumColors),
+                    work_type: buildColorArray(geo.workType, this.workTypeColors),
+                    century: geo.century ? buildColorArray(geo.century, this.centuryColors) : null,
+                },
+            };
 
             this.deckgl = new deck.Deck({
                 canvas: 'deck-canvas',
@@ -940,6 +982,8 @@ function artMap() {
                 onError: (e) => {
                     self.error = 'The map could not be displayed in this browser.';
                     self.loading = false;
+                    // Lets the metadata load go on, so searches don't hang waiting for it
+                    onFirstRender();
                     console.error(e);
                 },
                 onViewStateChange: ({ viewState }) => {

@@ -433,7 +433,8 @@ def art_map_view(request: HttpRequest) -> HttpResponse:
         CENTURY_NAMES,
     )
 
-    map_data = ArtMapData.objects.first()
+    # Only the version is needed here; the full row holds ~20 MB of map data
+    map_data = ArtMapData.objects.only("created_at").first()
     context = {
         "bucket_region": config.aws_bucket_region,
         "bucket_name": config.bucket_name_app,
@@ -486,14 +487,14 @@ def art_map_search_view(request: HttpRequest) -> JsonResponse:
 @register_cache
 @lru_cache(maxsize=2)
 def _get_map_geometry(version: str = "") -> bytes | None:
-    map_data = ArtMapData.objects.first()
+    map_data = ArtMapData.objects.only("geometry", "created_at").first()
     return bytes(map_data.geometry) if map_data and map_data.geometry else None
 
 
 @register_cache
 @lru_cache(maxsize=2)
 def _get_map_metadata(version: str = "") -> str | None:
-    map_data = ArtMapData.objects.first()
+    map_data = ArtMapData.objects.only("metadata", "created_at").first()
     return map_data.metadata if map_data else None
 
 
