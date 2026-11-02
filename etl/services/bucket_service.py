@@ -13,6 +13,16 @@ def get_image_response(url: str) -> requests.Response:
     return requests.get(url, timeout=10)
 
 
+def sniff_image_content_type(image_bytes: bytes) -> str | None:
+    """The image MIME type of the bytes (e.g. "image/jpeg"), or None if not an image."""
+    try:
+        with Image.open(BytesIO(image_bytes)) as img:
+            img.verify()
+            return Image.MIME.get(img.format or "")
+    except Exception:
+        return None
+
+
 def resize_image_with_aspect_ratio(
     image_bytes: bytes, max_dimension: int = 800, jpeg_quality: int = 85
 ) -> bytes:
@@ -118,7 +128,12 @@ class BucketService:
 
         content_type = resp.headers.get("Content-Type", "image/jpeg")
         if not content_type.startswith("image/"):
-            raise ValueError(f"Unexpected content type: {content_type}")
+            # Some servers label images as e.g. application/octet-stream (the
+            # Finnish National Gallery does for some of its JPEGs), so check the bytes
+            sniffed_type = sniff_image_content_type(resp.content)
+            if sniffed_type is None:
+                raise ValueError(f"Unexpected content type: {content_type}")
+            content_type = sniffed_type
         cache_control = "max-age=2592000"  # 30 days
 
         # Resize image before upload (with graceful fallback)

@@ -429,3 +429,37 @@ def test_bucket_service_resizes_before_upload():
         original_img = Image.open(BytesIO(test_img_bytes))
         assert original_img.width == 2000, "Original was 2000px wide"
         assert original_img.height == 1500, "Original was 1500px tall"
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_bucket_service_accepts_images_with_wrong_content_type():
+    """
+    Test that images labelled with a non-image content type are uploaded if the
+    bytes are an image, and that non-images are still rejected.
+
+    Potential bugs this could catch:
+    - Valid JPEGs served as application/octet-stream (as the Finnish National
+      Gallery does) being rejected as permanent failures
+    - HTML error pages or other non-images being uploaded as thumbnails
+    """
+    img_bytes_io = BytesIO()
+    Image.new("RGB", (1000, 534), color="teal").save(img_bytes_io, format="JPEG")
+
+    for body, should_upload in [(img_bytes_io.getvalue(), True), (b"<html>error</html>", False)]:
+        mock_response = Mock(content=body, headers={"Content-Type": "application/octet-stream"})
+        with patch("etl.services.bucket_service.get_image_response", return_value=mock_response):
+            bucket_service = BucketService(use_etl_bucket=True)
+            bucket_service.s3 = Mock(put_object=Mock())
+            upload = lambda: bucket_service.upload_thumbnail(
+                museum="test", object_number="TEST123", museum_image_url="https://example.com/x"
+            )
+            if should_upload:
+                upload()
+                kwargs = bucket_service.s3.put_object.call_args.kwargs
+                assert kwargs["ContentType"] == "image/jpeg"
+                assert Image.open(BytesIO(kwargs["Body"])).format == "JPEG"
+            else:
+                with pytest.raises(ValueError, match="Unexpected content type"):
+                    upload()
+                assert not bucket_service.s3.put_object.called
