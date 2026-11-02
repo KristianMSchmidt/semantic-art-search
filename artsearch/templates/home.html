@@ -717,7 +717,6 @@
             selectedItems: [...selected],
             allItems: items.map(i => i.value),
             itemLabels: Object.fromEntries(items.map(i => [i.value, i.label])),
-            itemShortLabels: Object.fromEntries(items.map(i => [i.value, i.short_label || i.label])),
 
             toggleSelectAll() {
                 if (this.selectedItems.length === this.allItems.length) {
@@ -742,19 +741,17 @@
                 }
             },
 
+            // Phone button, same rules as prepare_initial_label: no room for
+            // museum names or "Work Types"
             get buttonLabelShort() {
-                if (this.selectedItems.length === 0 || this.selectedItems.length === this.allItems.length) {
-                    return `All ${labelName}s`;
-                } else if (this.selectedItems.length === 1) {
-                    const value = this.selectedItems[0];
-                    const label = this.itemShortLabels[value];
-                    if (label) {
-                        return label.charAt(0).toUpperCase() + label.slice(1);
-                    }
-                    return `1 ${labelName}`;
-                } else {
-                    return `${this.selectedItems.length} ${labelName}s`;
+                const count = this.selectedItems.length;
+                if (labelName === 'Museum' && count === 1) {
+                    return '1 Museum';
                 }
+                if (labelName === 'Work Type' && count !== 1) {
+                    return this.buttonLabel.replace('Work Type', 'Type');
+                }
+                return this.buttonLabel;
             }
         };
     }

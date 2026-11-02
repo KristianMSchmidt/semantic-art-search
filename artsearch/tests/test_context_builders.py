@@ -12,7 +12,7 @@ from artsearch.views.context_builders import prepare_initial_label, prepare_item
 
 
 class TestPrepareItemsJson:
-    def test_basic_items_without_short_label(self):
+    def test_keeps_only_value_and_label(self):
         items = [
             {"value": "painting", "label": "paintings", "count": 10},
             {"value": "drawing", "label": "drawings", "count": 5},
@@ -23,27 +23,13 @@ class TestPrepareItemsJson:
             {"value": "drawing", "label": "drawings"},
         ]
 
-    def test_items_with_short_label(self):
+    def test_short_label_is_left_out(self):
+        # Short names only appear in the server-rendered phone list
         items = [
-            {"value": "met", "label": "Metropolitan Museum of Art", "short_label": "The Met"},
-            {"value": "smk", "label": "Statens Museum for Kunst", "short_label": "SMK"},
-        ]
-        result = json.loads(prepare_items_json(items))
-        assert result == [
-            {"value": "met", "label": "Metropolitan Museum of Art", "short_label": "The Met"},
-            {"value": "smk", "label": "Statens Museum for Kunst", "short_label": "SMK"},
-        ]
-
-    def test_mixed_items_with_and_without_short_label(self):
-        items = [
-            {"value": "painting", "label": "paintings"},
             {"value": "met", "label": "Metropolitan Museum of Art", "short_label": "The Met"},
         ]
         result = json.loads(prepare_items_json(items))
-        assert result == [
-            {"value": "painting", "label": "paintings"},
-            {"value": "met", "label": "Metropolitan Museum of Art", "short_label": "The Met"},
-        ]
+        assert result == [{"value": "met", "label": "Metropolitan Museum of Art"}]
 
 
 class TestPrepareInitialLabel:
@@ -81,20 +67,14 @@ class TestPrepareInitialLabel:
         assert label == "All Museums"
         assert short == "All Museums"
 
-    def test_single_museum_returns_full_and_short_labels(self):
+    def test_single_museum_shows_name_and_count_on_phone(self):
         label, short = prepare_initial_label(
             ["met"], self.ALL_MUSEUMS, "museums", self.MUSEUM_ITEMS
         )
         # .capitalize() lowercases all but the first character
         assert label == "Metropolitan museum of art"
-        assert short == "The met"
-
-    def test_single_museum_same_short_label(self):
-        label, short = prepare_initial_label(
-            ["rma"], self.ALL_MUSEUMS, "museums", self.MUSEUM_ITEMS
-        )
-        assert label == "Rijksmuseum"
-        assert short == "Rijksmuseum"
+        # Museum names don't fit the phone button
+        assert short == "1 Museum"
 
     def test_single_work_type_no_short_label(self):
         label, short = prepare_initial_label(
@@ -115,7 +95,15 @@ class TestPrepareInitialLabel:
             ["painting", "drawing"], self.ALL_WORK_TYPES, "work_types", self.WORK_TYPE_ITEMS
         )
         assert label == "2 Work Types"
-        assert short == "2 Work Types"
+        # "Work Types" doesn't fit the phone button
+        assert short == "2 Types"
+
+    def test_all_work_types_short_label(self):
+        label, short = prepare_initial_label(
+            [], self.ALL_WORK_TYPES, "work_types", self.WORK_TYPE_ITEMS
+        )
+        assert label == "All Work Types"
+        assert short == "All Types"
 
     def test_single_item_without_dropdown_items_fallback(self):
         label, short = prepare_initial_label(

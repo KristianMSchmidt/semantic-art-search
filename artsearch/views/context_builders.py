@@ -186,14 +186,10 @@ def prepare_museums_for_dropdown(
 
 
 def prepare_items_json(dropdown_items: list[dict]) -> str:
-    """Prepare minimal JSON with value/label/short_label for JavaScript."""
-    items = []
-    for item in dropdown_items:
-        entry: dict[str, str] = {"value": item["value"], "label": item["label"]}
-        if "short_label" in item:
-            entry["short_label"] = item["short_label"]
-        items.append(entry)
-    return json.dumps(items)
+    """Prepare minimal JSON with value/label for JavaScript."""
+    return json.dumps(
+        [{"value": item["value"], "label": item["label"]} for item in dropdown_items]
+    )
 
 
 def prepare_initial_label(
@@ -205,29 +201,26 @@ def prepare_initial_label(
     """
     Prepare the initial label for the dropdowns based on selected items.
     When exactly one item is selected, shows the item's label instead of "1 X".
-    Returns (label, short_label) tuple. short_label uses short_label from
-    dropdown_items when available, otherwise same as label.
+    Returns (label, short_label); short_label is for the narrow phone button,
+    which has no room for museum names or "Work Types": one museum shows as
+    "1 Museum" and work types are counted as "Types" there.
     """
-    if label_type == "work_types":
-        name = "Work Type"
-    elif label_type == "museums":
-        name = "Museum"
+    name = "Work Type" if label_type == "work_types" else "Museum"
+    short_name = "Type" if label_type == "work_types" else name
     if not selected_items or len(selected_items) == len(all_items):
-        label = f"All {name}s"
-        return label, label
+        return f"All {name}s", f"All {short_name}s"
     elif len(selected_items) == 1:
         if dropdown_items:
             items_by_value = {item["value"]: item for item in dropdown_items}
             item = items_by_value.get(selected_items[0])
             if item:
                 label = item["label"].capitalize()
-                short_label = item.get("short_label", item["label"]).capitalize()
+                short_label = f"1 {name}" if label_type == "museums" else label
                 return label, short_label
-        fallback = f"1 {name}"
-        return fallback, fallback
+        return f"1 {name}", f"1 {short_name}"
     else:
-        label = f"{len(selected_items)} {name}s"
-        return label, label
+        count = len(selected_items)
+        return f"{count} {name}s", f"{count} {short_name}s"
 
 
 def make_url_with_params(
