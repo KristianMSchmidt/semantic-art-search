@@ -95,7 +95,15 @@ class TestPrepareInitialLabel:
             ["painting", "drawing"], self.ALL_WORK_TYPES, "work_types", self.WORK_TYPE_ITEMS
         )
         assert label == "2 Work Types"
-        assert short == "2 Work Types"
+        # "Work Types" doesn't fit the phone button
+        assert short == "2 Types"
+
+    def test_all_work_types_short_label(self):
+        label, short = prepare_initial_label(
+            [], self.ALL_WORK_TYPES, "work_types", self.WORK_TYPE_ITEMS
+        )
+        assert label == "All Work Types"
+        assert short == "All Types"
 
     def test_single_item_without_dropdown_items_fallback(self):
         label, short = prepare_initial_label(

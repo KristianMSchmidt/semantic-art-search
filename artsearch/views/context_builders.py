@@ -202,15 +202,13 @@ def prepare_initial_label(
     Prepare the initial label for the dropdowns based on selected items.
     When exactly one item is selected, shows the item's label instead of "1 X".
     Returns (label, short_label); short_label is for the narrow phone button,
-    where museum names don't fit, so one museum shows as "1 Museum" there.
+    which has no room for museum names or "Work Types": one museum shows as
+    "1 Museum" and work types are counted as "Types" there.
     """
-    if label_type == "work_types":
-        name = "Work Type"
-    elif label_type == "museums":
-        name = "Museum"
+    name = "Work Type" if label_type == "work_types" else "Museum"
+    short_name = "Type" if label_type == "work_types" else name
     if not selected_items or len(selected_items) == len(all_items):
-        label = f"All {name}s"
-        return label, label
+        return f"All {name}s", f"All {short_name}s"
     elif len(selected_items) == 1:
         if dropdown_items:
             items_by_value = {item["value"]: item for item in dropdown_items}
@@ -219,11 +217,10 @@ def prepare_initial_label(
                 label = item["label"].capitalize()
                 short_label = f"1 {name}" if label_type == "museums" else label
                 return label, short_label
-        fallback = f"1 {name}"
-        return fallback, fallback
+        return f"1 {name}", f"1 {short_name}"
     else:
-        label = f"{len(selected_items)} {name}s"
-        return label, label
+        count = len(selected_items)
+        return f"{count} {name}s", f"{count} {short_name}s"
 
 
 def make_url_with_params(

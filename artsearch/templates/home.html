@@ -741,11 +741,15 @@
                 }
             },
 
-            // Phone button: museum names don't fit, so one museum shows as
-            // "1 Museum" (same rule as prepare_initial_label)
+            // Phone button, same rules as prepare_initial_label: no room for
+            // museum names or "Work Types"
             get buttonLabelShort() {
-                if (labelName === 'Museum' && this.selectedItems.length === 1) {
+                const count = this.selectedItems.length;
+                if (labelName === 'Museum' && count === 1) {
                     return '1 Museum';
+                }
+                if (labelName === 'Work Type' && count !== 1) {
+                    return this.buttonLabel.replace('Work Type', 'Type');
                 }
                 return this.buttonLabel;
             }
