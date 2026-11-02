@@ -186,14 +186,10 @@ def prepare_museums_for_dropdown(
 
 
 def prepare_items_json(dropdown_items: list[dict]) -> str:
-    """Prepare minimal JSON with value/label/short_label for JavaScript."""
-    items = []
-    for item in dropdown_items:
-        entry: dict[str, str] = {"value": item["value"], "label": item["label"]}
-        if "short_label" in item:
-            entry["short_label"] = item["short_label"]
-        items.append(entry)
-    return json.dumps(items)
+    """Prepare minimal JSON with value/label for JavaScript."""
+    return json.dumps(
+        [{"value": item["value"], "label": item["label"]} for item in dropdown_items]
+    )
 
 
 def prepare_initial_label(
@@ -205,8 +201,8 @@ def prepare_initial_label(
     """
     Prepare the initial label for the dropdowns based on selected items.
     When exactly one item is selected, shows the item's label instead of "1 X".
-    Returns (label, short_label) tuple. short_label uses short_label from
-    dropdown_items when available, otherwise same as label.
+    Returns (label, short_label); short_label is for the narrow phone button,
+    where museum names don't fit, so one museum shows as "1 Museum" there.
     """
     if label_type == "work_types":
         name = "Work Type"
@@ -221,7 +217,7 @@ def prepare_initial_label(
             item = items_by_value.get(selected_items[0])
             if item:
                 label = item["label"].capitalize()
-                short_label = item.get("short_label", item["label"]).capitalize()
+                short_label = f"1 {name}" if label_type == "museums" else label
                 return label, short_label
         fallback = f"1 {name}"
         return fallback, fallback

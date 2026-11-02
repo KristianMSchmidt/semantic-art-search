@@ -717,7 +717,6 @@
             selectedItems: [...selected],
             allItems: items.map(i => i.value),
             itemLabels: Object.fromEntries(items.map(i => [i.value, i.label])),
-            itemShortLabels: Object.fromEntries(items.map(i => [i.value, i.short_label || i.label])),
 
             toggleSelectAll() {
                 if (this.selectedItems.length === this.allItems.length) {
@@ -742,19 +741,13 @@
                 }
             },
 
+            // Phone button: museum names don't fit, so one museum shows as
+            // "1 Museum" (same rule as prepare_initial_label)
             get buttonLabelShort() {
-                if (this.selectedItems.length === 0 || this.selectedItems.length === this.allItems.length) {
-                    return `All ${labelName}s`;
-                } else if (this.selectedItems.length === 1) {
-                    const value = this.selectedItems[0];
-                    const label = this.itemShortLabels[value];
-                    if (label) {
-                        return label.charAt(0).toUpperCase() + label.slice(1);
-                    }
-                    return `1 ${labelName}`;
-                } else {
-                    return `${this.selectedItems.length} ${labelName}s`;
+                if (labelName === 'Museum' && this.selectedItems.length === 1) {
+                    return '1 Museum';
                 }
+                return this.buttonLabel;
             }
         };
     }
