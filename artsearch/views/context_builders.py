@@ -327,6 +327,11 @@ def make_home_url(params: SearchParams) -> str:
     )
 
 
+def make_map_search_url(query: str) -> str:
+    """Art map URL that runs `query` in the map's search box (Visual Search only)."""
+    return f"{reverse('art-map')}?{urlencode({'q': query})}"
+
+
 def build_search_context(
     params: SearchParams,
     search_mode: SearchMode = DEFAULT_SEARCH_MODE,
@@ -380,6 +385,13 @@ def build_search_context(
         "is_first_batch": offset == 0,
         "urls": urls,
         "selected_model": search_mode,
+        # The map's search is Visual Search without filters, so only a visual
+        # text search has the same matches on the map
+        "map_search_url": (
+            make_map_search_url(params.query)
+            if params.query and search_mode == "image" and image_vector is None
+            else None
+        ),
     }
 
 

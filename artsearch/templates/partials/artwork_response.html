@@ -19,9 +19,16 @@
 
 {% if not error_message %}
     {% if is_first_batch and header_text %}
-        <p class="text-sm text-muted mb-2">
-            {{ header_text }}
-        </p>
+        <div class="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <p class="text-sm text-muted">{{ header_text }}</p>
+            {% if map_search_url %}
+                <a href="{{ map_search_url }}"
+                   class="link-action"
+                   title="See where these artworks sit among visually similar ones on the art map">
+                    See on map
+                </a>
+            {% endif %}
+        </div>
     {% elif is_first_batch %}
         <div class="h-4"></div>
     {% endif %}
