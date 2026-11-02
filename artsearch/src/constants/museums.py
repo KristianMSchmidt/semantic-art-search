@@ -29,6 +29,11 @@ SUPPORTED_MUSEUMS = [
         "full_name": "National Gallery of Art, Washington",
         "short_name": "National Gallery of Art",
     },
+    {
+        "slug": "fng",
+        "full_name": "Finnish National Gallery",
+        "short_name": "Finnish National Gallery",
+    },
 ]
 
 # Derived lists used by art map (views + management command)

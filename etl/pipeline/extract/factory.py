@@ -7,6 +7,7 @@ from etl.pipeline.extract.extractors.met_extractor import store_raw_data_met
 from etl.pipeline.extract.extractors.rma_extractor import store_raw_data_rma
 from etl.pipeline.extract.extractors.aic_extractor import store_raw_data_aic
 from etl.pipeline.extract.extractors.nga_extractor import store_raw_data_nga
+from etl.pipeline.extract.extractors.fng_extractor import store_raw_data_fng
 
 
 EXTRACTORS = {
@@ -16,6 +17,7 @@ EXTRACTORS = {
     "rma": store_raw_data_rma,
     "aic": store_raw_data_aic,
     "nga": store_raw_data_nga,
+    "fng": store_raw_data_fng,
 }
 
 
@@ -24,7 +26,7 @@ def get_extractor(museum_slug: str, force_refetch: bool = False) -> Callable:
     Get the appropriate extractor function for a museum slug.
 
     Args:
-        museum_slug: The museum identifier (smk, cma, met, rma, aic, nga)
+        museum_slug: The museum identifier (smk, cma, met, rma, aic, nga, fng)
         force_refetch: Whether to force refetch all items regardless of existing data
 
     Returns the extractor function with force_refetch parameter bound, or raises ValueError if not found.
