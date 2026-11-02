@@ -4,6 +4,7 @@ from artsearch.src.services.museum_clients.rma_api_client import RMAAPIClient
 from artsearch.src.services.museum_clients.met_api_client import METAPIClient
 from artsearch.src.services.museum_clients.aic_api_client import AICAPIClient
 from artsearch.src.services.museum_clients.nga_api_client import NGAAPIClient
+from artsearch.src.services.museum_clients.fng_api_client import FNGAPIClient
 from artsearch.src.services.museum_clients.base_client import MuseumAPIClient
 
 CLIENTS = {
@@ -13,6 +14,7 @@ CLIENTS = {
     "met": METAPIClient,
     "aic": AICAPIClient,
     "nga": NGAAPIClient,
+    "fng": FNGAPIClient,
 }
 
 

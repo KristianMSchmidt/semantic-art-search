@@ -21,13 +21,14 @@ Semantic Art Search is a Django-based web application that uses Jina CLIP v2 to 
 
 ### Museum Integration
 
-Six museums via their open APIs/data:
+Seven museums via their open APIs/data:
 - **SMK**: Statens Museum for Kunst (Denmark)
 - **CMA**: Cleveland Museum of Art
 - **RMA**: Rijksmuseum Amsterdam
 - **MET**: Metropolitan Museum of Art
 - **AIC**: Art Institute of Chicago
 - **NGA**: National Gallery of Art, Washington (bulk CSV open data on GitHub, no per-object API)
+- **FNG**: Finnish National Gallery (Ateneum, Sinebrychoff; one JSON dump of the whole collection, no key needed). Paintings, miniatures and Japanese woodblock prints only: its prints are often photographed with a colour chart in the frame and most drawings are faint studies
 
 Each museum has a client in `artsearch/src/services/museum_clients/`
 
@@ -105,7 +106,7 @@ Deploy from merged `master`: on the server, in the repo, run `make prod_deploy` 
 
 ### Filtering
 
-- Filter by museum (SMK, CMA, RMA, MET, AIC, NGA)
+- Filter by museum (SMK, CMA, RMA, MET, AIC, NGA, FNG)
 - Filter by work type (painting, print, drawing, etc.)
 - Filter by production year (`year_from` / `year_to`): keeps artworks whose production period overlaps the range; artworks with no dates are excluded once a bound is set. Implemented twice with the same rules: `filter_by_year_range()` (PostgreSQL `ArtworkStats`, used for browse mode and counts) and `_year_range_conditions()` (Qdrant search). Years come from the `production_date_start`/`end` payload fields, copied into `ArtworkStats` by `load_artwork_stats`
 - Paginated (20 items per page)
@@ -130,7 +131,7 @@ All modes use Jina CLIP v2 (256d) for text embedding. Similarity search always u
 - `artsearch/src/services/jina_embedder.py`: Jina embedder (API)
 - `artsearch/src/services/qdrant_service.py`: Vector search
 
-**Qdrant vectors per artwork:** `image_jina` (256d), `text_jina` (256d), `image_clip` (768d, populated for all museums except NGA (zeros); currently unused by search — see #88), `text_clip` (768d, zeros — unused)
+**Qdrant vectors per artwork:** `image_jina` (256d), `text_jina` (256d), `image_clip` (768d, populated for all museums except NGA and FNG (zeros); currently unused by search — see #88), `text_clip` (768d, zeros — unused)
 
 ### Image Upload Search
 
@@ -142,7 +143,7 @@ All modes use Jina CLIP v2 (256d) for text embedding. Similarity search always u
 
 Every artwork has a shareable page at `/artwork/<museum_slug>/<object_number>/` (`artwork_page_view`, template `artwork.html`), linked from the artwork title on search result cards and in the popup (the image still opens the popup). A **Share** button in the popup and on the page uses `shareLink()` (`base.html`): the system share menu on touch devices, otherwise copy to clipboard. It shows the image, metadata, 12 visually similar artworks (stored `image_jina` vector, no Jina call; "Show more" appends the next 12 in place via the HTMX endpoint `/artwork/<museum_slug>/<object_number>/similar/?offset=N`) and per-artwork `<title>`, canonical URL and Open Graph/Twitter tags. Pages override the `title` and `meta` blocks in `base.html`.
 
-- **High-resolution images and deep zoom (IIIF)**: for SMK, NGA and RMA, `artsearch/src/utils/iiif.py` derives the museum's IIIF image service from the full-resolution `image_url` in `TransformedData` (one lookup per page view; the URL formats are pinned by tests against the transformers). The page shows our bucket thumbnail, swaps in a 1600px IIIF image once it has loaded, and offers a Zoom button that lazy-loads OpenSeadragon (cdnjs) on the same image. The search popup gets the same larger image (it asks `/artworks/large-image/`, DB-only, on open) but no zoom yet. CMA and MET have no IIIF; AIC's IIIF server is behind a Cloudflare bot challenge, so it's left out.
+- **High-resolution images and deep zoom (IIIF)**: for SMK, NGA and RMA, `artsearch/src/utils/iiif.py` derives the museum's IIIF image service from the full-resolution `image_url` in `TransformedData` (one lookup per page view; the URL formats are pinned by tests against the transformers). The page shows our bucket thumbnail, swaps in a 1600px IIIF image once it has loaded, and offers a Zoom button that lazy-loads OpenSeadragon (cdnjs) on the same image. The search popup gets the same larger image (it asks `/artworks/large-image/`, DB-only, on open) but no zoom yet. CMA, MET and FNG have no IIIF; AIC's IIIF server is behind a Cloudflare bot challenge, so it's left out.
 - **Object numbers can contain `/`, spaces, brackets, commas** (e.g. SMK `KKS10208/5`, MET `Burdick 218, N220.35`), so artwork routes use `<path:object_number>`, with the `similar/` routes listed before the detail/page routes (page and REST API).
 - **AI descriptions**: the page and the search popup only show an already cached description (the popup fetches it on open from `/artworks/description/cached/`, which is DB-only and not rate limited); new ones are generated on click. Never generate on page load, or crawlers would trigger OpenAI calls for every page.
 - **Sitemap**: `/sitemap.xml` (index) and `/sitemap-<section>.xml?p=N`, built from `ArtworkStats`, 10k URLs per page, cached for a day. Paths are built by `artwork_page_path()` (`artsearch/sitemaps.py`) rather than `reverse()`, which was too slow at this volume; a test keeps the two identical.

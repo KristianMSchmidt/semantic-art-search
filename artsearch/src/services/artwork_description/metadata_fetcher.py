@@ -13,11 +13,19 @@ from .metadata_processors import (
     clean_rma_metadata,
     clean_aic_metadata,
     clean_nga_metadata,
+    clean_fng_metadata,
 )
 
 
 # Timeout for museum API requests (seconds)
 API_TIMEOUT = 10
+
+# Museums without an open per-object metadata API: description metadata is read from
+# the raw data stored during ETL extraction, cleaned with these functions
+STORED_METADATA_CLEANERS = {
+    "nga": clean_nga_metadata,
+    "fng": clean_fng_metadata,
+}
 
 
 def fetch_and_clean_metadata(
@@ -38,9 +46,9 @@ def fetch_and_clean_metadata(
     Raises:
         ValueError: If museum is unsupported or API request fails
     """
-    # NGA has no per-object metadata API, so we use the raw data stored during extraction
-    if museum_slug == "nga":
-        return _fetch_stored_nga_metadata(object_number)
+    # Some museums have no open per-object metadata API, so we use the raw data stored during extraction
+    if museum_slug in STORED_METADATA_CLEANERS:
+        return _fetch_stored_metadata(museum_slug, object_number)
 
     # Get API URL for this museum/artwork
     api_url = get_museum_api_url(museum_slug, object_number, museum_db_id)
@@ -114,13 +122,15 @@ def _clean_xml_metadata(museum_slug: str, raw_data: dict) -> dict[str, Any]:
         raise ValueError(f"Unknown museum slug for XML cleaning: {museum_slug}")
 
 
-def _fetch_stored_nga_metadata(object_number: str) -> dict[str, Any]:
-    """Get NGA metadata from the raw data stored during ETL extraction.
+def _fetch_stored_metadata(museum_slug: str, object_number: str) -> dict[str, Any]:
+    """Get metadata from the raw data stored during ETL extraction.
 
     Raises:
         ValueError: If no raw data is stored for the artwork
     """
-    raw = MetaDataRaw.objects.filter(museum_slug="nga", object_number=object_number).first()
+    raw = MetaDataRaw.objects.filter(
+        museum_slug=museum_slug, object_number=object_number
+    ).first()
     if raw is None:
-        raise ValueError(f"No stored metadata found for nga:{object_number}")
-    return clean_nga_metadata(raw.raw_json)
+        raise ValueError(f"No stored metadata found for {museum_slug}:{object_number}")
+    return STORED_METADATA_CLEANERS[museum_slug](raw.raw_json)

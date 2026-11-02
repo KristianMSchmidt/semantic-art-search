@@ -52,6 +52,13 @@ Fetches artwork metadata from museum APIs into PostgreSQL `MetaDataRaw` table.
 - Only objects with an open access (`openaccess=1`) primary image are included; images via NGA's IIIF API
 - For undated works NGA fills `beginyear`/`endyear` with the artist's lifespan, so the transformer stores no production dates when `displaydate` is empty, "n.d." or "date unknown"
 
+**FNG (Finnish National Gallery) Data Model:**
+- No open per-object API (its search API needs a key): the whole collection is one gzipped JSON dump at `https://kokoelma.kansallisgalleria.fi/api/v1/objects` (~29 MB gzipped, ~275 MB of JSON, ~89k objects, CC0). The extractor streams it (`iter_json_array`), since `json.load` would take ~1.4 GB of memory; each run upserts everything
+- `inventoryNumber` (e.g. `A I 445`, `A II 841:297`; unique among included works) is `object_number`; `objectId` is `museum_db_id` (used in page URLs)
+- Only standalone artworks (`category.en == "artwork"`, not sketchbook pages, letters or archive items) classified as painting, miniature or Japanese woodblock print (`ALLOWED_CLASSIFICATIONS`), with a CC0 image. Only works by artists who died over 70 years ago have images. Prints and drawings are left out on purpose (colour charts in many print photos, faint pencil studies), and sculpture until there is a searchable sculpture work type
+- Titles: English if present, else Finnish or Swedish. Dates equal to the artist's lifespan are a placeholder for undated works, so they are stored as unknown
+- Images are served up to 4000px (thumbnail from the 1000px version); no IIIF
+
 **RMA API Data Model:**
 - Uses OAI-PMH XML/RDF structure
 - `object_number` extracted from `dc:identifier` (not guaranteed unique)

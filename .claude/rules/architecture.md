@@ -45,7 +45,7 @@ These two components are **genuinely interdependent by design**:
 | `qdrant_formatting.py` | `get_bucket_image_url` |
 | `artwork_description/service.py` | `get_bucket_image_url` |
 | `artwork_description/metadata_processors/rma.py` | `RmaTransformer` |
-| `artwork_description/metadata_fetcher.py` | `MetaDataRaw` (NGA has no per-object API, so description metadata is read from stored raw data) |
+| `artwork_description/metadata_fetcher.py` | `MetaDataRaw` (NGA and FNG have no open per-object API, so description metadata is read from stored raw data) |
 | `utils/iiif.py` | `TransformedData` (full-resolution `image_url`, used to derive IIIF image URLs for artwork pages) |
 
 ## Why This Coupling Is Acceptable
