@@ -4,12 +4,18 @@
 
   <!-- Artwork image: a fixed-height box, so images line up across a row -->
   <div class="h-72 bg-paper/60 flex items-center justify-center">
+    {% if page_url %}
+    <!-- Image and title link to the artwork page; on the home page a click opens
+         it in the popup instead (artworkViewer() in home.html) -->
+    <a href="{{ page_url }}" data-artwork-thumbnail="{{ result.thumbnail_url }}"
+       class="flex max-w-full max-h-full">
+    {% endif %}
     {# The first row is on screen when results arrive: load it at once, lazy-load the rest #}
     <img loading="{% if is_first_batch and forloop.counter <= 4 %}eager{% else %}lazy{% endif %}"
-      src="{{ result.thumbnail_url }}"
+         src="{{ result.thumbnail_url }}"
          alt="{{ result.title }}"
-         class="max-w-full max-h-full object-contain cursor-pointer hover:opacity-90 transition"
-         onclick="openModal('{{ result.thumbnail_url|escapejs }}', '{{ result.museum_slug|escapejs }}', '{{ result.object_number|escapejs }}', '{{ result.museum_db_id|escapejs }}', '{{ result.title|escapejs }}', '{{ result.artist|escapejs }}', '{{ result.production_date|escapejs }}', '{{ result.source_url|escapejs }}', '{{ result.api_url|escapejs }}', '{{ result.museum|escapejs }}', {{ result.work_types|safe }}, '{{ page_url|escapejs }}')">
+         class="max-w-full max-h-72 object-contain{% if page_url %} hover:opacity-90 transition{% endif %}">
+    {% if page_url %}</a>{% endif %}
   </div>
 
   <!-- Text content -->
@@ -18,12 +24,12 @@
     <!-- Metadata block -->
     <div class="space-y-1">
 
-      <!-- Title (links to the artwork page; the image opens the popup) -->
+      <!-- Title -->
       <h3 class="font-semibold text-ink leading-snug">
         {% if page_url %}
         <a href="{{ page_url }}"
-           class="hover:text-accent transition-colors"
-           title="Open this artwork's page, to share or bookmark it">{{ result.title }}</a>
+           data-artwork-thumbnail="{{ result.thumbnail_url }}"
+           class="hover:text-accent transition-colors">{{ result.title }}</a>
         {% else %}
         {{ result.title }}
         {% endif %}

@@ -155,40 +155,65 @@ def test_artwork_page_without_iiif_image_has_no_iiif_urls(mock_qdrant):
 
 @pytest.mark.integration
 @pytest.mark.django_db
-def test_large_image_endpoint_returns_iiif_image_for_popup():
+def test_artwork_panel_has_page_content_and_popup_data(mock_qdrant):
+    """The search popup shows the artwork page's own details and similar artworks."""
     TransformedData.objects.create(
-        museum_slug="rma",
-        object_number="SK-C-5",
-        museum_db_id="200107928",
+        museum_slug="smk",
+        object_number="KKS10208/5",
+        museum_db_id="db-KKS10208/5",
         searchable_work_types=["painting"],
-        thumbnail_url="https://iiif.micr.io/PJEZO/full/800,/0/default.jpg",
-        image_url="https://iiif.micr.io/PJEZO/full/max/0/default.jpg",
+        thumbnail_url="https://iip-thumb.smk.dk/iiif/jp2/abc_kks10208-5.tif.jp2/full/!1024,/0/default.jpg",
+        image_url="https://iip.smk.dk/iiif/jp2/abc_kks10208-5.tif.jp2",
     )
+    ArtworkDescription.objects.create(
+        museum_slug="smk", object_number="KKS10208/5", description="A quiet interior."
+    )
+    url = reverse("artwork-panel", args=["smk", "KKS10208/5"])
+    assert url == "/artwork/smk/KKS10208/5/panel/"  # not swallowed by the page route
 
-    response = Client().get(
-        reverse("get-large-image-url"), {"museum": "rma", "object_number": "SK-C-5"}
-    )
+    with patch("artsearch.views.views.generate_description") as generate:
+        response = Client().get(url)
 
     assert response.status_code == 200
-    assert response.json() == {
-        "url": "https://iiif.micr.io/PJEZO/full/!1600,1600/0/default.jpg"
-    }
+    html = response.content.decode()
+    assert "<html" not in html  # a fragment, not a page
+    assert "<h2" in html and "Interior with a Young Woman" in html
+    assert "A quiet interior." in html  # cached description, no OpenAI call
+    generate.assert_not_called()
+    assert 'data-page-title="Interior with a Young Woman – Vilhelm Hammershøi | Semantic Art Search"' in html
+    service_url = "https://iip.smk.dk/iiif/jp2/abc_kks10208-5.tif.jp2"
+    assert f'data-large-image-url="{service_url}/full/!1600,1600/0/default.jpg"' in html
+    assert f'data-iiif-info-url="{service_url}/info.json"' in html
+    # Similar artworks open in the popup, so they carry their thumbnail
+    assert 'href="/artwork/rma/SK-A-1505/"' in html
+    assert 'data-artwork-thumbnail="https://example.com/rma_SK-A-1505.jpg"' in html
+    assert 'data-find-similar="smk:KKS10208/5"' in html
 
 
 @pytest.mark.integration
 @pytest.mark.django_db
-@pytest.mark.parametrize(
-    "params",
-    [
-        {"museum": "rma", "object_number": "SK-C-5"},  # unknown artwork
-        {"museum": "rma"},  # missing object number
-        {},
-    ],
-)
-def test_large_image_endpoint_without_iiif_image_returns_204(params):
-    response = Client().get(reverse("get-large-image-url"), params)
+def test_artwork_panel_without_iiif_image_has_empty_image_data(mock_qdrant):
+    response = Client().get("/artwork/smk/KKS10208/5/panel/")
 
-    assert response.status_code == 204
+    html = response.content.decode()
+    assert 'data-large-image-url=""' in html
+    assert 'data-iiif-info-url=""' in html
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_artwork_panel_for_unknown_artwork_returns_404(mock_qdrant):
+    response = Client().get("/artwork/smk/NOPE/panel/")
+
+    assert response.status_code == 404
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_artwork_page_find_similar_links_to_search(mock_qdrant):
+    response = Client().get("/artwork/smk/KKS10208/5/")
+
+    assert 'href="/?query=smk%3AKKS10208%2F5"' in response.content.decode()
 
 
 @pytest.mark.integration
@@ -288,6 +313,7 @@ def test_robots_txt_points_to_sitemap_and_blocks_search_endpoints():
     assert "Disallow: /artworks/" in body  # HTMX search endpoint (Jina API cost)
     assert "Disallow: /api/" in body
     assert "Disallow: /artwork/*/similar/" in body  # HTMX fragment, not a page
+    assert "Disallow: /artwork/*/panel/" in body  # popup fragment, not a page
     assert "Disallow: /map/search/" in body  # map search box (Jina API cost)
 
 

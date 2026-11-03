@@ -1,0 +1,37 @@
+<script>
+  // Deep zoom on a museum's IIIF image, for the artwork page and the search
+  // popup. OpenSeadragon is only downloaded when the user clicks Zoom.
+  const OPENSEADRAGON_URL = "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/5.0.1/";
+  const OPENSEADRAGON_SRI = "sha512-gPZzE+sKmE0kvcjMxW431ef5b5T5QOADV9Gij0isPw2oLATd1IZW7dmDmKh7F2e5BfwjQyAfFp3/OF0fVMOF7Q==";
+  let openSeadragonLoaded = null;
+
+  function loadOpenSeadragon() {
+    openSeadragonLoaded ??= new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = OPENSEADRAGON_URL + "openseadragon.min.js";
+      script.integrity = OPENSEADRAGON_SRI;
+      script.crossOrigin = "anonymous";
+      script.onload = resolve;
+      script.onerror = () => {
+        openSeadragonLoaded = null;  // let a later click try again
+        reject(new Error("Failed to load OpenSeadragon"));
+      };
+      document.head.appendChild(script);
+    });
+    return openSeadragonLoaded;
+  }
+
+  // The element must be visible, so OpenSeadragon can measure it
+  function createDeepZoomViewer(element, infoUrl) {
+    return OpenSeadragon({
+      element,
+      tileSources: infoUrl,
+      prefixUrl: OPENSEADRAGON_URL + "images/",
+      // Lets OpenSeadragon draw with WebGL; the IIIF servers send CORS
+      // headers on tiles too (info.json can't be loaded without CORS anyway)
+      crossOriginPolicy: "Anonymous",
+      showNavigator: true,
+      maxZoomPixelRatio: 2,
+    });
+  }
+</script>

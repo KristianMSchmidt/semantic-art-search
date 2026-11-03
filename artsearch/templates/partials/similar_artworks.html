@@ -2,6 +2,7 @@
   {% url 'artwork-page' result.museum_slug result.object_number as page_url %}
   {% if page_url %}
   <a href="{{ page_url }}"
+     data-artwork-thumbnail="{{ result.thumbnail_url }}"
      class="block bg-white rounded-lg ring-1 ring-line overflow-hidden hover:ring-muted/60 transition">
     <img loading="lazy"
          src="{{ result.thumbnail_url }}"

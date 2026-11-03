@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
+from django.utils.text import Truncator
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
@@ -254,14 +255,16 @@ def _similar_artworks_context(
     return {"similar_artworks": similar, "similar_more_url": more_url}
 
 
-def artwork_page_view(
+def build_artwork_context(
     request: HttpRequest, museum_slug: str, object_number: str
-) -> HttpResponse:
+) -> dict:
     """
-    Shareable page for a single artwork: image, metadata, similar artworks and
-    the AI description.
+    Everything the artwork page and the search popup show about one artwork:
+    image, metadata, similar artworks and the AI description. Both render it
+    with the same templates (partials/artwork_details.html and
+    partials/artwork_similar_section.html).
 
-    Only an already cached description is shown; generating a new one is left
+    Only an already cached description is included; generating a new one is left
     to an explicit click, so crawlers visiting many pages don't trigger OpenAI calls.
     """
     artwork = get_artwork(museum_slug, object_number)
@@ -275,8 +278,14 @@ def artwork_page_view(
     )
     # High-resolution image served by the museum's IIIF server, if it has one
     iiif_service_url = get_artwork_iiif_service_url(museum_slug, object_number)
-    context = {
+    page_url = reverse("artwork-page", args=[museum_slug, object_number])
+    find_similar_query = f"{museum_slug}:{object_number}"
+    return {
         "artwork": artwork,
+        "page_title": (
+            f"{Truncator(artwork['title']).chars(80)} – "
+            f"{Truncator(artwork['artist']).chars(60)} | Semantic Art Search"
+        ),
         "iiif_info_url": iiif_service_url and get_iiif_info_url(iiif_service_url),
         "large_image_url": iiif_service_url
         and get_iiif_sized_image_url(iiif_service_url, LARGE_IMAGE_SIZE),
@@ -291,13 +300,33 @@ def artwork_page_view(
                 "museum_db_id": artwork["museum_db_id"],
             }
         ),
-        "canonical_url": request.build_absolute_uri(
-            reverse("artwork-page", args=[museum_slug, object_number])
-        ),
+        "canonical_url": request.build_absolute_uri(page_url),
         "map_url": make_map_url(museum_slug, object_number),
+        # The home page runs this as a similarity search when loaded
+        "find_similar_query": find_similar_query,
+        "find_similar_url": f"{reverse('home')}?{urlencode({'query': find_similar_query})}",
         **_similar_artworks_context(museum_slug, object_number),
     }
+
+
+def artwork_page_view(
+    request: HttpRequest, museum_slug: str, object_number: str
+) -> HttpResponse:
+    """Shareable page for a single artwork (also what a shared or reloaded popup URL opens)."""
+    context = build_artwork_context(request, museum_slug, object_number)
     return render(request, "artwork.html", context)
+
+
+def artwork_panel_view(
+    request: HttpRequest, museum_slug: str, object_number: str
+) -> HttpResponse:
+    """
+    The artwork page's details and similar artworks, for the popup that opens
+    over the search results. DB and Qdrant only (no Jina or OpenAI calls), like
+    the page itself, so not rate limited.
+    """
+    context = build_artwork_context(request, museum_slug, object_number)
+    return render(request, "partials/artwork_panel.html", context)
 
 
 @ratelimit(key=get_client_ip, rate="30/m", method="GET", block=False)
@@ -335,6 +364,7 @@ def robots_txt_view(request: HttpRequest) -> HttpResponse:
         "Disallow: /htmx/",
         "Disallow: /map/search/",
         "Disallow: /artwork/*/similar/",
+        "Disallow: /artwork/*/panel/",
         f"Sitemap: {request.build_absolute_uri(reverse('sitemap-index'))}",
     ]
     return HttpResponse("\n".join(lines) + "\n", content_type="text/plain")
@@ -382,41 +412,6 @@ def get_artwork_description_view(request: HttpRequest) -> HttpResponse:
     }
 
     return render(request, "partials/artwork_description.html", context)
-
-
-def get_cached_artwork_description_view(request: HttpRequest) -> HttpResponse:
-    """
-    HTMX/fetch endpoint for the artwork popup: return an already generated
-    description, or 204 if there is none. Never calls OpenAI, so it isn't
-    rate limited like get_artwork_description_view.
-    """
-    museum_slug = request.GET.get("museum", "")
-    object_number = request.GET.get("object_number", "")
-    description = get_cached_description(museum_slug, object_number)
-    if description is None:
-        return HttpResponse(status=204)
-    context = {
-        "description": description,
-        "rate_limited": False,
-        "museum_slug": museum_slug,
-        "object_number": object_number,
-    }
-    return render(request, "partials/artwork_description.html", context)
-
-
-def get_large_image_url_view(request: HttpRequest) -> HttpResponse:
-    """
-    Fetch endpoint for the artwork popup: the URL of a larger IIIF image from the
-    museum, or 204 if it has none. DB-only, so not rate limited.
-    """
-    museum_slug = request.GET.get("museum", "")
-    object_number = request.GET.get("object_number", "")
-    iiif_service_url = get_artwork_iiif_service_url(museum_slug, object_number)
-    if iiif_service_url is None:
-        return HttpResponse(status=204)
-    return JsonResponse(
-        {"url": get_iiif_sized_image_url(iiif_service_url, LARGE_IMAGE_SIZE)}
-    )
 
 
 def make_map_url(museum_slug: str, object_number: str) -> str:
