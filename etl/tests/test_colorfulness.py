@@ -46,6 +46,26 @@ def test_contrasting_colours_score_higher_than_ink_on_paper():
     assert red_and_blue > ink_on_paper > 0
 
 
+@pytest.mark.unit
+def test_colourful_border_is_ignored():
+    """Colour charts, mounts and frames at the edges don't count (issue #142)."""
+    img = Image.new("RGB", (200, 200), (255, 0, 0))
+    img.paste(Image.new("RGB", (100, 100), (0, 0, 255)), (0, 0))
+    # Greyscale artwork filling all but a 9% border on each side
+    artwork = Image.new("L", (164, 164), 40)
+    artwork.paste(Image.new("L", (82, 164), 220), (82, 0))
+    img.paste(artwork.convert("RGB"), (18, 18))
+    assert compute_colorfulness(_png(img)) == pytest.approx(0)
+
+
+@pytest.mark.unit
+def test_colour_in_the_centre_still_counts():
+    img = Image.new("RGB", (200, 200), (128, 128, 128))
+    img.paste(Image.new("RGB", (80, 160), (200, 30, 30)), (20, 20))
+    img.paste(Image.new("RGB", (80, 160), (30, 60, 200)), (100, 20))
+    assert compute_colorfulness(_png(img)) > 20
+
+
 @pytest.mark.integration
 @pytest.mark.django_db
 def test_compute_colorfulness_command_scores_only_unscored_rows():
