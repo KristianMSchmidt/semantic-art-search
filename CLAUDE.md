@@ -88,7 +88,7 @@ Dev moved from Postgres 16 to 17 to match prod, and 17 won't start on a volume c
 
 ### Deployment
 
-Deploy from merged `master`: on the server, in the repo, run `make prod_deploy` (aborts if the server checkout has local changes, then `git pull --ff-only` + `make prod_start`, then `docker image prune -f` to drop the previous, now untagged web image). Only the `web` container is rebuilt and recreated; Qdrant, nginx and the cloud database are untouched.
+Deploy from merged `master`: on the server, in the repo, run `make prod_deploy` (aborts if the server checkout has local changes, then `git pull --ff-only` + `make prod_start` (build, then `up -d`), then `make prod_check-web-image`, which fails if the web container wasn't recreated from the new image, then `docker image prune -f` to drop the previous, now untagged web image). Only the `web` container is rebuilt and recreated; Qdrant, nginx and the cloud database are untouched.
 
 - `entrypoint.prod.sh` runs migrations, builds Tailwind CSS and collects static files on every start, so no manual migrate or CSS step is needed on the server. With `DEBUG` off, static files use `ManifestStaticFilesStorage`: URLs carry a content hash (`styles.<hash>.css`) so browsers never keep stale CSS after a deploy, and `{% static %}` raises if `collectstatic` hasn't run or a referenced file is missing. (The committed `theme/static/css/dist/styles.css` is only used locally; run `make tailwind-start` while editing templates or new classes won't show up in dev.)
 - Expect 502s for ~20s after a deploy while that startup runs.

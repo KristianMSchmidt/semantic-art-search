@@ -72,14 +72,28 @@ test-openai-fast:  ## Test fast label generation (metadata-only, gpt-4o-mini)
 prod_stop: ## [PROD] Stop production server
 	docker compose -f docker-compose.prod.yml down --remove-orphans
 
+# Build first, then start: a combined `up --build` sometimes built the new web
+# image but left the old container running (Nov 2026, cause unknown)
 prod_start: ## [PROD] Start production server as daemon
-	docker compose -f docker-compose.prod.yml up --build --remove-orphans -d
+	docker compose -f docker-compose.prod.yml build
+	docker compose -f docker-compose.prod.yml up --remove-orphans -d
 
 prod_deploy: ## [PROD] Pull latest master and rebuild/restart the web container (aborts on local changes)
 	@git diff --quiet && git diff --cached --quiet || { echo "Uncommitted changes on server - aborting deploy"; git status --short; exit 1; }
 	git pull --ff-only
 	$(MAKE) prod_start
+	$(MAKE) prod_check-web-image
 	docker image prune -f  # each rebuild leaves the previous web image untagged
+
+prod_check-web-image: ## [PROD] Fail if the web container doesn't run the latest built web image
+	@built=$$(docker image inspect -f '{{.Id}}' $$(docker compose -f docker-compose.prod.yml config --images web)); \
+	running=$$(docker inspect -f '{{.Image}}' $$(docker compose -f docker-compose.prod.yml ps -q web)); \
+	if [ "$$built" != "$$running" ]; then \
+		echo "The web container runs $$running, not the newly built image $$built."; \
+		echo "Recreate it with: docker compose -f docker-compose.prod.yml up -d --no-deps web"; \
+		exit 1; \
+	fi; \
+	echo "Web container runs the latest image ($$built)"
 
 prod_reload-web: ## [PROD] Restart the gunicorn workers without downtime (resets in-process caches, e.g. museum counts)
 	docker compose -f docker-compose.prod.yml exec -T web sh -c 'kill -HUP $$(cat /tmp/gunicorn.pid)'
