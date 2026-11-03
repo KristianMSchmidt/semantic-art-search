@@ -28,6 +28,9 @@ build:  ## Build or rebuild development docker image
 develop:  ## Run development server
 	docker compose -f docker-compose.dev.yml up --remove-orphans
 
+reload-web: ## Restart the dev web container (resets in-process caches, e.g. museum counts)
+	docker compose -f docker-compose.dev.yml restart web
+
 stop: ## Stop development server
 	docker compose -f docker-compose.dev.yml down --remove-orphans
 
@@ -77,6 +80,9 @@ prod_deploy: ## [PROD] Pull latest master and rebuild/restart the web container 
 	git pull --ff-only
 	$(MAKE) prod_start
 	docker image prune -f  # each rebuild leaves the previous web image untagged
+
+prod_reload-web: ## [PROD] Restart the gunicorn workers without downtime (resets in-process caches, e.g. museum counts)
+	docker compose -f docker-compose.prod.yml exec -T web sh -c 'kill -HUP $$(cat /tmp/gunicorn.pid)'
 
 prod_djangologs: ## [PROD] Show django logs
 	docker logs live-app-web-1

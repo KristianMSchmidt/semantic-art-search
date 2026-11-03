@@ -136,7 +136,7 @@ VECTOR_TYPE_TO_FIELD = {
 
 ## After Loading: Artwork Stats and Colourfulness
 
-`make load-artwork-stats` copies Qdrant payloads into `ArtworkStats` (counts, filters, browse) and sets `excluded_from_default_view` from raw MET credit lines (tobacco trade cards). Then `make compute-colorfulness` downloads each new artwork's bucket thumbnail and stores a colourfulness score, used to pick colourful artworks for the default home page view. It only scores rows without a score (~80/s, so the full collection takes ~40 min); `*-force` rescores all.
+`make load-artwork-stats` copies Qdrant payloads into `ArtworkStats` (counts, filters, browse) and sets `excluded_from_default_view` from raw MET credit lines (tobacco trade cards). It then reloads the web server (`make reload-web` / `make prod_reload-web`, a gunicorn HUP on prod, so no downtime), since the museum and work type counts are cached in-process (`museum_stats_service.py`) and a new museum would otherwise show no results until the next restart. Then `make compute-colorfulness` downloads each new artwork's bucket thumbnail and stores a colourfulness score, used to pick colourful artworks for the default home page view. It only scores rows without a score (~80/s, so the full collection takes ~40 min); `*-force` rescores all.
 
 ## Pipeline Benefits
 

@@ -395,17 +395,21 @@ prod_load-embeddings-fng-retry-failed:  ## [PROD] Retry previously failed embedd
 
 load-artwork-stats:  ## [DEV] Load ArtworkStats table from Qdrant collection
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_artwork_stats
+	$(MAKE) reload-web  # the web server caches museum counts from ArtworkStats
 
 load-artwork-stats-drop:  ## [DEV] Load ArtworkStats table (drop existing records first)
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py load_artwork_stats --drop-existing
+	$(MAKE) reload-web  # the web server caches museum counts from ArtworkStats
 
 # ---------- ETL Load Artwork Stats [PROD] ---------- #
 
 prod_load-artwork-stats:  ## [PROD] Load ArtworkStats table from Qdrant collection
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_artwork_stats
+	$(MAKE) prod_reload-web  # the web server caches museum counts from ArtworkStats
 
 prod_load-artwork-stats-drop:  ## [PROD] Load ArtworkStats table (drop existing records first)
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py load_artwork_stats --drop-existing
+	$(MAKE) prod_reload-web  # the web server caches museum counts from ArtworkStats
 
 # ---------- ETL Colourfulness Scores ---------- #
 # Scores ArtworkStats rows that have no score yet; run after load-artwork-stats

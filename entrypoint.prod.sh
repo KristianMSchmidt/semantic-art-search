@@ -18,6 +18,7 @@ echo "${0}: Starting Gunicorn..."
 mkdir -p /var/log/gunicorn
 exec gunicorn djangoconfig.wsgi:application \
     --bind 0.0.0.0:8017 \
+    --pid /tmp/gunicorn.pid \
     --workers=1 \
     --timeout=300 \
     --log-level=debug \
