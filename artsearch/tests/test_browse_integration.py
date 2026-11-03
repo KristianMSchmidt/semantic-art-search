@@ -534,3 +534,45 @@ def test_home_page_browse_uses_colorful_default_view(mock_qdrant_service):
 
         Client().get("/api/random/")
         assert mock_ids.call_args.kwargs["min_colorfulness"] is None
+
+
+@pytest.mark.django_db
+def test_home_page_preconnects_to_the_thumbnail_bucket():
+    """The preconnect must point at the host thumbnails are actually served from."""
+    from urllib.parse import urlsplit
+    from etl.services.bucket_service import get_bucket_image_url
+
+    thumbnail = urlsplit(get_bucket_image_url("smk", "KMS1", use_etl_bucket=False))
+
+    html = Client().get(reverse("home")).content.decode()
+
+    assert f'<link rel="preconnect" href="{thumbnail.scheme}://{thumbnail.netloc}">' in html
+
+
+@pytest.mark.parametrize("is_first_batch, eager_count", [(True, 4), (False, 0)])
+def test_only_first_row_of_results_loads_eagerly(is_first_batch, eager_count):
+    """The first row is on screen when results arrive; everything else stays lazy."""
+    from django.template.loader import render_to_string
+
+    results = [
+        {
+            "museum_slug": "smk",
+            "object_number": f"KMS{i}",
+            "thumbnail_url": f"https://example.com/{i}.jpg",
+            "title": "t",
+            "work_types": [],
+        }
+        for i in range(6)
+    ]
+    html = render_to_string(
+        "partials/artwork_response.html",
+        {
+            "results": results,
+            "is_first_batch": is_first_batch,
+            "total_works": 6,
+            "urls": {},
+        },
+    )
+
+    assert html.count('loading="eager"') == eager_count
+    assert html.count('loading="lazy"') == 6 - eager_count
