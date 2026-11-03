@@ -1,0 +1,110 @@
+{% comment %}
+  Title, metadata, links and AI description of one artwork. Shared by the
+  artwork page and the search popup (via partials/artwork_panel.html), so both
+  always show the same things. Context: build_artwork_context(); in_popup
+  switches the heading level and size.
+{% endcomment %}
+<div>
+  {% if in_popup %}
+    <h2 class="text-lg font-semibold text-ink leading-snug">{{ artwork.title }}</h2>
+  {% else %}
+    <h1 class="text-xl lg:text-2xl font-semibold text-ink leading-snug">{{ artwork.title }}</h1>
+  {% endif %}
+  <p class="{% if not in_popup %}lg:text-lg {% endif %}text-muted mt-1">{{ artwork.artist }}</p>
+
+  <div class="flex flex-wrap gap-1.5 mt-3">
+    {% if artwork.production_date %}
+      <span class="tag">{{ artwork.production_date }}</span>
+    {% endif %}
+    {% for work_type in artwork.work_types %}
+      <span class="tag">{{ work_type }}</span>
+    {% endfor %}
+  </div>
+
+  <p class="text-sm text-muted mt-3">{{ artwork.object_number }}</p>
+
+  <p class="mt-4">
+    <a href="{{ artwork.source_url }}"
+       target="_blank"
+       rel="noopener noreferrer"
+       class="link-muted"
+       title="View this artwork on the {{ artwork.museum }} website">
+      {{ artwork.museum }}
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
+           viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6m5-5h5m0 0v5m0-5L10 14" />
+      </svg>
+    </a>
+  </p>
+
+  <p class="mt-2 flex flex-wrap gap-x-5 gap-y-2">
+    <!-- A plain link on the artwork page; the popup runs the search in place -->
+    <a href="{{ find_similar_url }}"
+       rel="nofollow"
+       data-find-similar="{{ find_similar_query }}"
+       class="link-action"
+       title="Find artworks that look similar to this one">
+      Find similar
+    </a>
+    <a href="{{ map_url }}"
+       class="link-action"
+       title="See where this artwork sits among visually similar ones">
+      Show on map
+    </a>
+    <button
+      type="button"
+      x-data="shareButton()"
+      @click="share('{{ canonical_url|escapejs }}', '{{ artwork.title|escapejs }}')"
+      title="Share a link to this artwork"
+      class="link-action"
+      x-text="copied ? 'Link copied' : 'Share'">
+      Share
+    </button>
+  </p>
+
+  <!-- Description: a cached one is rendered directly; otherwise generated on click only -->
+  <div class="mt-6"
+       x-data="{ apiUrl: '{{ artwork.api_url|escapejs }}', museum: '{{ artwork.museum|escapejs }}', loaded: {{ description|yesno:'true,false' }} }">
+    <!-- Heading and Regenerate only once there is a description; until then just the button -->
+    <div x-show="loaded" {% if not description %}x-cloak{% endif %} class="flex items-center justify-between gap-3">
+      <h3 class="text-sm font-semibold text-ink">About this artwork</h3>
+      <button
+        type="button"
+        hx-get="{{ description_url }}&amp;force=true"
+        hx-target="#artwork-description"
+        hx-swap="innerHTML"
+        hx-indicator="#description-spinner"
+        hx-disabled-elt="this"
+        class="btn-secondary btn-sm text-xs gap-1.5"
+        title="Write a new description">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+        </svg>
+        <span>Regenerate</span>
+      </button>
+    </div>
+    <div id="artwork-description" class="break-words" @htmx:after-swap="loaded = !!$el.querySelector('[data-description]')">
+      {% if description %}
+        {% include "partials/artwork_description.html" %}
+      {% else %}
+        <button
+          type="button"
+          hx-get="{{ description_url }}"
+          hx-target="#artwork-description"
+          hx-swap="innerHTML"
+          hx-indicator="#description-spinner"
+          hx-disabled-elt="this"
+          class="btn-secondary btn-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-accent" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd" />
+          </svg>
+          <span>Tell me about this artwork</span>
+        </button>
+      {% endif %}
+    </div>
+    <p id="description-spinner" class="htmx-indicator text-sm text-muted mt-2">
+      Generating description...
+    </p>
+  </div>
+</div>

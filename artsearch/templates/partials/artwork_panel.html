@@ -1,0 +1,12 @@
+{% comment %}
+  The search popup's details panel: the artwork page's content, loaded by
+  artworkViewer() in home.html. The data attributes tell the popup the page
+  title and the larger images to show.
+{% endcomment %}
+<div data-page-title="{{ page_title }}"
+     data-title="{{ artwork.title }}"
+     data-large-image-url="{{ large_image_url|default:'' }}"
+     data-iiif-info-url="{{ iiif_info_url|default:'' }}">
+  {% include "partials/artwork_details.html" with in_popup=True %}
+  {% include "partials/artwork_similar_section.html" with in_popup=True %}
+</div>

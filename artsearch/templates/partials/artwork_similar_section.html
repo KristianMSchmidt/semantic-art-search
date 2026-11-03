@@ -1,0 +1,16 @@
+{% comment %}
+  Similar artworks below the artwork page, and in the search popup's panel
+  (in_popup: two narrow columns and a smaller heading).
+{% endcomment %}
+{% if similar_artworks %}
+<section class="{% if in_popup %}mt-8{% else %}mt-10{% endif %}">
+  {% if in_popup %}
+    <h3 class="text-sm font-semibold text-ink mb-3">Similar artworks</h3>
+  {% else %}
+    <h2 class="text-xl font-semibold text-ink mb-4">Similar artworks</h2>
+  {% endif %}
+  <div class="grid {% if in_popup %}grid-cols-2 gap-3{% else %}grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4{% endif %}">
+    {% include "partials/similar_artworks.html" %}
+  </div>
+</section>
+{% endif %}

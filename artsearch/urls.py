@@ -15,12 +15,17 @@ urlpatterns = [
         "favicon.ico/", RedirectView.as_view(url="/static/favicon.ico", permanent=True)
     ),
     path("", views.home_view, name="home"),
-    # "similar/" must come first: object numbers can contain "/", so the page
-    # route would otherwise swallow it
+    # "similar/" and "panel/" must come first: object numbers can contain "/",
+    # so the page route would otherwise swallow them
     path(
         "artwork/<str:museum_slug>/<path:object_number>/similar/",
         views.artwork_similar_view,
         name="artwork-similar",
+    ),
+    path(
+        "artwork/<str:museum_slug>/<path:object_number>/panel/",
+        views.artwork_panel_view,
+        name="artwork-panel",
     ),
     path(
         "artwork/<str:museum_slug>/<path:object_number>/",
@@ -43,16 +48,6 @@ urlpatterns = [
     path("artworks/", views.get_artworks_view, name="get-artworks"),
     path("artworks/image/", views.upload_image_view, name="upload-image"),
     path("artworks/description/", views.get_artwork_description_view, name="get-artwork-description"),
-    path(
-        "artworks/description/cached/",
-        views.get_cached_artwork_description_view,
-        name="get-cached-artwork-description",
-    ),
-    path(
-        "artworks/large-image/",
-        views.get_large_image_url_view,
-        name="get-large-image-url",
-    ),
     path("htmx/update-work-types/", views.update_work_types, name="update-work-types"),
     path("htmx/update-museums/", views.update_museums, name="update-museums"),
     path("map/", views.art_map_view, name="art-map"),

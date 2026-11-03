@@ -400,26 +400,6 @@ def test_get_artwork_description_view_rate_limit():
 
 
 @pytest.mark.integration
-@pytest.mark.django_db
-def test_cached_description_endpoint_returns_saved_description_only():
-    """The popup's lookup shows saved descriptions and never generates new ones."""
-    ArtworkDescription.objects.create(
-        museum_slug="smk", object_number="KMS1", description="A saved description."
-    )
-    client = Client()
-    url = reverse("get-cached-artwork-description")
-
-    with patch("artsearch.views.views.generate_description") as generate:
-        saved = client.get(url, {"museum": "smk", "object_number": "KMS1"})
-        missing = client.get(url, {"museum": "smk", "object_number": "KMS2"})
-
-    assert saved.status_code == 200
-    assert "A saved description." in saved.content.decode()
-    assert missing.status_code == 204  # popup then shows the generate button
-    generate.assert_not_called()
-
-
-@pytest.mark.integration
 def test_fetch_aic_metadata_from_real_api():
     """AIC's Cloudflare returns 403 to requests without the AIC-User-Agent header."""
     metadata = fetch_and_clean_metadata("aic", "1928.610", "27992")
