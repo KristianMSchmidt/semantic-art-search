@@ -1,3 +1,5 @@
+import random
+
 from django.db import models
 from django.contrib.postgres.indexes import GinIndex
 
@@ -72,6 +74,11 @@ class ImageSearchLog(models.Model):
         return f"{self.status} @ {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
 
 
+def new_random_key() -> float:
+    """Default for ArtworkStats.random_key (a named function, so migrations can reference it)."""
+    return random.random()
+
+
 class ArtworkStats(models.Model):
     """
     Denormalized stats table for fast artwork counting queries.
@@ -83,6 +90,7 @@ class ArtworkStats(models.Model):
     - Count artworks matching museum + work type filters
     - Filter by production year range
     - Sample colourful artworks for the default home page view
+    - Browse in random order (random_key)
 
     Design: One row per artwork (not per work type) to avoid double-counting
     artworks with multiple work types. This makes counting queries simple and fast.
@@ -112,6 +120,14 @@ class ArtworkStats(models.Model):
             "trade cards); set by load_artwork_stats"
         ),
     )
+    random_key = models.FloatField(
+        default=new_random_key,
+        help_text=(
+            "Fixed random position in [0, 1) for browsing in random order: a "
+            "seed picks a start point and pages read on from there, which an "
+            "index makes cheap (see browse_service)"
+        ),
+    )
 
     class Meta:
         constraints = [
@@ -134,6 +150,8 @@ class ArtworkStats(models.Model):
             # Production year range filtering
             models.Index(fields=["production_date_start"]),
             models.Index(fields=["production_date_end"]),
+            # Random order browsing (id breaks ties between equal keys)
+            models.Index(fields=["random_key", "id"]),
         ]
 
     def __str__(self):

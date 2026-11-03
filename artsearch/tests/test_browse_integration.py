@@ -219,51 +219,123 @@ def test_same_seed_produces_consistent_order():
     assert len(result1) == 3
 
 
-@pytest.mark.integration
-@pytest.mark.django_db
-def test_different_seeds_produce_different_order():
-    """
-    Test that two requests with different seeds return different order.
-
-    This test verifies:
-    - Each session should get unique random experience
-    - Different seeds produce different orderings
-
-    Potential bugs this could catch:
-    - Seed not actually affecting ordering
-    - Hardcoded order ignoring seed
-    """
-    from artsearch.src.services.browse_service import get_random_artwork_ids
+def _create_artworks_with_keys():
+    """Ten artworks with random_key 0.05, 0.15, ..., 0.95 (KMS0 ... KMS9)."""
     from artsearch.models import ArtworkStats
 
-    # Create enough test artworks to make ordering differences visible
     for i in range(10):
         ArtworkStats.objects.create(
             museum_slug="smk",
             object_number=f"KMS{i}",
             searchable_work_types=["painting"],
+            random_key=0.05 + i / 10,
         )
 
-    result1 = get_random_artwork_ids(
-        museums=None,
-        work_types=None,
-        seed="seed_one",
-        limit=10,
-        offset=0,
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_different_seeds_produce_different_order():
+    """
+    Each seed starts the random order at its own point (seed_to_start) and
+    wraps around, so different seeds show different artworks first.
+
+    Potential bugs this could catch:
+    - Seed not actually affecting ordering
+    - Hardcoded order ignoring seed
+    """
+    from artsearch.src.services.browse_service import (
+        get_random_artwork_ids,
+        seed_to_start,
     )
 
-    result2 = get_random_artwork_ids(
-        museums=None,
-        work_types=None,
-        seed="seed_two",
-        limit=10,
-        offset=0,
+    _create_artworks_with_keys()
+    # Starts between the keys of KMS0 and KMS1, and of KMS6 and KMS7
+    assert 0.05 > seed_to_start("seed_one")
+    assert 0.65 < seed_to_start("fixed_seed_123") < 0.75
+
+    def browse(seed):
+        ids = get_random_artwork_ids(
+            museums=None, work_types=None, seed=seed, limit=10, offset=0
+        )
+        return [object_number for _, object_number in ids]
+
+    assert browse("seed_one") == [f"KMS{i}" for i in range(10)]
+    assert browse("fixed_seed_123") == [f"KMS{i}" for i in [7, 8, 9, 0, 1, 2, 3, 4, 5, 6]]
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+@pytest.mark.parametrize("limit", [1, 3, 4, 10, 12])
+def test_paging_through_random_order_shows_every_artwork_once(limit):
+    """
+    Pages that run past the highest random_key continue from the lowest, and
+    pages starting beyond it pick up where the wrapped part left off, so
+    infinite scroll shows each artwork exactly once, then stops.
+    """
+    from artsearch.src.services.browse_service import get_random_artwork_ids
+
+    _create_artworks_with_keys()
+
+    shown = []
+    for offset in range(0, 20, limit):
+        shown += [
+            object_number
+            for _, object_number in get_random_artwork_ids(
+                museums=None,
+                work_types=None,
+                seed="fixed_seed_123",
+                limit=limit,
+                offset=offset,
+            )
+        ]
+
+    assert shown == [f"KMS{i}" for i in [7, 8, 9, 0, 1, 2, 3, 4, 5, 6]]
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_paging_with_equal_random_keys_shows_every_artwork_once():
+    """Artworks sharing a random_key are ordered by id, so paging never skips or repeats one."""
+    from artsearch.models import ArtworkStats
+    from artsearch.src.services.browse_service import get_random_artwork_ids
+
+    for i, key in enumerate([0.2, 0.2, 0.2, 0.9, 0.9]):
+        ArtworkStats.objects.create(
+            museum_slug="smk",
+            object_number=f"KMS{i}",
+            searchable_work_types=["painting"],
+            random_key=key,
+        )
+
+    shown = []
+    for offset in range(5):
+        shown += get_random_artwork_ids(
+            museums=None, work_types=None, seed="fixed_seed_123", limit=1, offset=offset
+        )
+
+    # The seed starts between 0.2 and 0.9 (see test_different_seeds_produce_different_order)
+    assert [object_number for _, object_number in shown] == [
+        "KMS3", "KMS4", "KMS0", "KMS1", "KMS2"
+    ]
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_random_order_respects_filters():
+    """Filtered browsing pages through the matching artworks only."""
+    from artsearch.models import ArtworkStats
+    from artsearch.src.services.browse_service import get_random_artwork_ids
+
+    _create_artworks_with_keys()
+    ArtworkStats.objects.filter(object_number__in=["KMS2", "KMS8"]).update(
+        museum_slug="cma"
     )
 
-    # Different seeds should produce different ordering
-    # (same items, different order)
-    assert set(result1) == set(result2)  # Same items
-    assert result1 != result2  # Different order
+    ids = get_random_artwork_ids(
+        museums=["cma"], work_types=None, seed="fixed_seed_123", limit=10, offset=0
+    )
+
+    assert ids == [("cma", "KMS8"), ("cma", "KMS2")]
 
 
 @pytest.mark.integration
