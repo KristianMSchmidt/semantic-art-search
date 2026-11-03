@@ -327,7 +327,8 @@
     <div x-ref="zoomViewer" x-show="zooming" class="w-full h-full" @click.stop></div>
   </div>
 
-  <!-- Info hint - shows when metadata is hidden -->
+  <!-- Info hint: shows when the details are hidden, on phones only (wide screens
+       hide the panel by clicking the image or », so users know to click it again) -->
   <style>
     @keyframes subtle-pulse {
       0%, 32%, 100% { opacity: 0.7; transform: scale(1); }
@@ -339,7 +340,7 @@
   </style>
   <button x-show="!showInfo"
           @click.stop="showInfo = true"
-          class="info-hint absolute bottom-4 right-4 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full p-3 text-white"
+          class="info-hint lg:hidden absolute bottom-4 right-4 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full p-3 text-white"
           style="animation: subtle-pulse 4s ease-in-out infinite;"
           title="Show details"
           aria-label="Show details">
