@@ -117,13 +117,13 @@
             <button @click="setColorMode('work_type')"
                     :class="colorMode === 'work_type' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
                     class="px-2 py-0.5 rounded transition-colors">Work type</button>
-            <button @click="setColorMode('museum')"
-                    :class="colorMode === 'museum' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
-                    class="px-2 py-0.5 rounded transition-colors">Museum</button>
             <!-- Maps generated before centuries were added have no year data -->
             <button x-show="hasCenturies || colorMode === 'century'" x-cloak @click="setColorMode('century')"
                     :class="colorMode === 'century' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
                     class="px-2 py-0.5 rounded transition-colors">Century</button>
+            <button @click="setColorMode('museum')"
+                    :class="colorMode === 'museum' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
+                    class="px-2 py-0.5 rounded transition-colors">Museum</button>
             <!-- Collapse the legend items (collapsed by default on small screens) -->
             <button type="button" @click="legendOpen = !legendOpen"
                     :title="legendOpen ? 'Hide legend' : 'Show legend'"
