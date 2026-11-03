@@ -12,6 +12,14 @@ mean colour, is left out: it rewards a uniform tint, so yellowed paper,
 manuscripts and maps scored as colourful as chromolithographs. Without it,
 greyscale scores 0, ink on toned paper ~5-15, and colourful paintings and
 prints 20+.
+
+Only the centre of the image is scored (CENTRE_KEEP of each side). Things
+photographed around the artwork, such as colour charts, inventory labels,
+coloured mounts, frames and the dark background behind open books, sit at the
+edges and would otherwise make monochrome works score as colourful. Compared on
+contact sheets (issue #142): an 80% crop removes those cases, while a 70% crop
+started to cut real colour from landscapes and Japanese prints. Paintings score
+about the same either way, so DEFAULT_VIEW_MIN_COLORFULNESS (20) still fits.
 """
 
 import logging
@@ -29,10 +37,20 @@ logger = logging.getLogger(__name__)
 # Scoring a small copy is fast and gives nearly the same score
 SCORE_MAX_DIMENSION = 128
 
+# Fraction of the width and height kept around the centre (10% cut per side)
+CENTRE_KEEP = 0.8
+
+
+def crop_centre(img: Image.Image, keep: float = CENTRE_KEEP) -> Image.Image:
+    """Keep the central `keep` fraction of the width and height."""
+    width, height = img.size
+    dx, dy = width * (1 - keep) / 2, height * (1 - keep) / 2
+    return img.crop((round(dx), round(dy), round(width - dx), round(height - dy)))
+
 
 def compute_colorfulness(image_bytes: bytes) -> float:
-    """Colour spread of an image (0 for greyscale or a uniform tint)."""
-    img = Image.open(BytesIO(image_bytes))
+    """Colour spread of the image centre (0 for greyscale or a uniform tint)."""
+    img = crop_centre(Image.open(BytesIO(image_bytes)))
     img.thumbnail((SCORE_MAX_DIMENSION, SCORE_MAX_DIMENSION))
     rgb = np.asarray(img.convert("RGB"), dtype=np.float64)
     r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
