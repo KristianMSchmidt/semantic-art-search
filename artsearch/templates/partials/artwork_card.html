@@ -4,7 +4,8 @@
 
   <!-- Artwork image: a fixed-height box, so images line up across a row -->
   <div class="h-72 bg-paper/60 flex items-center justify-center">
-    <img loading="lazy"
+    {# The first row is on screen when results arrive: load it at once, lazy-load the rest #}
+    <img loading="{% if is_first_batch and forloop.counter <= 4 %}eager{% else %}lazy{% endif %}"
       src="{{ result.thumbnail_url }}"
          alt="{{ result.title }}"
          class="max-w-full max-h-full object-contain cursor-pointer hover:opacity-90 transition"
