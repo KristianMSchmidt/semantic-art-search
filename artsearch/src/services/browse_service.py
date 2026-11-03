@@ -4,6 +4,14 @@ Service for browsing artworks with random ordering and pagination.
 Uses PostgreSQL for deterministic random ordering (via seed) and pagination,
 then fetches full payloads from Qdrant for display.
 
+Random order: each ArtworkStats row has a fixed random_key in [0, 1). A seed
+picks a start point, and the order is every artwork from there upwards by
+random_key, then wrapping around to the lowest keys. An index on random_key
+makes a page a short index read, where sorting every row by a seeded hash
+took over a second on prod's database under load. Different seeds give
+rotations of one shuffle rather than independent shuffles, which is fine for
+browsing.
+
 The website's default view (no filters) only shows colourful artworks: most
 of the collection is monochrome prints and drawings, which made the home page
 look bland. Any filter browses the whole collection again; the API's random
@@ -13,13 +21,15 @@ endpoint always does.
 from __future__ import annotations
 
 import time
+import hashlib
 import logging
+from functools import lru_cache
 from typing import TYPE_CHECKING
 
-from django.db.models import Q
-from django.db.models.expressions import RawSQL
+from django.db.models import Q, QuerySet
 
 from artsearch.models import ArtworkStats
+from artsearch.src.cache_registry import register_cache
 from artsearch.src.services.museum_stats_service import filter_by_year_range
 from artsearch.src.services.qdrant_service import QdrantService
 from artsearch.src.config import config
@@ -32,7 +42,6 @@ logger = logging.getLogger(__name__)
 # Minimum ArtworkStats.colorfulness for the default view (~top 15-20% of the
 # collection; see etl/services/colorfulness_service.py for the scale)
 DEFAULT_VIEW_MIN_COLORFULNESS = 20.0
-
 
 
 def default_view_artworks(min_colorfulness: float) -> Q:
@@ -48,6 +57,66 @@ def default_view_artworks(min_colorfulness: float) -> Q:
     return colorful & Q(excluded_from_default_view=False)
 
 
+# How long the default view's count may be cached (see count_default_view_artworks)
+DEFAULT_VIEW_COUNT_TTL_SECONDS = 3600
+
+
+def count_default_view_artworks(min_colorfulness: float) -> int:
+    """
+    Number of artworks in the default view. A full table scan, and asked on
+    every home page load, so it is cached in-process like the museum and work
+    type counts. load_artwork_stats and compute_colorfulness reload the web
+    server afterwards to reset it. The cache also expires every hour, so a
+    change made any other way (an interrupted scoring run, a DB sync, an admin
+    edit) shows up eventually.
+    """
+    time_bucket = int(time.time() // DEFAULT_VIEW_COUNT_TTL_SECONDS)
+    return _count_default_view_artworks(min_colorfulness, time_bucket)
+
+
+@register_cache
+@lru_cache(maxsize=4)
+def _count_default_view_artworks(min_colorfulness: float, time_bucket: int) -> int:
+    """Cached count; time_bucket only makes the cache expire (see caller)."""
+    return ArtworkStats.objects.filter(
+        default_view_artworks(min_colorfulness)
+    ).count()
+
+
+def seed_to_start(seed: str) -> float:
+    """Map a seed to a deterministic start point in [0, 1) for random_key."""
+    return int(hashlib.md5(seed.encode(), usedforsecurity=False).hexdigest()[:13], 16) / 16**13
+
+
+def page_in_random_order(
+    queryset: QuerySet, seed: str, offset: int, limit: int
+) -> list[tuple[str, str]]:
+    """
+    One page of (museum_slug, object_number) in the seed's random order:
+    random_key from the seed's start point upwards, then wrapping around to
+    the keys below it. id breaks ties, so the order is total.
+    """
+    start = seed_to_start(seed)
+    fields = ("museum_slug", "object_number")
+    order = ("random_key", "id")
+
+    from_start = queryset.filter(random_key__gte=start).order_by(*order)
+    rows = list(from_start.values_list(*fields)[offset : offset + limit])
+    if len(rows) == limit:
+        return rows
+
+    # The page runs past the highest key: continue from the lowest. Only if
+    # the page starts beyond the upper part do we need its size (a count) to
+    # know how far into the lower part it starts.
+    wrapped_offset = 0 if rows else offset - from_start.count()
+    below_start = queryset.filter(random_key__lt=start).order_by(*order)
+    remaining = limit - len(rows)
+    rows += below_start.values_list(*fields)[
+        wrapped_offset : wrapped_offset + remaining
+    ]
+    return rows
+
+
 def get_random_artwork_ids(
     museums: list[str] | None,
     work_types: list[str] | None,
@@ -61,8 +130,8 @@ def get_random_artwork_ids(
     """
     Get random artwork IDs from PostgreSQL with deterministic ordering.
 
-    Uses md5 hash of (museum_slug || object_number || seed) for deterministic
-    random ordering. Same seed always produces same order.
+    Ordered by random_key from a start point picked by the seed (see the
+    module docstring). Same seed always produces same order.
 
     Args:
         museums: List of museum slugs to filter by, or None for all
@@ -97,15 +166,7 @@ def get_random_artwork_ids(
     if min_colorfulness is not None:
         queryset = queryset.filter(default_view_artworks(min_colorfulness))
 
-    # Deterministic random order using md5 hash with seed
-    queryset = queryset.order_by(
-        RawSQL("md5(museum_slug || object_number || %s)", [seed])
-    )
-
-    # Pagination via slicing
-    queryset = queryset[offset : offset + limit]
-
-    result = [(row.museum_slug, row.object_number) for row in queryset]
+    result = page_in_random_order(queryset, seed, offset, limit)
 
     elapsed = (time.time() - start_time) * 1000
     logger.info(
@@ -147,9 +208,7 @@ def handle_browse(
     )
     if colorful_default_view and is_unfiltered:
         min_colorfulness = DEFAULT_VIEW_MIN_COLORFULNESS
-        total_works = ArtworkStats.objects.filter(
-            default_view_artworks(min_colorfulness)
-        ).count()
+        total_works = count_default_view_artworks(min_colorfulness)
 
     qdrant_service = QdrantService(collection_name=config.qdrant_collection_name_app)
 

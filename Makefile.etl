@@ -416,12 +416,16 @@ prod_load-artwork-stats-drop:  ## [PROD] Load ArtworkStats table (drop existing 
 
 compute-colorfulness:  ## [DEV] Score colourfulness of unscored artworks (default home page view)
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py compute_colorfulness
+	$(MAKE) reload-web  # the web server caches the default view's artwork count
 
 compute-colorfulness-force:  ## [DEV] Rescore colourfulness of all artworks
 	docker compose -f docker-compose.dev.yml run --rm web python manage.py compute_colorfulness --force
+	$(MAKE) reload-web  # the web server caches the default view's artwork count
 
 prod_compute-colorfulness:  ## [PROD] Score colourfulness of unscored artworks (default home page view)
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py compute_colorfulness
+	$(MAKE) prod_reload-web  # the web server caches the default view's artwork count
 
 prod_compute-colorfulness-force:  ## [PROD] Rescore colourfulness of all artworks
 	docker compose -f docker-compose.prod.yml run --rm web python manage.py compute_colorfulness --force
+	$(MAKE) prod_reload-web  # the web server caches the default view's artwork count

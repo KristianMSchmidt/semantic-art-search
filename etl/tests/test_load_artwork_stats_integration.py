@@ -307,13 +307,15 @@ def test_load_artwork_stats_updates_existing_rows_with_production_dates():
     A plain reload (no --drop-existing) refreshes existing rows, so production
     dates added to Qdrant payloads reach the year filter without a full drop.
     Duplicate points in Qdrant keep the first occurrence. The colourfulness
-    score isn't in Qdrant and survives the reload.
+    score isn't in Qdrant and survives the reload, and so does random_key, so
+    the random browse order stays put.
     """
     ArtworkStats.objects.create(
         museum_slug="smk",
         object_number="KMS1",
         searchable_work_types=["drawing"],
         colorfulness=42.0,
+        random_key=0.25,
     )
 
     point = Mock()
@@ -342,6 +344,7 @@ def test_load_artwork_stats_updates_existing_rows_with_production_dates():
     assert stats.searchable_work_types == ["painting"]
     assert (stats.production_date_start, stats.production_date_end) == (1600, 1650)
     assert stats.colorfulness == 42.0
+    assert stats.random_key == 0.25
 
 
 @pytest.mark.integration
