@@ -12,7 +12,7 @@
   {% endif %}
   <p class="{% if not in_popup %}lg:text-lg {% endif %}text-muted mt-1">{{ artwork.artist }}</p>
 
-  <div class="flex flex-wrap gap-1.5 mt-3">
+  <div class="flex flex-wrap gap-1.5 {% if in_popup %}mt-2{% else %}mt-3{% endif %}">
     {% if artwork.production_date %}
       <span class="tag">{{ artwork.production_date }}</span>
     {% endif %}
@@ -21,9 +21,13 @@
     {% endfor %}
   </div>
 
-  <p class="text-sm text-muted mt-3">{{ artwork.object_number }}</p>
+  {% if not in_popup %}
+    <p class="text-sm text-muted mt-3">{{ artwork.object_number }}</p>
+  {% endif %}
 
-  <p class="mt-4">
+  <!-- The popup puts the object number on the museum line, so the phone
+       drawer shows the start of the similar artworks without scrolling -->
+  <p class="{% if in_popup %}mt-3 flex flex-wrap items-baseline gap-x-2{% else %}mt-4{% endif %}">
     <a href="{{ artwork.source_url }}"
        target="_blank"
        rel="noopener noreferrer"
@@ -36,6 +40,9 @@
               d="M18 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6m5-5h5m0 0v5m0-5L10 14" />
       </svg>
     </a>
+    {% if in_popup %}
+      <span class="text-sm text-muted">· {{ artwork.object_number }}</span>
+    {% endif %}
   </p>
 
   <p class="mt-2 flex flex-wrap gap-x-5 gap-y-2">
@@ -103,7 +110,8 @@
         </button>
       {% endif %}
     </div>
-    <p id="description-spinner" class="htmx-indicator text-sm text-muted mt-2">
+    <!-- hidden, not just transparent (htmx's default), so it takes no space while idle -->
+    <p id="description-spinner" class="htmx-indicator hidden [&.htmx-request]:block text-sm text-muted mt-2">
       Generating description...
     </p>
   </div>
