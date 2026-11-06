@@ -92,8 +92,10 @@ def test_artwork_page_links_to_artwork_on_map(mock_qdrant):
     response = Client().get("/artwork/smk/KKS10208/5/")
 
     # The map reads museum and object number back from ?artwork=<slug>/<object_number>
-    assert response.context["map_url"] == "/map/?artwork=smk%2FKKS10208%2F5"
-    assert 'href="/map/?artwork=smk%2FKKS10208%2F5"' in response.content.decode()
+    # and starts with colours off (?color=none) so the artwork stands out
+    url = "/map/?artwork=smk%2FKKS10208%2F5&amp;color=none"
+    assert response.context["map_url"] == url.replace("&amp;", "&")
+    assert f'href="{url}"' in response.content.decode()
 
 
 @pytest.mark.integration

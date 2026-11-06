@@ -429,8 +429,12 @@ def get_artwork_description_view(request: HttpRequest) -> HttpResponse:
 
 
 def make_map_url(museum_slug: str, object_number: str) -> str:
-    """Art map URL that flies to this artwork and selects it ("Show on map")."""
-    return f"{reverse('art-map')}?{urlencode({'artwork': f'{museum_slug}/{object_number}'})}"
+    """Art map URL that flies to this artwork and selects it ("Show on map").
+
+    Colours start off, so the artwork stands out.
+    """
+    params = {"artwork": f"{museum_slug}/{object_number}", "color": "none"}
+    return f"{reverse('art-map')}?{urlencode(params)}"
 
 
 def art_map_view(request: HttpRequest) -> HttpResponse:

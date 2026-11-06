@@ -184,13 +184,13 @@ def test_get_artworks_view_with_text_query_and_results(mock_qdrant_service):
 @pytest.mark.parametrize(
     "params, expected_url",
     [
-        ("query=blue+sky", "/map/?q=blue+sky"),
+        ("query=blue+sky", "/map/?q=blue+sky&color=none"),
         ("query=blue+sky&model=title", None),  # the map only does Visual Search
         ("", None),  # browsing
     ],
 )
 def test_results_link_to_same_search_on_map(mock_qdrant_service, params, expected_url):
-    """A Visual Search links to the art map running the same query."""
+    """A Visual Search links to the art map running the same query, colours off."""
     with patch(
         "artsearch.src.services.search_service.get_total_works_for_filters",
         return_value=42,
