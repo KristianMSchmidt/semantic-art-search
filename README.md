@@ -1,90 +1,106 @@
-# Semantic Art Search 🎨🔍
+# Semantic Art Search
 
+[Semantic Art Search](https://semantic-art-search.com) lets you search open museum collections by describing what you're looking for, or by uploading an image. It covers seven museums and also plots every artwork on a map of visual similarity.
 
-[Semantic Art Search](https://semantic-art-search.com) is an open-source search engine that uses advanced machine learning to explore digitized art collections. With simple natural-language queries, you can uncover artworks by their visual content, themes, emotions, or styles across multiple museums.
+To use the site, or to read how it works in plain language and which museums it covers, see the [About page](https://semantic-art-search.com/about/). The rest of this README is for developers.
 
-*Unlike traditional keyword searches, Semantic Art Search understands meaning directly from images and lets you discover artworks even when the metadata doesn’t contain exact keywords.*
+## How it works
 
+Jina CLIP v2 embeds images and text into a shared 256-dimensional vector space, and Qdrant ranks artworks by vector similarity to the query:
 
-Currently, the system includes selected artworks from these renowned institutions committed to open data:
+- **Visual Search** (the default) compares the query with image vectors, so it can find a cat in a painting whose record never mentions one.
+- **Title Search** compares the query with vectors of the titles.
+- **Similar artworks** and **image upload search** use the same image vectors.
+- **The art map** is a precomputed UMAP projection of the image vectors, drawn with deck.gl.
 
-- Statens Museum for Kunst (The Danish National Gallery)
-- The Cleveland Museum of Art
-- Rijksmuseum Amsterdam
-- The Metropolitan Museum of Art
-- Art Institute of Chicago
----
+Filters for museum, work type and production year run on stored metadata.
 
-## 🔎 How It Works
+## Stack
 
-Just use the search bar — it's designed for natural language input. Try themes, moods, styles, or descriptions, for example:
-- *"Mourning"*
-- *"Battle at sea"*
-- *"Impressionism"*
-- *"Bible scene"*
+- Django 5.1 with HTMX, Alpine.js and Tailwind CSS
+- PostgreSQL for raw and transformed museum data, statistics and logs
+- Qdrant for vector search
+- S3-compatible object storage for thumbnails
+- Jina API for embeddings, OpenAI API for the artwork descriptions generated on request
 
-You can also paste an inventory number (e.g., *"KMS1"*) into the search bar to find visually or thematically related works. This is especially useful when clicking “Find similar” on a specific artwork.
+## Project layout
 
-When you search:
-- The entire collection is ranked by relevance (best matches are shown first)
-- You can filter by work type (e.g., painting, print, drawing)
-- You can search across all museums or limit to one or more
+| Directory | Contents |
+|-----------|----------|
+| `artsearch/` | The web app: search, artwork pages, art map and REST API |
+| `etl/` | The pipeline: museum APIs → raw metadata → transformed data → thumbnails → embeddings |
+| `theme/` | Tailwind configuration and compiled CSS |
+| `djangoconfig/` | Django project settings |
 
-Each artwork links to its page at the source museum, so you can dive deeper and explore the full context.
+## Running it locally
 
-### 🔧 Search Mode
+You need Docker, plus accounts for the Jina and OpenAI APIs and an S3-compatible bucket.
 
-You can choose how artworks are matched to your query:
+1. Create `.env.dev` in the repository root with the settings listed in `artsearch/src/config.py`.
+2. Build and start the stack, which includes PostgreSQL and Qdrant:
 
-- **Auto** (default): Combines visual and title search for the best overall results
-- **Visual**: Matches by visual appearance — finds artworks that *look* like your query
-- **By title**: Matches by title — finds artworks that are *named* like your query
+   ```bash
+   make build
+   make develop
+   ```
 
-Jina supports queries in multiple languages, so you can search in your native language.
+3. In another terminal, apply the migrations:
 
----
+   ```bash
+   make migrate
+   ```
 
-## 🤔 How Is This Search Different?
+The site runs at http://localhost:8000, but it has no artworks until you run the pipeline. Run `make help` to see all commands.
 
-Traditional art search engines often rely on *exact keyword matches* in stored metadata such as titles, descriptions, and tags. If you search for "cat", such engines will return artworks that explicitly mention "cat" in their metadata. While this kind of search has its merits, it also has clear limitations. For example, a painting might depict a cat without mentioning it in the title or description, or the title might contain the word "cat" in another language. In these cases, you would get no results, even though the painting is relevant to your search.
+## Loading data
 
-Semantic Art Search helps you discover works that match the intent of your query. In **Visual** mode, it finds meaning *directly in the image* — if there's a cat somewhere in the painting, there's a good chance that this work will be found, even if the word "cat" does not appear in the metadata. In **By title** mode, it matches semantically against artwork titles — understanding that "feline" and "cat" are related concepts, not just exact words. The default **Auto** mode combines both signals.
+Each museum has its own targets for each pipeline step, for example for SMK:
 
-Being natural language based, the semantic search engine also understands abstract concepts and phrases like "war", "ancient Rome", or "shipwreck in a storm", allowing you to search in a very flexible and intuitive way.
+```bash
+make extract-smk
+make transform-smk
+make load-images-smk
+make load-embeddings-smk
+```
 
-> 📝 *Note: Filters such as work type and museum still use metadata — but search relevance is driven by visual and semantic similarity.*
+Then build the tables and data that the site reads:
 
----
+```bash
+make load-artwork-stats    # statistics for browsing and filter counts
+make compute-colorfulness  # scores for the default home page view
+make art-map               # coordinates for the art map
+```
 
-## 🧠 Behind The Scenes
+## Tests
 
-The system uses *Jina CLIP v2* (a multimodal neural network) to embed both images and search queries into a shared vector space. It then performs vector-based nearest neighbor search to rank artworks by semantic or visual relevance to the query. Users can search either by visual appearance (image embeddings) or by title (text embeddings).
+```bash
+make test      # everything
+make test-app  # the web app
+make test-etl  # the pipeline
+```
 
-## 🎨 Artwork Coverage
+The tests run with pytest inside the dev container, so the stack needs to be running.
 
-The system includes artworks that:
-- Are in the *public domain*
-- Have a photograph available in the museum dataset
+## REST API
 
-Not all types of artworks are yet included - focus for now is on visual art like paintings, prints, and drawings. Coverage will grow over time.
+A JSON API is available at `/api/`. No key is needed, and search, similar and random requests are rate limited to 30 a minute and 200 an hour per IP.
 
----
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/museums/` | List museums |
+| `GET /api/work-types/` | List searchable work types |
+| `GET /api/search/?query=...` | Search artworks |
+| `POST /api/search/image/` | Find artworks resembling an uploaded image (multipart field `image`, max 10 MB; limited to 10 a minute and 100 an hour) |
+| `GET /api/random/` | Random artworks (optional `seed`) |
+| `GET /api/artworks/<museum_slug>/<object_number>/` | One artwork |
+| `GET /api/artworks/<museum_slug>/<object_number>/similar/` | Visually similar artworks |
 
-## 🙌 Acknowledgments
+Search, random and similar accept `offset`, `limit` (max 24), `museums` and `work_types` (both repeatable), `year_from` and `year_to`. Search also accepts `model` (`image` or `title`, default `image`).
 
-This project is made possible by the excellent **open data initiatives** of:
+## Data and licence
 
-- [Statens Museum for Kunst](https://open.smk.dk)
-- [Cleveland Museum of Art](https://www.clevelandart.org/open-access)
-- [Rijksmuseum](https://data.rijksmuseum.nl/)
-- [The Metropolitan Museum of Art](https://www.metmuseum.org/about-the-met/policies-and-documents/open-access)
-- [Art Institute of Chicago](https://www.artic.edu/open-access)
----
+The code is under the [MIT License](LICENSE). The artworks and their data come from the museums' open data programmes, and only works they have released as public domain or open access are included. The [About page](https://semantic-art-search.com/about/) lists and links to each museum.
 
-## 📬 Get in Touch
+## Get in touch
 
-Have questions, feedback, or ideas? Want to contribute?
-
-Reach out via:
-- **Email**: [kmollerschmidt@gmail.com](mailto:kmollerschmidt@gmail.com)
-- **LinkedIn**: [Kristian Møller Schmidt](https://www.linkedin.com/in/kristian-m%C3%B8ller-schmidt-516b9170/)
+Questions, ideas or corrections are welcome: open an [issue](https://github.com/KristianMSchmidt/semantic-art-search/issues) or message me on [LinkedIn](https://www.linkedin.com/in/kristian-m%C3%B8ller-schmidt-516b9170/).
