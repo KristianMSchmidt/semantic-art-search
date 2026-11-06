@@ -321,8 +321,11 @@ def make_home_url(params: SearchParams) -> str:
 
 
 def make_map_search_url(query: str) -> str:
-    """Art map URL that runs `query` in the map's search box (Visual Search only)."""
-    return f"{reverse('art-map')}?{urlencode({'q': query})}"
+    """Art map URL that runs `query` in the map's search box (Visual Search only).
+
+    Colours start off, so the matches stand out.
+    """
+    return f"{reverse('art-map')}?{urlencode({'q': query, 'color': 'none'})}"
 
 
 def build_search_context(

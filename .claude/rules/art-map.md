@@ -12,11 +12,13 @@ paths:
 ## Linking in and out
 
 - Clicking a dot opens a panel linking to the artwork page and to Find similar (`/?query=<slug>:<object_number>`).
-- "Show on map" on artwork pages and in the search popup links to `/map/?artwork=<slug>/<object_number>` (`make_map_url()`), which flies to the artwork and rings it, or says it isn't on the map yet (artworks loaded after the last `make art-map`).
+- "Show on map" on artwork pages and in the search popup links to `/map/?artwork=<slug>/<object_number>&color=none` (`make_map_url()`), which flies to the artwork and rings it, or says it isn't on the map yet (artworks loaded after the last `make art-map`).
+- "See on map" on Visual Search results links to `/map/?q=<query>&color=none` (`make_map_search_url()`). Both links start with colours off so the artwork or matches stand out.
 
 ## Colours and legend filters
 
 - Points are coloured by work type, museum or century (by `production_date_start`, falling back to the end year; groups and slugs are `CENTURY_SLUGS` in `constants/museums.py`, the last one being "undated").
+- Clicking the active colour-mode button turns colours off (`color=none`): points go neutral grey, and search matches (or, with no search, the selected artwork) get `HIGHLIGHT_COLOR`, since they would otherwise be the same grey. Searching from the map's own box keeps the current mode. There is no legend in this mode; filters still apply and the panel says how many are hidden.
 - Clicking a legend item hides or shows that museum, work type or century; all three kinds of filter apply in every colour mode. "Show all" and "Hide all" act on the current colour mode only (Hide all, then click one item to isolate it).
 - Filters run on the GPU via deck.gl's `DataFilterExtension` (a per-point 0/1 visibility value, `_visibilityMask()`), so hidden points are neither drawn nor picked.
 - The chevron next to the colour-mode buttons collapses the legend items; it starts collapsed below 640px wide (phones), and while collapsed still says how many museums/work types/centuries are hidden.
@@ -34,7 +36,7 @@ paths:
 
 ## URL state
 
-The map keeps the search (`q`), selection, view (`x`, `y`, `z`), colour mode (`color=museum`, `color=century`) and filters (`hide_museums=smk,rma`, `hide_types=print`, `hide_centuries=1500s,undated`) in the URL, so map links can be shared.
+The map keeps the search (`q`), selection, view (`x`, `y`, `z`), colour mode (`color=museum`, `color=century`, `color=none`) and filters (`hide_museums=smk,rma`, `hide_types=print`, `hide_centuries=1500s,undated`) in the URL, so map links can be shared.
 
 ## Geometry blob
 

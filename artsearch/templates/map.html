@@ -112,20 +112,26 @@
     <div x-show="!loading && !error" x-cloak
          class="absolute z-20 top-4 left-4 right-4 flex flex-col-reverse sm:flex-row sm:justify-between items-start gap-2 pointer-events-none">
     <div class="pointer-events-auto bg-white/90 backdrop-blur-sm rounded-lg shadow border border-line px-4" style="padding-top: 0.75rem; padding-bottom: 0.75rem;">
-        <!-- Toggle -->
-        <div class="flex items-center gap-1 text-xs" :class="legendOpen && 'mb-2'">
+        <!-- Colour mode; clicking the active one turns colours off -->
+        <div class="flex items-center gap-1 text-xs" :class="legendShown && 'mb-2'">
             <button @click="setColorMode('work_type')"
+                    :title="colorMode === 'work_type' ? 'Turn colours off' : ''"
+                    :aria-pressed="colorMode === 'work_type'"
                     :class="colorMode === 'work_type' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
                     class="px-2 py-0.5 rounded transition-colors">Work type</button>
             <!-- Maps generated before centuries were added have no year data -->
             <button x-show="hasCenturies || colorMode === 'century'" x-cloak @click="setColorMode('century')"
+                    :title="colorMode === 'century' ? 'Turn colours off' : ''"
+                    :aria-pressed="colorMode === 'century'"
                     :class="colorMode === 'century' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
                     class="px-2 py-0.5 rounded transition-colors">Century</button>
             <button @click="setColorMode('museum')"
+                    :title="colorMode === 'museum' ? 'Turn colours off' : ''"
+                    :aria-pressed="colorMode === 'museum'"
                     :class="colorMode === 'museum' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
                     class="px-2 py-0.5 rounded transition-colors">Museum</button>
             <!-- Collapse the legend items (collapsed by default on small screens) -->
-            <button type="button" @click="legendOpen = !legendOpen"
+            <button type="button" x-show="colorMode !== 'none'" @click="legendOpen = !legendOpen"
                     :title="legendOpen ? 'Hide legend' : 'Show legend'"
                     :aria-expanded="legendOpen"
                     class="ml-1 -mr-1 w-6 h-6 flex items-center justify-center rounded text-muted hover:bg-paper hover:text-ink transition-colors">
@@ -134,9 +140,9 @@
                 </svg>
             </button>
         </div>
-        <!-- While collapsed, still say that filters are on -->
-        <p x-show="!legendOpen && hiddenCountText" x-cloak class="mt-1 text-xs text-muted" x-text="hiddenCountText"></p>
-        <div x-show="legendOpen" x-cloak class="overflow-y-auto" style="max-height: calc(100vh - 68px - 12rem);">
+        <!-- With no legend showing, still say that filters are on -->
+        <p x-show="!legendShown && hiddenCountText" x-cloak class="mt-1 text-xs text-muted" x-text="hiddenCountText"></p>
+        <div x-show="legendShown" x-cloak class="overflow-y-auto" style="max-height: calc(100vh - 68px - 12rem);">
         <!-- Legend items: click to hide or show -->
         <template x-for="item in legendItems" :key="colorMode + '-' + item.index">
             <button type="button" @click="toggleHidden(item.index)"
@@ -219,6 +225,9 @@ function artMap() {
     const MODE_BUTTONS = { museum: 'Museum', work_type: 'Work type', century: 'Century' };
     const HOME_URL = '{% url "home" %}';
     const MAP_SEARCH_URL = '{% url "art-map-search" %}';
+    // With colours off: plain points, and a colour of its own for what should stand out
+    const NEUTRAL_COLOR = [190, 195, 190];
+    const HIGHLIGHT_COLOR = [214, 48, 49];
     const SEARCH_DIM_ALPHA = 35;  // alpha of points that aren't search matches
     const ARTWORK_PAGE_URL = '{% url "artwork-page" "__slug__" "__object__" %}';
     const SELECTED_ZOOM = 4;  // zoom level when flying to a linked artwork
@@ -239,7 +248,7 @@ function artMap() {
         loading: true,
         error: null,
         deckgl: null,
-        colorMode: 'work_type',
+        colorMode: 'work_type',  // or 'museum', 'century', 'none' (colours off, no legend)
 
         // Lazy-loaded metadata (titles, artists, etc.)
         _metadata: null,
@@ -297,7 +306,12 @@ function artMap() {
             return { museum: 'hiddenMuseums', work_type: 'hiddenWorkTypes', century: 'hiddenCenturies' }[mode];
         },
 
+        get legendShown() {
+            return this.legendOpen && this.colorMode !== 'none';
+        },
+
         get legendItems() {
+            if (this.colorMode === 'none') return [];
             if (this.colorMode === 'museum') {
                 return MUSEUM_NAMES.map((name, i) => ({
                     index: i, label: name, color: this.museumColors[i], hidden: this.hiddenMuseums.includes(i),
@@ -351,7 +365,7 @@ function artMap() {
         // When every museum, work type or century is hidden no point can show; say how to get them back
         get allHiddenText() {
             const counts = { museum: MUSEUM_SLUGS.length, work_type: WORK_TYPE_LABELS.length, century: CENTURY_SLUGS.length };
-            if (this[this._hiddenKey(this.colorMode)].length === counts[this.colorMode]) {
+            if (this.colorMode !== 'none' && this[this._hiddenKey(this.colorMode)].length === counts[this.colorMode]) {
                 return 'Everything is hidden. Click a legend item to show it.';
             }
             const mode = Object.keys(counts).find((m) => this[this._hiddenKey(m)].length === counts[m]);
@@ -415,7 +429,7 @@ function artMap() {
             if (!total) return `No matches for “${this.search.query}” are on the map yet.`;
             const hidden = this.search.indices.filter((idx) => this._isHidden(idx)).length;
             let text = `${total} closest ${total === 1 ? 'match' : 'matches'} for “${this.search.query}”`;
-            if (hidden) text += `, ${hidden} hidden by the legend filters`;
+            if (hidden) text += `, ${hidden} hidden by filters`;
             if (this.search.missing) text += `, ${this.search.missing} not on the map yet`;
             return `${text}.`;
         },
@@ -509,13 +523,14 @@ function artMap() {
             const positions = this._positions;
             const data = this.search.indices.filter((idx) => !this._isHidden(idx)).reverse();
             const colors = colorArray.value;
+            const neutral = this.colorMode === 'none';
             // Picking reports the index into `data`; hand the handlers the point index
             const pointInfo = (info) => ({ ...info, index: info.index >= 0 ? data[info.index] : -1 });
             return new deck.ScatterplotLayer({
                 id: 'search-results',
                 data,
                 getPosition: (idx) => [positions[idx * 2], positions[idx * 2 + 1]],
-                getFillColor: (idx) => [colors[idx * 4], colors[idx * 4 + 1], colors[idx * 4 + 2], 255],
+                getFillColor: (idx) => (neutral ? HIGHLIGHT_COLOR : [colors[idx * 4], colors[idx * 4 + 1], colors[idx * 4 + 2], 255]),
                 getRadius: 5,
                 radiusUnits: 'pixels',
                 stroked: true,
@@ -552,13 +567,13 @@ function artMap() {
         },
 
         setColorMode(mode) {
-            this.colorMode = mode;
+            this.colorMode = this.colorMode === mode ? 'none' : mode;
             this._render();
             this._updateUrl();
         },
 
         // The artworks layer is rebuilt only when the colour mode or filters change,
-        // so the per-frame pulse redraws just the ring
+        // so the per-frame pulse redraws just the selection
         _render() {
             if (!this.deckgl) return;
             this.deckgl.setProps({ layers: this._layers() });
@@ -574,7 +589,10 @@ function artMap() {
             }
             const layers = [this._artworksLayer];
             if (this._searchLayer) layers.push(this._searchLayer);
-            if (this.selectedIndex >= 0) layers.push(this._buildSelectedLayer());
+            if (this.selectedIndex >= 0) {
+                if (this.colorMode === 'none' && !this.search.active) layers.push(this._buildSelectedDotLayer());
+                layers.push(this._buildSelectedLayer());
+            }
             return layers;
         },
 
@@ -587,6 +605,28 @@ function artMap() {
             return ARTWORK_PAGE_URL
                 .replace('__slug__', encodeURIComponent(slug))
                 .replace('__object__', encodeURIComponent(objectNumber).replace(/%2F/g, '/'));
+        },
+
+        // With colours off the selected point would be as grey as the rest, inside its ring.
+        // Not during a search: selected matches are already highlighted, and a selected
+        // non-match mustn't look like one.
+        _buildSelectedDotLayer() {
+            const { deck } = window;
+            const self = this;
+            const i = this.selectedIndex;
+            // Larger than the point below, so it answers to hover and clicks in its place
+            const pointInfo = (info) => ({ ...info, index: info.index >= 0 ? i : -1 });
+            return new deck.ScatterplotLayer({
+                id: 'selected-dot',
+                data: [[this._positions[i * 2], this._positions[i * 2 + 1]]],
+                getPosition: (d) => d,
+                getRadius: 5,
+                radiusUnits: 'pixels',
+                getFillColor: HIGHLIGHT_COLOR,
+                pickable: true,
+                onHover: (info) => self._onHover(pointInfo(info)),
+                onClick: (info) => self._onClick(pointInfo(info)),
+            });
         },
 
         // Ring around the selected artwork; _pulseRadius briefly enlarges it
@@ -706,11 +746,11 @@ function artMap() {
             return { target: [x, y], zoom: z };
         },
 
-        // Colour mode (?color=museum|century) and legend filters
+        // Colour mode (?color=museum|century|none) and legend filters
         // (?hide_museums=smk,cma&hide_types=print&hide_centuries=1500s,undated)
         _filtersFromUrl() {
             const params = new URLSearchParams(window.location.search);
-            if (['museum', 'century'].includes(params.get('color'))) this.colorMode = params.get('color');
+            if (['museum', 'century', 'none'].includes(params.get('color'))) this.colorMode = params.get('color');
             const indices = (name, values) => [...new Set((params.get(name) || '').split(',')
                 .map((v) => values.indexOf(v)).filter((i) => i >= 0))].sort((a, b) => a - b);
             this.hiddenMuseums = indices('hide_museums', MUSEUM_SLUGS);
@@ -955,6 +995,8 @@ function artMap() {
                     museum: buildColorArray(geo.museum, this.museumColors),
                     work_type: buildColorArray(geo.workType, this.workTypeColors),
                     century: geo.century ? buildColorArray(geo.century, this.centuryColors) : null,
+                    // One-colour palette: every index gets it, directly or via the fallback
+                    none: buildColorArray(geo.museum, [NEUTRAL_COLOR]),
                 },
             };
 
