@@ -34,11 +34,6 @@
          class="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-white rounded-lg shadow border border-line px-4 py-2 text-sm text-muted"
          x-text="notice"></div>
 
-    <!-- Hint when the filters leave nothing on the map -->
-    <div x-show="!loading && allHiddenText" x-cloak
-         class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none text-sm text-muted text-center px-4"
-         x-text="allHiddenText"></div>
-
     <!-- deck.gl canvas -->
     <canvas id="deck-canvas" class="w-full h-full"></canvas>
 
@@ -140,8 +135,8 @@
                 </svg>
             </button>
         </div>
-        <!-- With no legend showing, still say that filters are on -->
-        <p x-show="!legendShown && hiddenCountText" x-cloak class="mt-1 text-xs text-muted" x-text="hiddenCountText"></p>
+        <!-- While collapsed, still say that filters are on -->
+        <p x-show="!legendOpen && colorMode !== 'none' && hiddenCountText" x-cloak class="mt-1 text-xs text-muted" x-text="hiddenCountText"></p>
         <div x-show="legendShown" x-cloak class="overflow-y-auto" style="max-height: calc(100vh - 68px - 12rem);">
         <!-- Legend items: click to hide or show -->
         <template x-for="item in legendItems" :key="colorMode + '-' + item.index">
@@ -222,7 +217,7 @@ function artMap() {
     const UNDATED_CENTURY = CENTURY_SLUGS.length - 1;
     // Legend noun per colour mode, for "2 museums, 1 century hidden"
     const MODE_NOUNS = { museum: ['museum', 'museums'], work_type: ['work type', 'work types'], century: ['century', 'centuries'] };
-    const MODE_BUTTONS = { museum: 'Museum', work_type: 'Work type', century: 'Century' };
+    const MODE_SIZES = { museum: MUSEUM_SLUGS.length, work_type: WORK_TYPE_LABELS.length, century: CENTURY_SLUGS.length };
     const HOME_URL = '{% url "home" %}';
     const MAP_SEARCH_URL = '{% url "art-map-search" %}';
     // With colours off: pale points, so each one stays visible, under a faint second pass
@@ -309,6 +304,12 @@ function artMap() {
             return { museum: 'hiddenMuseums', work_type: 'hiddenWorkTypes', century: 'hiddenCenturies' }[mode];
         },
 
+        // Colours off means a plain map: filters don't apply, but come back with the colours
+        get _anyHidden() {
+            if (this.colorMode === 'none') return false;
+            return this.hiddenMuseums.length + this.hiddenWorkTypes.length + this.hiddenCenturies.length > 0;
+        },
+
         get legendShown() {
             return this.legendOpen && this.colorMode !== 'none';
         },
@@ -358,21 +359,29 @@ function artMap() {
         toggleHidden(index) {
             const key = this._hiddenKey(this.colorMode);
             const hidden = this[key];
+            const showing = hidden.includes(index);
             // Kept sorted, so the same filters give the same layer key and URL
-            this[key] = hidden.includes(index)
+            this[key] = showing
                 ? hidden.filter((i) => i !== index)
                 : [...hidden, index].sort((a, b) => a - b);
+            if (showing) this._clearFullyHiddenModes();
             this._filtersChanged();
         },
 
-        // When every museum, work type or century is hidden no point can show; say how to get them back
-        get allHiddenText() {
-            const counts = { museum: MUSEUM_SLUGS.length, work_type: WORK_TYPE_LABELS.length, century: CENTURY_SLUGS.length };
-            if (this.colorMode !== 'none' && this[this._hiddenKey(this.colorMode)].length === counts[this.colorMode]) {
-                return 'Everything is hidden. Click a legend item to show it.';
-            }
-            const mode = Object.keys(counts).find((m) => this[this._hiddenKey(m)].length === counts[m]);
-            return mode ? `All ${MODE_NOUNS[mode][1]} are hidden. Switch to ${MODE_BUTTONS[mode]} to show some.` : '';
+        // Every museum, work type or century hidden, so the filters leave no point to highlight
+        get _allHidden() {
+            return this.colorMode !== 'none' && Object.keys(MODE_SIZES).some((mode) => this._isFullyHidden(mode));
+        },
+
+        _isFullyHidden(mode) {
+            return this[this._hiddenKey(mode)].length === MODE_SIZES[mode];
+        },
+
+        // Showing something would have no effect while another mode hides everything
+        _clearFullyHiddenModes() {
+            Object.keys(MODE_SIZES)
+                .filter((mode) => mode !== this.colorMode && this._isFullyHidden(mode))
+                .forEach((mode) => { this[this._hiddenKey(mode)] = []; });
         },
 
         hideAll() {
@@ -382,6 +391,7 @@ function artMap() {
 
         showAll() {
             this[this._hiddenKey(this.colorMode)] = [];
+            this._clearFullyHiddenModes();
             this._filtersChanged();
         },
 
@@ -406,6 +416,7 @@ function artMap() {
         },
 
         _isHidden(idx) {
+            if (!this._anyHidden) return false;
             return this.hiddenMuseums.includes(this._museumIndices[idx])
                 || this.hiddenWorkTypes.includes(this._workTypeOf(idx))
                 || this.hiddenCenturies.includes(this._centuryOf(idx));
@@ -554,6 +565,7 @@ function artMap() {
         _pulseId: 0,
         _urlTimer: null,
         _artworksLayer: null,
+        _contextLayer: null,
         _densityLayer: null,
         _searchLayer: null,
         _artworksLayerKey: null,
@@ -572,8 +584,8 @@ function artMap() {
 
         setColorMode(mode) {
             this.colorMode = this.colorMode === mode ? 'none' : mode;
-            this._render();
-            this._updateUrl();
+            // Filters only apply with colours on, so this can hide or show points
+            this._filtersChanged();
         },
 
         // The artworks layer is rebuilt only when the colour mode or filters change,
@@ -587,13 +599,18 @@ function artMap() {
             const key = `${this.colorMode}|${this.hiddenMuseums}|${this.hiddenWorkTypes}|${this.hiddenCenturies}|${this._searchVersion}`;
             if (this._artworksLayerKey !== key) {
                 const colorArray = pointAttributes.colors[this.colorMode];
-                this._artworksLayer = this._buildLayer(colorArray, this.search.active);
-                // Left out during a search, when the matches should be all that stands out
-                this._densityLayer = this.colorMode === 'none' && !this.search.active ? this._buildDensityLayer() : null;
+                // Dimming quiets the colours; the plain map is quiet enough for matches to stand out
+                this._artworksLayer = this._buildLayer(colorArray, this.search.active && this.colorMode !== 'none');
+                this._contextLayer = this._anyHidden ? this._buildContextLayer(this.search.active) : null;
+                // For the plain map: colours off, or filters that leave nothing to highlight
+                const plainMap = this.colorMode === 'none' || (this._allHidden && !this.search.active);
+                this._densityLayer = plainMap ? this._buildDensityLayer() : null;
                 this._searchLayer = this.search.active ? this._buildSearchLayer(colorArray) : null;
                 this._artworksLayerKey = key;
             }
-            const layers = [this._artworksLayer];
+            const layers = [];
+            if (this._contextLayer) layers.push(this._contextLayer);
+            layers.push(this._artworksLayer);
             if (this._densityLayer) layers.push(this._densityLayer);
             if (this._searchLayer) layers.push(this._searchLayer);
             if (this.selectedIndex >= 0) {
@@ -801,7 +818,7 @@ function artMap() {
         // 1 for points the legend filters leave visible, 0 for hidden ones
         _visibilityMask() {
             // Colour mode and search changes rebuild the layer too; reuse the mask then
-            const key = `${this.hiddenMuseums}|${this.hiddenWorkTypes}|${this.hiddenCenturies}`;
+            const key = `${this.colorMode === 'none'}|${this.hiddenMuseums}|${this.hiddenWorkTypes}|${this.hiddenCenturies}`;
             if (visibilityMask && visibilityMask.key === key) return visibilityMask.value;
             const museums = this._museumIndices;
             const workTypes = this._workTypeIndices;
@@ -817,6 +834,11 @@ function artMap() {
             const hiddenWorkType = table(this.hiddenWorkTypes);
             const hiddenCentury = table(this.hiddenCenturies);
             const mask = new Float32Array(museums.length);
+            if (this.colorMode === 'none') {
+                mask.fill(1);
+                visibilityMask = { key, value: mask };
+                return mask;
+            }
             for (let i = 0; i < mask.length; i++) {
                 // Same fallbacks as _workTypeOf and _centuryOf
                 const wt = workTypes[i] <= lastWorkType ? workTypes[i] : lastWorkType;
@@ -850,11 +872,25 @@ function artMap() {
             };
         },
 
+        // With filters on, every point in pale grey under the ones they leave, so those show
+        // where they sit in the whole collection. Not pickable: hidden points don't respond.
+        _buildContextLayer(dimmed) {
+            const { deck } = window;
+            return new deck.ScatterplotLayer({
+                ...this._pointLayerProps(),
+                id: 'context',
+                filterEnabled: false,
+                getFillColor: NEUTRAL_COLOR,
+                opacity: dimmed ? SEARCH_DIM_ALPHA / 200 : 1,
+            });
+        },
+
         _buildDensityLayer() {
             const { deck } = window;
             return new deck.ScatterplotLayer({
                 ...this._pointLayerProps(),
                 id: 'density',
+                filterEnabled: false,
                 getFillColor: DENSITY_COLOR,
             });
         },
