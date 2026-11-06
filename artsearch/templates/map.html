@@ -225,7 +225,16 @@ function artMap() {
     // should stand out
     const NEUTRAL_COLOR = [208, 212, 207, 200];
     const DENSITY_COLOR = [120, 128, 122, 8];
+    // Colour modes drawn the same way: a pale tint of each point's colour, under a faint pass
+    // of the colour itself. Leave a mode out for solid, punchier dots.
+    const DENSITY_SHADED_MODES = ['century', 'work_type', 'museum'];
+    const TINT_STRENGTH = 0.45;  // how far the tint is from the paper colour to the full colour
+    // deck.gl applies opacity^(1/2.2), so with the colours' alpha 200 this comes to about alpha 12
+    const COLOR_DENSITY_OPACITY = 0.00205;
+    const PAPER_COLOR = [242, 243, 238];
     const HIGHLIGHT_COLOR = [214, 48, 49];
+    const HIDDEN_MATCH_COLOR = [205, 208, 204];
+    const HIDDEN_MATCH_LINE_COLOR = [120, 125, 120];
     const SEARCH_DIM_ALPHA = 35;  // alpha of points that aren't search matches
     const ARTWORK_PAGE_URL = '{% url "artwork-page" "__slug__" "__object__" %}';
     const SELECTED_ZOOM = 4;  // zoom level when flying to a linked artwork
@@ -239,6 +248,22 @@ function artMap() {
     // reads them directly instead of calling an accessor per point, which (through
     // Alpine's proxies) took seconds for ~180k points
     let pointAttributes = null;
+    // Opaque tinted colours per colour mode, built on first use from pointAttributes.colors
+    const tintedColors = {};
+    const tintedColorsFor = (mode) => {
+        if (!tintedColors[mode]) {
+            const source = pointAttributes.colors[mode].value;
+            const value = new Uint8Array(source.length);
+            for (let i = 0; i < source.length; i += 4) {
+                for (let c = 0; c < 3; c++) {
+                    value[i + c] = PAPER_COLOR[c] + (source[i + c] - PAPER_COLOR[c]) * TINT_STRENGTH;
+                }
+                value[i + 3] = 255;
+            }
+            tintedColors[mode] = { value, size: 4, normalized: true };
+        }
+        return tintedColors[mode];
+    };
     // Last legend-filter mask for the artworks layer, with the hidden lists it was built for
     let visibilityMask = null;
 
@@ -292,7 +317,8 @@ function artMap() {
         hasCenturies: false,
         _positions: null,
 
-        // Indices of museums / work types / centuries hidden via the legend; all apply in every colour mode
+        // Indices of museums / work types / centuries hidden via the legend; all apply in every
+        // colour mode, and none with colours off
         hiddenMuseums: [],
         hiddenWorkTypes: [],
         hiddenCenturies: [],
@@ -368,9 +394,9 @@ function artMap() {
             this._filtersChanged();
         },
 
-        // Every museum, work type or century hidden, so the filters leave no point to highlight
+        // The filters leave no point to highlight
         get _allHidden() {
-            return this.colorMode !== 'none' && Object.keys(MODE_SIZES).some((mode) => this._isFullyHidden(mode));
+            return !this._visibilityMask().includes(1);
         },
 
         _isFullyHidden(mode) {
@@ -443,7 +469,7 @@ function artMap() {
             if (!total) return `No matches for “${this.search.query}” are on the map yet.`;
             const hidden = this.search.indices.filter((idx) => this._isHidden(idx)).length;
             let text = `${total} closest ${total === 1 ? 'match' : 'matches'} for “${this.search.query}”`;
-            if (hidden) text += `, ${hidden} hidden by filters`;
+            if (hidden) text += `, ${hidden} greyed out by filters`;
             if (this.search.missing) text += `, ${this.search.missing} not on the map yet`;
             return `${text}.`;
         },
@@ -557,6 +583,27 @@ function artMap() {
             });
         },
 
+        // Matches the filters hide stay visible, but like other hidden points don't respond,
+        // and don't block the points below them
+        _buildHiddenMatchesLayer() {
+            const { deck } = window;
+            const positions = this._positions;
+            const data = this.search.indices.filter((idx) => this._isHidden(idx));
+            if (!data.length) return null;
+            return new deck.ScatterplotLayer({
+                id: 'search-results-hidden',
+                data,
+                getPosition: (idx) => [positions[idx * 2], positions[idx * 2 + 1]],
+                getFillColor: HIDDEN_MATCH_COLOR,
+                getRadius: 4,
+                radiusUnits: 'pixels',
+                stroked: true,
+                getLineColor: HIDDEN_MATCH_LINE_COLOR,
+                getLineWidth: 1,
+                lineWidthUnits: 'pixels',
+            });
+        },
+
         // Point index of the selected artwork (ringed on the map, kept in the URL), or -1
         selectedIndex: -1,
         // ?artwork= from the URL until _selectFromUrl has looked it up
@@ -567,6 +614,7 @@ function artMap() {
         _artworksLayer: null,
         _contextLayer: null,
         _densityLayer: null,
+        _hiddenMatchesLayer: null,
         _searchLayer: null,
         _artworksLayerKey: null,
 
@@ -584,6 +632,8 @@ function artMap() {
 
         setColorMode(mode) {
             this.colorMode = this.colorMode === mode ? 'none' : mode;
+            // Another mode hiding everything can't be undone from this one's legend
+            if (this.colorMode !== 'none') this._clearFullyHiddenModes();
             // Filters only apply with colours on, so this can hide or show points
             this._filtersChanged();
         },
@@ -599,19 +649,28 @@ function artMap() {
             const key = `${this.colorMode}|${this.hiddenMuseums}|${this.hiddenWorkTypes}|${this.hiddenCenturies}|${this._searchVersion}`;
             if (this._artworksLayerKey !== key) {
                 const colorArray = pointAttributes.colors[this.colorMode];
-                // Dimming quiets the colours; the plain map is quiet enough for matches to stand out
-                this._artworksLayer = this._buildLayer(colorArray, this.search.active && this.colorMode !== 'none');
-                this._contextLayer = this._anyHidden ? this._buildContextLayer(this.search.active) : null;
+                // During a search, colours are dimmed instead so the matches stand out; the
+                // plain map is quiet enough as it is
+                const searching = this.search.active;
+                const shaded = !searching && DENSITY_SHADED_MODES.includes(this.colorMode);
+                this._artworksLayer = this._buildLayer(
+                    shaded ? tintedColorsFor(this.colorMode) : colorArray,
+                    searching && this.colorMode !== 'none',
+                );
+                this._contextLayer = this._anyHidden ? this._buildContextLayer(searching) : null;
                 // For the plain map: colours off, or filters that leave nothing to highlight
-                const plainMap = this.colorMode === 'none' || (this._allHidden && !this.search.active);
-                this._densityLayer = plainMap ? this._buildDensityLayer() : null;
-                this._searchLayer = this.search.active ? this._buildSearchLayer(colorArray) : null;
+                const plainMap = this.colorMode === 'none' || (this._allHidden && !searching);
+                this._densityLayer = plainMap ? this._buildDensityLayer()
+                    : shaded ? this._buildColorDensityLayer(colorArray) : null;
+                this._hiddenMatchesLayer = searching ? this._buildHiddenMatchesLayer() : null;
+                this._searchLayer = searching ? this._buildSearchLayer(colorArray) : null;
                 this._artworksLayerKey = key;
             }
             const layers = [];
             if (this._contextLayer) layers.push(this._contextLayer);
             layers.push(this._artworksLayer);
             if (this._densityLayer) layers.push(this._densityLayer);
+            if (this._hiddenMatchesLayer) layers.push(this._hiddenMatchesLayer);
             if (this._searchLayer) layers.push(this._searchLayer);
             if (this.selectedIndex >= 0) {
                 if (this.colorMode === 'none' && !this.search.active) layers.push(this._buildSelectedDotLayer());
@@ -892,6 +951,15 @@ function artMap() {
                 id: 'density',
                 filterEnabled: false,
                 getFillColor: DENSITY_COLOR,
+            });
+        },
+
+        _buildColorDensityLayer(colorArray) {
+            const { deck } = window;
+            return new deck.ScatterplotLayer({
+                ...this._pointLayerProps({ getFillColor: colorArray }),
+                id: 'density',
+                opacity: COLOR_DENSITY_OPACITY,
             });
         },
 
