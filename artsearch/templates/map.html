@@ -225,8 +225,11 @@ function artMap() {
     const MODE_BUTTONS = { museum: 'Museum', work_type: 'Work type', century: 'Century' };
     const HOME_URL = '{% url "home" %}';
     const MAP_SEARCH_URL = '{% url "art-map-search" %}';
-    // With colours off: plain points, and a colour of its own for what should stand out
-    const NEUTRAL_COLOR = [190, 195, 190];
+    // With colours off: pale points, so each one stays visible, under a faint second pass
+    // that only builds up where they crowd together, and a colour of its own for what
+    // should stand out
+    const NEUTRAL_COLOR = [208, 212, 207, 200];
+    const DENSITY_COLOR = [120, 128, 122, 8];
     const HIGHLIGHT_COLOR = [214, 48, 49];
     const SEARCH_DIM_ALPHA = 35;  // alpha of points that aren't search matches
     const ARTWORK_PAGE_URL = '{% url "artwork-page" "__slug__" "__object__" %}';
@@ -522,15 +525,15 @@ function artMap() {
             const self = this;
             const positions = this._positions;
             const data = this.search.indices.filter((idx) => !this._isHidden(idx)).reverse();
-            const colors = colorArray.value;
-            const neutral = this.colorMode === 'none';
+            // No colour array with colours off
+            const colors = colorArray && colorArray.value;
             // Picking reports the index into `data`; hand the handlers the point index
             const pointInfo = (info) => ({ ...info, index: info.index >= 0 ? data[info.index] : -1 });
             return new deck.ScatterplotLayer({
                 id: 'search-results',
                 data,
                 getPosition: (idx) => [positions[idx * 2], positions[idx * 2 + 1]],
-                getFillColor: (idx) => (neutral ? HIGHLIGHT_COLOR : [colors[idx * 4], colors[idx * 4 + 1], colors[idx * 4 + 2], 255]),
+                getFillColor: (idx) => (!colors ? HIGHLIGHT_COLOR : [colors[idx * 4], colors[idx * 4 + 1], colors[idx * 4 + 2], 255]),
                 getRadius: 5,
                 radiusUnits: 'pixels',
                 stroked: true,
@@ -551,6 +554,7 @@ function artMap() {
         _pulseId: 0,
         _urlTimer: null,
         _artworksLayer: null,
+        _densityLayer: null,
         _searchLayer: null,
         _artworksLayerKey: null,
 
@@ -584,10 +588,13 @@ function artMap() {
             if (this._artworksLayerKey !== key) {
                 const colorArray = pointAttributes.colors[this.colorMode];
                 this._artworksLayer = this._buildLayer(colorArray, this.search.active);
+                // Left out during a search, when the matches should be all that stands out
+                this._densityLayer = this.colorMode === 'none' && !this.search.active ? this._buildDensityLayer() : null;
                 this._searchLayer = this.search.active ? this._buildSearchLayer(colorArray) : null;
                 this._artworksLayerKey = key;
             }
             const layers = [this._artworksLayer];
+            if (this._densityLayer) layers.push(this._densityLayer);
             if (this._searchLayer) layers.push(this._searchLayer);
             if (this.selectedIndex >= 0) {
                 if (this.colorMode === 'none' && !this.search.active) layers.push(this._buildSelectedDotLayer());
@@ -820,21 +827,18 @@ function artMap() {
             return mask;
         },
 
-        _buildLayer(colorArray, dimmed) {
+        // Props for a layer drawing every point; extraAttributes as for deck.gl's data.attributes
+        _pointLayerProps(extraAttributes) {
             const { deck } = window;
-            const self = this;
-            return new deck.ScatterplotLayer({
-                id: 'artworks',
+            return {
                 data: {
                     length: this._museumIndices.length,
                     attributes: {
                         getPosition: pointAttributes.position,
-                        getFillColor: colorArray,
                         getFilterValue: { value: this._visibilityMask(), size: 1 },
+                        ...extraAttributes,
                     },
                 },
-                // Colours carry alpha 200; dimming for a search scales that to SEARCH_DIM_ALPHA
-                opacity: dimmed ? SEARCH_DIM_ALPHA / 200 : 1,
                 // Legend filters run on the GPU: hidden points are neither drawn nor picked.
                 // (luma.gl logs harmless "uniform ... not present" warnings for this extension)
                 extensions: [new deck.DataFilterExtension({ filterSize: 1 })],
@@ -843,6 +847,28 @@ function artMap() {
                 radiusMaxPixels: 6,
                 radiusUnits: 'pixels',
                 getRadius: 3,
+            };
+        },
+
+        _buildDensityLayer() {
+            const { deck } = window;
+            return new deck.ScatterplotLayer({
+                ...this._pointLayerProps(),
+                id: 'density',
+                getFillColor: DENSITY_COLOR,
+            });
+        },
+
+        // colorArray is null with colours off: one colour needs no per-point array
+        _buildLayer(colorArray, dimmed) {
+            const { deck } = window;
+            const self = this;
+            return new deck.ScatterplotLayer({
+                ...this._pointLayerProps(colorArray ? { getFillColor: colorArray } : {}),
+                ...(colorArray ? {} : { getFillColor: NEUTRAL_COLOR }),
+                id: 'artworks',
+                // Colours carry alpha 200; dimming for a search scales that to SEARCH_DIM_ALPHA
+                opacity: dimmed ? SEARCH_DIM_ALPHA / 200 : 1,
                 pickable: true,
                 onHover: (info) => self._onHover(info),
                 onClick: (info) => self._onClick(info),
@@ -995,8 +1021,7 @@ function artMap() {
                     museum: buildColorArray(geo.museum, this.museumColors),
                     work_type: buildColorArray(geo.workType, this.workTypeColors),
                     century: geo.century ? buildColorArray(geo.century, this.centuryColors) : null,
-                    // One-colour palette: every index gets it, directly or via the fallback
-                    none: buildColorArray(geo.museum, [NEUTRAL_COLOR]),
+                    none: null,
                 },
             };
 
