@@ -1,3 +1,11 @@
+# Cap Docker's log files, which otherwise grow forever. Access logs hold visitor
+# IPs and search text, and the About page says they're only kept for a limited time
+x-capped-logging: &capped-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   # Qdrant vector database
   qdrant:
@@ -12,6 +20,7 @@ services:
     restart: always
     build: .
     command: /bin/sh -c /code/entrypoint.prod.sh
+    logging: *capped-logging
     volumes:
       - static_volume:/code/staticfiles
     expose:
@@ -24,6 +33,7 @@ services:
     restart: always
     image: nginx:latest
     hostname: semantic-art-search.com
+    logging: *capped-logging
     volumes:
       - static_volume:/code/staticfiles
       - type: bind
@@ -44,6 +54,7 @@ services:
   redirect-kristianms:
     image: nginx:alpine
     restart: always
+    logging: *capped-logging
     environment:
       - VIRTUAL_HOST=semantic-art-search.kristianms.com
       - LETSENCRYPT_HOST=semantic-art-search.kristianms.com
