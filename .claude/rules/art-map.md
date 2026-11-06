@@ -17,7 +17,7 @@ paths:
 
 ## Colours and legend filters
 
-- Points are coloured by work type, museum or century (by `production_date_start`, falling back to the end year; groups and slugs are `CENTURY_SLUGS` in `constants/museums.py`, the last one being "undated").
+- Points are coloured by century (the default; by `production_date_start`, falling back to the end year; groups and slugs are `CENTURY_SLUGS` in `constants/museums.py`, the last one being "undated"), work type or museum.
 - Clicking the active colour-mode button turns colours off (`color=none`): points go neutral grey, and search matches (or, with no search, the selected artwork) get `HIGHLIGHT_COLOR`, since they would otherwise be the same grey. Searching from the map's own box keeps the current mode. There is no legend in this mode; filters still apply and the panel says how many are hidden.
 - Clicking a legend item hides or shows that museum, work type or century; all three kinds of filter apply in every colour mode. "Show all" and "Hide all" act on the current colour mode only (Hide all, then click one item to isolate it).
 - Filters run on the GPU via deck.gl's `DataFilterExtension` (a per-point 0/1 visibility value, `_visibilityMask()`), so hidden points are neither drawn nor picked.
@@ -36,8 +36,8 @@ paths:
 
 ## URL state
 
-The map keeps the search (`q`), selection, view (`x`, `y`, `z`), colour mode (`color=museum`, `color=century`, `color=none`) and filters (`hide_museums=smk,rma`, `hide_types=print`, `hide_centuries=1500s,undated`) in the URL, so map links can be shared.
+The map keeps the search (`q`), selection, view (`x`, `y`, `z`), colour mode (`color=work_type`, `color=museum`, `color=none`) and filters (`hide_museums=smk,rma`, `hide_types=print`, `hide_centuries=1500s,undated`) in the URL, so map links can be shared.
 
 ## Geometry blob
 
-`count, x, y, museum, work type, century`. The page reads blobs made before the century array was added and hides the Century mode until `make art-map` is re-run.
+`count, x, y, museum, work type, century`. The page reads blobs made before the century array was added and hides the Century mode (falling back to Work type) until `make art-map` is re-run.

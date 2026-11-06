@@ -114,17 +114,17 @@
     <div class="pointer-events-auto bg-white/90 backdrop-blur-sm rounded-lg shadow border border-line px-4" style="padding-top: 0.75rem; padding-bottom: 0.75rem;">
         <!-- Colour mode; clicking the active one turns colours off -->
         <div class="flex items-center gap-1 text-xs" :class="legendShown && 'mb-2'">
-            <button @click="setColorMode('work_type')"
-                    :title="colorMode === 'work_type' ? 'Turn colours off' : ''"
-                    :aria-pressed="colorMode === 'work_type'"
-                    :class="colorMode === 'work_type' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
-                    class="px-2 py-0.5 rounded transition-colors">Work type</button>
             <!-- Maps generated before centuries were added have no year data -->
             <button x-show="hasCenturies || colorMode === 'century'" x-cloak @click="setColorMode('century')"
                     :title="colorMode === 'century' ? 'Turn colours off' : ''"
                     :aria-pressed="colorMode === 'century'"
                     :class="colorMode === 'century' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
                     class="px-2 py-0.5 rounded transition-colors">Century</button>
+            <button @click="setColorMode('work_type')"
+                    :title="colorMode === 'work_type' ? 'Turn colours off' : ''"
+                    :aria-pressed="colorMode === 'work_type'"
+                    :class="colorMode === 'work_type' ? 'bg-accent text-white' : 'bg-paper text-muted hover:bg-line'"
+                    class="px-2 py-0.5 rounded transition-colors">Work type</button>
             <button @click="setColorMode('museum')"
                     :title="colorMode === 'museum' ? 'Turn colours off' : ''"
                     :aria-pressed="colorMode === 'museum'"
@@ -248,7 +248,7 @@ function artMap() {
         loading: true,
         error: null,
         deckgl: null,
-        colorMode: 'work_type',  // or 'museum', 'century', 'none' (colours off, no legend)
+        colorMode: 'century',  // or 'work_type', 'museum', 'none' (colours off, no legend)
 
         // Lazy-loaded metadata (titles, artists, etc.)
         _metadata: null,
@@ -746,11 +746,11 @@ function artMap() {
             return { target: [x, y], zoom: z };
         },
 
-        // Colour mode (?color=museum|century|none) and legend filters
+        // Colour mode (?color=work_type|museum|none, century being the default) and legend filters
         // (?hide_museums=smk,cma&hide_types=print&hide_centuries=1500s,undated)
         _filtersFromUrl() {
             const params = new URLSearchParams(window.location.search);
-            if (['museum', 'century', 'none'].includes(params.get('color'))) this.colorMode = params.get('color');
+            if (['work_type', 'museum', 'none'].includes(params.get('color'))) this.colorMode = params.get('color');
             const indices = (name, values) => [...new Set((params.get(name) || '').split(',')
                 .map((v) => values.indexOf(v)).filter((i) => i >= 0))].sort((a, b) => a - b);
             this.hiddenMuseums = indices('hide_museums', MUSEUM_SLUGS);
@@ -770,7 +770,7 @@ function artMap() {
                 // Not looked up yet (metadata still loading); keep it for _selectFromUrl
                 params.set('artwork', this._linkedArtwork);
             }
-            if (this.colorMode !== 'work_type') params.set('color', this.colorMode);
+            if (this.colorMode !== 'century') params.set('color', this.colorMode);
             if (this.hiddenMuseums.length) {
                 params.set('hide_museums', this.hiddenMuseums.map((i) => MUSEUM_SLUGS[i]).join(','));
             }
@@ -937,7 +937,7 @@ function artMap() {
                 this._centuryIndices = geo.century;
                 this.hasCenturies = geo.century !== null;
                 if (!this.hasCenturies) {
-                    // A century URL shared after the next `make art-map`; fall back until then
+                    // The default mode needs the century array; fall back until the next `make art-map`
                     if (this.colorMode === 'century') this.colorMode = 'work_type';
                     this.hiddenCenturies = [];
                     this._updateUrl();
