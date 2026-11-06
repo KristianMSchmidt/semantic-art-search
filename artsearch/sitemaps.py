@@ -17,7 +17,7 @@ def artwork_page_path(museum_slug: str, object_number: str) -> str:
 
 class StaticSitemap(Sitemap):
     def items(self) -> list[str]:
-        return ["home", "art-map"]
+        return ["home", "art-map", "about"]
 
     def location(self, item: str) -> str:
         return reverse(item)

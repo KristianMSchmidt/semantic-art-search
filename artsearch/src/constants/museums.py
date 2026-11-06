@@ -3,36 +3,43 @@ SUPPORTED_MUSEUMS = [
         "slug": "smk",
         "full_name": "Statens Museum for Kunst",
         "short_name": "SMK",
+        "open_data_url": "https://open.smk.dk",
     },
     {
         "slug": "cma",
         "full_name": "Cleveland Museum of Art",
         "short_name": "Cleveland",
+        "open_data_url": "https://www.clevelandart.org/open-access",
     },
     {
         "slug": "rma",
         "full_name": "Rijksmuseum",
         "short_name": "Rijksmuseum",
+        "open_data_url": "https://data.rijksmuseum.nl/",
     },
     {
         "slug": "met",
         "full_name": "Metropolitan Museum of Art",
         "short_name": "The Met",
+        "open_data_url": "https://www.metmuseum.org/about-the-met/policies-and-documents/open-access",
     },
     {
         "slug": "aic",
         "full_name": "Art Institute of Chicago",
         "short_name": "Art Institute of Chicago",
+        "open_data_url": "https://www.artic.edu/open-access",
     },
     {
         "slug": "nga",
         "full_name": "National Gallery of Art, Washington",
         "short_name": "National Gallery of Art",
+        "open_data_url": "https://github.com/NationalGalleryOfArt/opendata",
     },
     {
         "slug": "fng",
         "full_name": "Finnish National Gallery",
         "short_name": "Finnish National Gallery",
+        "open_data_url": "https://kokoelma.kansallisgalleria.fi/en",
     },
 ]
 

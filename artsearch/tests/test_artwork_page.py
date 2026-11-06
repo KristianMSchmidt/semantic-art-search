@@ -13,6 +13,7 @@ from qdrant_client import models
 
 from artsearch.models import ArtworkDescription, ArtworkStats
 from artsearch.sitemaps import artwork_page_path
+from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
 from etl.models import TransformedData
 from etl.services.bucket_service import get_bucket_image_url
 
@@ -300,6 +301,24 @@ def test_sitemap_lists_artwork_pages():
     sitemap = client.get("/sitemap-artworks.xml").content.decode()
     assert "<loc>http://testserver/artwork/smk/KKS10208/5/</loc>" in sitemap
     assert "<loc>http://testserver/artwork/met/Burdick%20218,%20N220.35/</loc>" in sitemap
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_about_page_credits_every_museum_and_is_in_nav_and_sitemap():
+    client = Client()
+
+    response = client.get(reverse("about"))
+    assert response.status_code == 200
+    body = response.content.decode()
+    for museum in SUPPORTED_MUSEUMS:
+        assert museum["full_name"] in body
+        assert museum["open_data_url"] in body
+    assert 'href="/artwork/smk/KMSr171/"' in body
+
+    assert f'href="{reverse("about")}"' in client.get(reverse("art-map")).content.decode()
+    sitemap = client.get("/sitemap-static.xml").content.decode()
+    assert "<loc>http://testserver/about/</loc>" in sitemap
 
 
 @pytest.mark.integration

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}About – Semantic Art Search{% endblock %}
+
+{% block meta %}
+{% with description="What Semantic Art Search is, which museum collections it covers, how its search works and what happens to your searches." %}
+<meta name="description" content="{{ description }}">
+<link rel="canonical" href="{{ canonical_url }}">
+<meta property="og:title" content="About Semantic Art Search" />
+<meta property="og:description" content="{{ description }}" />
+<meta property="og:url" content="{{ canonical_url }}" />
+<meta property="og:type" content="website" />
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+<main class="container mx-auto px-4 pt-6 pb-16">
+	<div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8 lg:gap-16">
+	<figure class="lg:order-last lg:sticky lg:top-6 flex items-end gap-4 lg:block lg:w-80 shrink-0">
+		<a href="{% url 'artwork-page' 'smk' 'KMSr171' %}" class="block w-40 lg:w-full shrink-0">
+			<img src="{{ featured_image_url }}" width="641" height="800" class="w-full h-auto"
+			     alt="Henri Matisse's portrait of Madame Matisse: a woman with dark blue hair, her face divided by a green stripe, against patches of pink, orange and green.">
+		</a>
+		<figcaption class="lg:mt-2 text-sm text-muted">Henri Matisse, <em>Portrait of Madame Matisse (The Green Stripe)</em>, 1905. Statens Museum for Kunst.</figcaption>
+	</figure>
+	<div class="max-w-2xl space-y-10">
+		<section class="space-y-4">
+			<h1 class="text-3xl font-bold tracking-tight text-ink">About</h1>
+			<p>Semantic Art Search lets you explore open museum collections by describing what you're looking for. You don't need to know a title, an artist or the words a museum used to catalogue a work.</p>
+			<p>I'm Kristian Møller Schmidt, and I built this to bring the power of semantic search to art, across museums and in a way that's fun to use. It's free and open source, and it isn't affiliated with any of the museums.</p>
+		</section>
+
+		<section class="space-y-4">
+			<h2 class="text-xl font-bold tracking-tight text-ink">How the search works</h2>
+			<p>Most traditional art search engines look for your words in titles and catalogue records. Here, every image and every search is converted to a vector, a list of numbers that captures what it shows or means. The results are the images whose vectors lie closest to your search. If a cat appears in a painting, a search for "cat" has a good chance of finding it, even if the museum's record never mentions one. You can also try broader ideas, such as <a href="{% url 'home' %}?query=battle+at+sea" rel="nofollow" class="underline underline-offset-4 hover:text-accent transition-colors">battle at sea</a> or <a href="{% url 'home' %}?query=mourning" rel="nofollow" class="underline underline-offset-4 hover:text-accent transition-colors">mourning</a>. You can search in many languages, or upload an image of your own to find artworks that resemble it.</p>
+			<p>Results are ranked by how closely they match, not filtered by an exact match, so some will be surprising and some simply wrong. Title Search matches on titles instead, which helps when you know roughly what a work is called.</p>
+		</section>
+
+		<section class="space-y-4">
+			<h2 class="text-xl font-bold tracking-tight text-ink">The art map</h2>
+			<p>This map uses the same vectors as the search to lay out the whole collection, with works that look alike placed near each other. Colour it by museum, work type or century for an overview of how the artworks cluster and where each group falls, or simply wander through it without searching for anything.</p>
+			<p>You can also search from the map to see where the matches gather, or use "Show on map" on any artwork to find its place in the collection. <a href="{% url 'art-map' %}" class="underline underline-offset-4 hover:text-accent transition-colors">Open the art map</a>.</p>
+		</section>
+
+		<section class="space-y-4">
+			<h2 class="text-xl font-bold tracking-tight text-ink">The collections</h2>
+			<p>This site is only possible because these museums share their collections openly:</p>
+			<ul class="space-y-1">
+				{% for museum in museums %}
+				<li><a href="{{ museum.open_data_url }}" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-accent transition-colors">{{ museum.full_name }}</a></li>
+				{% endfor %}
+			</ul>
+			<p>The site includes works the museums have released as public domain or open access, and focuses on visual art such as paintings, prints and drawings, so it covers only part of each collection. Titles, dates and other details come from the museums' data. Each artwork links back to its page at the museum, which is the place to check them.</p>
+		</section>
+
+		<section class="space-y-4">
+			<h2 class="text-xl font-bold tracking-tight text-ink">Generated descriptions</h2>
+			<p>The descriptions you can request on an artwork are generated automatically by a language model. They can contain mistakes, so don't treat them as scholarship.</p>
+		</section>
+
+		<section class="space-y-4">
+			<h2 class="text-xl font-bold tracking-tight text-ink">Your searches and images</h2>
+			<p>There are no user accounts. The site records the text and filters of each new search, with the time, so I can see how it's used. That record doesn't include your IP address. Your IP address is used briefly to limit how many requests can be made, and may appear in the web server's ordinary logs.</p>
+			<p>To run a search, your text or image is sent to an external service, which converts it to a vector. This site doesn't store images you upload, but they do pass through that service, so please avoid uploading anything private.</p>
+		</section>
+
+		<section class="space-y-4">
+			<h2 class="text-xl font-bold tracking-tight text-ink">For developers</h2>
+			<p>The <a href="https://github.com/KristianMSchmidt/semantic-art-search" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-accent transition-colors">source code is on GitHub</a>. There's also a rate-limited JSON API: <code class="font-mono text-sm">/api/search/?query=...</code> searches the collection, and <a href="/api/museums/" rel="nofollow" class="underline underline-offset-4 hover:text-accent transition-colors"><code class="font-mono text-sm">/api/museums/</code></a> lists the museums.</p>
+		</section>
+
+		<section class="space-y-4">
+			<h2 class="text-xl font-bold tracking-tight text-ink">Get in touch</h2>
+			<p>Found a mistake, have a good idea, or work at one of these museums? Open an <a href="https://github.com/KristianMSchmidt/semantic-art-search/issues" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-accent transition-colors">issue on GitHub</a> or message me on <a href="https://www.linkedin.com/in/kristian-m%C3%B8ller-schmidt-516b9170/" target="_blank" rel="noopener noreferrer" class="underline underline-offset-4 hover:text-accent transition-colors">LinkedIn</a>.</p>
+		</section>
+	</div>
+	</div>
+</main>
+{% endblock %}

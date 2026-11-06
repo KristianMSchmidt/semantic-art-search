@@ -38,12 +38,14 @@ from artsearch.src.utils.iiif import (
 )
 from artsearch.src.services.qdrant_service import QdrantService, SearchFunctionArguments
 from artsearch.src.services.search_service import QueryParsingError, search_map_artworks
+from artsearch.src.constants.museums import SUPPORTED_MUSEUMS
 from artsearch.src.constants.search import MAX_QUERY_LENGTH
 from artsearch.src.utils.qdrant_formatting import format_payload
 from artsearch.src.cache_registry import clear_all_caches, register_cache
 from artsearch.src.config import config
 from artsearch.src.constants.ui import EXAMPLE_QUERY_COUNTS
 from artsearch.models import ArtMapData
+from etl.services.bucket_service import get_bucket_image_url
 
 logger = logging.getLogger(__name__)
 
@@ -352,6 +354,18 @@ def artwork_similar_view(
         return render(request, "partials/similar_artworks.html", {})
     context = _similar_artworks_context(museum_slug, object_number, offset)
     return render(request, "partials/similar_artworks.html", context)
+
+
+def about_view(request: HttpRequest) -> HttpResponse:
+    context = {
+        "museums": SUPPORTED_MUSEUMS,
+        "canonical_url": request.build_absolute_uri(reverse("about")),
+        # The painting the site's icon is cropped from
+        "featured_image_url": get_bucket_image_url(
+            "smk", "KMSr171", use_etl_bucket=False
+        ),
+    }
+    return render(request, "about.html", context)
 
 
 def robots_txt_view(request: HttpRequest) -> HttpResponse:
