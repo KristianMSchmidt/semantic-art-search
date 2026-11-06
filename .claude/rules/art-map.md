@@ -18,8 +18,9 @@ paths:
 ## Colours and legend filters
 
 - Points are coloured by century (the default; by `production_date_start`, falling back to the end year; groups and slugs are `CENTURY_SLUGS` in `constants/museums.py`, the last one being "undated"), work type or museum.
-- Clicking the active colour-mode button turns colours off (`color=none`): points go pale grey, with a faint second pass (`_buildDensityLayer()`, left out during a search) that darkens where they crowd together, and search matches (or, with no search, the selected artwork) get `HIGHLIGHT_COLOR`, since they would otherwise be the same grey. Searching from the map's own box keeps the current mode. There is no legend in this mode; filters still apply and the panel says how many are hidden.
+- Clicking the active colour-mode button turns colours off (`color=none`): points go pale grey, with a faint second pass (`_buildDensityLayer()`) that darkens where they crowd together, and search matches (or, with no search, the selected artwork) get `HIGHLIGHT_COLOR`, since they would otherwise be the same grey. Searching from the map's own box keeps the current mode. There is no legend in this mode and filters don't apply; they stay in the URL and come back with the colours.
 - Clicking a legend item hides or shows that museum, work type or century; all three kinds of filter apply in every colour mode. "Show all" and "Hide all" act on the current colour mode only (Hide all, then click one item to isolate it).
+- Hidden points stay on the map as a pale, unresponsive background (`_buildContextLayer()`), so what's left shows where it sits in the whole collection; `hide_museums=` listing all but one highlights that museum. If the filters leave nothing, it's the same plain map as with colours off; showing an item again also clears any other mode that hides everything, which would otherwise keep the map empty.
 - Filters run on the GPU via deck.gl's `DataFilterExtension` (a per-point 0/1 visibility value, `_visibilityMask()`), so hidden points are neither drawn nor picked.
 - The chevron next to the colour-mode buttons collapses the legend items; it starts collapsed below 640px wide (phones), and while collapsed still says how many museums/work types/centuries are hidden.
 
@@ -31,7 +32,7 @@ paths:
 ## Search box
 
 - Top right (above the legend on phones). Runs a Visual Search via `/map/search/?query=...` (`art_map_search_view`): JSON `[museum_slug, object_number]` pairs of the top `MAP_SEARCH_RESULTS` (200), unfiltered, so one Jina call per query. Shares the website search's per-IP rate limit budget (30/min, 200/hour) via `SEARCH_RATE_GROUP`.
-- Draws the matches on top, dims the rest and zooms to where they gather (ignoring the 5% furthest out on each side). Legend filters hide matches too; "See as list" opens the same query on the home page.
+- Draws the matches on top, dims the rest (with colours on; the plain map stays as it is) and zooms to where they gather (ignoring the 5% furthest out on each side). Legend filters hide matches too; "See as list" opens the same query on the home page.
 - `museum:object_number` queries work as on the home page (similar artworks, no Jina call).
 
 ## URL state
