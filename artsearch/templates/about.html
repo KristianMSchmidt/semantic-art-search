@@ -36,9 +36,11 @@
 			<p>Results are ranked by how closely they match, not filtered by an exact match, so some will be surprising and some simply wrong. Title Search matches on titles instead, which helps when you know roughly what a work is called.</p>
 		</section>
 
-		<section class="space-y-4">
+		<section id="art-map" class="space-y-4">
 			<h2 class="text-xl font-bold tracking-tight text-ink">The art map</h2>
-			<p>This map uses the same vectors as the search to lay out the whole collection, with works that look alike placed near each other. Colour it by museum, work type or century for an overview of how the artworks cluster and where each group falls, or simply wander through it without searching for anything.</p>
+			<p>Every artwork's image is stored as a vector of 256 numbers, which you can think of as its position in a semantic space of 256 dimensions. To see the collection the way the model does, you'd need a 256-dimensional mind. The map is a stand-in: it flattens that space to two dimensions, with each dot an artwork and works the model considers similar placed close together.</p>
+			<p>Flattening loses a lot, so the map is a rough picture rather than a precise chart. Neighbours are the most reliable part, and nearby dots usually do look alike. Long distances mean less, so two works far apart may still have much in common, and a search's matches can end up scattered. The directions mean nothing: up or left doesn't stand for time or style.</p>
+			<p>Only the images decide where a work is placed, not titles, dates or museum records. Those only supply the colours, so if works from the same century gather together when you colour by century, that pattern comes from how the images look.</p>
 			<p>You can also search from the map to see where the matches gather, or use "Show on map" on any artwork to find its place in the collection. <a href="{% url 'art-map' %}" class="underline underline-offset-4 hover:text-accent transition-colors">Open the art map</a>.</p>
 		</section>
 

@@ -1,6 +1,25 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block title %}Art map – Semantic Art Search{% endblock %}
+
+{% block meta %}
+{% with description="Explore open museum collections as one map, with each artwork a dot and works an AI model considers similar placed close together." image="https://iip-thumb.smk.dk/iiif/jp2/kd17cx80w_KMSr171-crop.tif.jp2/full/!1024,/0/default.jpg" %}
+<meta name="description" content="{{ description }}">
+<link rel="canonical" href="{{ canonical_url }}">
+<meta property="og:title" content="Art map – Semantic Art Search" />
+<meta property="og:description" content="{{ description }}" />
+<meta property="og:image" content="{{ image }}" />
+<meta property="og:url" content="{{ canonical_url }}" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:url" content="{{ canonical_url }}" />
+<meta name="twitter:title" content="Art map – Semantic Art Search" />
+<meta name="twitter:description" content="{{ description }}" />
+<meta name="twitter:image" content="{{ image }}" />
+{% endwith %}
+{% endblock %}
+
 {% block head_extra %}
 {% if map_data_version %}
 <!-- Start downloading the map geometry with the page instead of after deck.gl and Alpine have loaded -->
@@ -100,6 +119,13 @@
         <button @click="zoomOut()"
                 class="bg-white/90 backdrop-blur-sm shadow border border-line rounded-lg w-9 h-9 flex items-center justify-center text-muted hover:bg-paper text-lg font-bold transition">&minus;</button>
     </div>
+
+    <!-- What the map shows. Clear of the zoom controls; gives way to the detail panel, which opens in the same corner. -->
+    <p x-show="!loading && !error && !detail.visible" x-cloak
+       class="absolute bottom-4 left-4 right-16 z-10 w-fit bg-white/90 backdrop-blur-sm rounded-lg shadow border border-line px-3 py-1.5 text-xs sm:text-sm text-muted">
+        A flat map of semantic space. Each dot is an artwork, placed near similar ones.
+        <a href="{% url 'about' %}#art-map" class="link-action text-xs sm:text-sm whitespace-nowrap">About this map</a>
+    </p>
 
     <!-- Legend and search box, shown once the map has drawn: until the geometry loads we
          don't know whether there is a Century mode, and the panels would float over the
