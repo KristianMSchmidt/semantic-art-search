@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block viewport_extra %}, viewport-fit=cover{% endblock %}
+
 {% block title %}Art map – Semantic Art Search{% endblock %}
 
 {% block meta %}
@@ -26,9 +28,16 @@
 <link rel="preload" href="{% url "art-map-geometry" %}?v={{ map_data_version }}" as="fetch" crossorigin>
 {% endif %}
 <!-- The map fills what the nav leaves of the screen. dvh, not vh: on phones 100vh includes the
-     browser's URL bar, which would cover the bottom of the map -->
+     browser's URL bar, which would cover the bottom of the map. viewport-fit=cover (below) lets
+     the map run behind a floating URL bar, so what must stay reachable keeps clear of the
+     safe-area insets: the nav via the body's padding (the bottom is left to the map), the
+     controls at the bottom via .map-bottom-inset -->
 <style>
-    body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+    body {
+        display: flex; flex-direction: column; height: 100vh; height: 100dvh;
+        padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px);
+    }
+    .map-bottom-inset { bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); }
 </style>
 {% endblock head_extra %}
 
@@ -81,7 +90,7 @@
     </div>
 
     <!-- Zoom controls -->
-    <div class="absolute bottom-4 right-4 z-30 flex flex-col gap-1">
+    <div class="absolute map-bottom-inset right-4 z-30 flex flex-col gap-1">
         <button @click="zoomIn()"
                 class="bg-white/90 backdrop-blur-sm shadow border border-line rounded-lg w-9 h-9 flex items-center justify-center text-muted hover:bg-paper text-lg font-bold transition">+</button>
         <button @click="zoomOut()"
@@ -90,7 +99,7 @@
 
     <!-- What the map shows. Clear of the zoom controls; gives way to the detail panel, which opens in the same corner. -->
     <p x-show="!loading && !error && !detail.visible" x-cloak
-       class="absolute bottom-4 left-4 right-16 z-10 w-fit bg-white/90 backdrop-blur-sm rounded-lg shadow border border-line px-3 py-1.5 text-xs sm:text-sm text-muted">
+       class="absolute map-bottom-inset left-4 right-16 z-10 w-fit bg-white/90 backdrop-blur-sm rounded-lg shadow border border-line px-3 py-1.5 text-xs sm:text-sm text-muted">
         <span class="hidden sm:inline">A flat map of semantic space.</span>
         Each dot is an artwork, placed near similar ones.
         <a href="{% url 'about' %}#art-map" class="link-action text-xs sm:text-sm whitespace-nowrap">About this map</a>
@@ -100,7 +109,7 @@
          don't know whether there is a Century mode, and the panels would float over the
          spinner. Side by side on wider screens; on phones the search box goes on top. -->
     <div x-show="!loading && !error" x-cloak
-         class="absolute z-20 top-4 bottom-4 left-4 right-4 flex flex-col-reverse sm:flex-row sm:justify-between items-start gap-2 pointer-events-none">
+         class="absolute z-20 top-4 map-bottom-inset left-4 right-4 flex flex-col-reverse sm:flex-row sm:justify-between items-start gap-2 pointer-events-none">
     <!-- Legend above the detail panel: where they'd collide the legend items scroll, and
          only once the legend is at its minimum height does the panel give way too -->
     <div class="flex-1 min-h-0 sm:flex-none sm:self-stretch max-w-full flex flex-col justify-between gap-2">
