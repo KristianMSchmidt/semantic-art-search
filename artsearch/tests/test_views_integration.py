@@ -651,6 +651,17 @@ def test_art_map_view_passes_version_to_template(mock_qdrant_service):
     assert century_slugs[-1] == "undated"  # the map treats the last group as undated
 
 
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_art_map_explains_itself_and_links_to_about_section(mock_qdrant_service):
+    """The caption's link must lead to the About section, and shared views to /map/."""
+    map_html = Client().get(reverse("art-map"), {"q": "ships"}).content.decode()
+    about_html = Client().get(reverse("about")).content.decode()
+
+    assert f'href="{reverse("about")}#art-map"' in map_html
+    assert 'id="art-map"' in about_html
+    assert '<link rel="canonical" href="http://testserver/map/">' in map_html
+
 
 @pytest.mark.integration
 @pytest.mark.django_db

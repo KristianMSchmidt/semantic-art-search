@@ -9,6 +9,8 @@ paths:
 
 `/map/` (`map.html`, deck.gl) plots every artwork at precomputed UMAP coordinates of its `image_jina` vector, made offline by `make art-map` (`generate_art_map`) and stored in `ArtMapData` (binary geometry plus metadata JSON, served at `/map/data/...`).
 
+A caption at the bottom left says what the map shows and links to the About page's `#art-map` section, which explains how to read it (only the images decide positions; neighbours are more reliable than long distances). It hides while the detail panel is open, since they share that corner. Keep the About text in step if the map's input changes.
+
 ## Linking in and out
 
 - Clicking a dot opens a panel linking to the artwork page and to Find similar (`/?query=<slug>:<object_number>`).

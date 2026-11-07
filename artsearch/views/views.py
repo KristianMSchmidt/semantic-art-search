@@ -458,6 +458,7 @@ def art_map_view(request: HttpRequest) -> HttpResponse:
         "century_slugs_json": json.dumps(CENTURY_SLUGS),
         "century_names_json": json.dumps(CENTURY_NAMES),
         "max_query_length": MAX_QUERY_LENGTH,
+        "canonical_url": request.build_absolute_uri(reverse("art-map")),
     }
     return render(request, "map.html", context)
 
