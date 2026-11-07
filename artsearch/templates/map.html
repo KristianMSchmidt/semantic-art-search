@@ -284,6 +284,8 @@ function artMap() {
     const SEARCH_DIM_ALPHA = 35;  // alpha of points that aren't search matches
     const ARTWORK_PAGE_URL = '{% url "artwork-page" "__slug__" "__object__" %}';
     const SELECTED_ZOOM = 4;  // zoom level when flying to a linked artwork
+    const SEARCH_MAX_ZOOM = 3;  // closest a search zooms in, however tightly its matches gather
+    const SEARCH_FIT_MARGIN = 2;  // view size relative to the area the matches gather in
 
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     // "<museum index>/<object number>" -> point index, built on first use. Kept out of
@@ -619,11 +621,11 @@ function artMap() {
             const canvas = document.getElementById('deck-canvas');
             // Map units at zoom 0 are pixels; leave a margin around the matches
             const zoom = Math.log2(Math.min(
-                canvas.clientWidth / Math.max((x1 - x0) * 1.3, 1),
-                canvas.clientHeight / Math.max((y1 - y0) * 1.3, 1),
+                canvas.clientWidth / Math.max((x1 - x0) * SEARCH_FIT_MARGIN, 1),
+                canvas.clientHeight / Math.max((y1 - y0) * SEARCH_FIT_MARGIN, 1),
             ));
             this._viewTarget = [(x0 + x1) / 2, (y0 + y1) / 2];
-            this._currentZoom = Math.min(Math.max(zoom, -3), SELECTED_ZOOM);
+            this._currentZoom = Math.min(Math.max(zoom, -3), SEARCH_MAX_ZOOM);
             this.deckgl.setProps({ initialViewState: { target: this._viewTarget, zoom: this._currentZoom, transitionDuration: 1000 } });
         },
 
