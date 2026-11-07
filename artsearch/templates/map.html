@@ -28,7 +28,8 @@
 {% endblock head_extra %}
 
 {% block content %}
-<div x-data="artMap()" @keydown.escape.window="closeDetail()" class="relative border-t border-line" style="height: calc(100vh - 68px);">
+<!-- svh, not vh: on phones 100vh includes the browser's URL bar, which would cover the bottom of the map -->
+<div x-data="artMap()" @keydown.escape.window="closeDetail()" class="relative border-t border-line" style="height: calc(100vh - 68px); height: calc(100svh - 68px);">
 
     <!-- Loading spinner -->
     <div x-show="loading" class="absolute inset-0 flex items-center justify-center bg-paper z-10">
