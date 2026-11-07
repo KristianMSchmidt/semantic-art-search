@@ -20,7 +20,8 @@ from artsearch.src.services.jina_embedder import get_jina_embedder
 logger = logging.getLogger(__name__)
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
-ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP", "GIF"}
+ALLOWED_FORMATS = ("JPEG", "PNG", "WEBP", "GIF")
+UNSUPPORTED_FORMAT_MESSAGE = "Please upload a JPEG, PNG, WebP or GIF image."
 # Jina tiles images larger than 512px into 512x512 chunks of 4,000 tokens each,
 # so downscaling keeps an upload to a single tile
 EMBED_IMAGE_SIZE = 512
@@ -55,9 +56,12 @@ def prepare_image(data: bytes) -> str:
             f"Image too large (max {MAX_UPLOAD_BYTES // (1024 * 1024)} MB)."
         )
     try:
-        image = Image.open(io.BytesIO(data))
+        # Limit which parsers see untrusted bytes: Image.open otherwise tries all
+        # of Pillow's formats, and some can be attacked through the header alone
+        image = Image.open(io.BytesIO(data), formats=ALLOWED_FORMATS)
+        # Still needed: a JPEG with multi-picture data opens as format "MPO"
         if image.format not in ALLOWED_FORMATS:
-            raise ImageUploadError("Please upload a JPEG, PNG, WebP or GIF image.")
+            raise ImageUploadError(UNSUPPORTED_FORMAT_MESSAGE)
         if image.width * image.height > MAX_IMAGE_PIXELS:
             raise ImageUploadError("Image dimensions are too large.")
         image.draft("RGB", (EMBED_IMAGE_SIZE, EMBED_IMAGE_SIZE))  # fast JPEG decode
@@ -69,7 +73,9 @@ def prepare_image(data: bytes) -> str:
             image.paste(rgba, mask=rgba.getchannel("A"))
         else:
             image = image.convert("RGB")
-    except (UnidentifiedImageError, OSError, Image.DecompressionBombError):
+    except UnidentifiedImageError:
+        raise ImageUploadError(UNSUPPORTED_FORMAT_MESSAGE)
+    except (OSError, Image.DecompressionBombError):
         raise ImageUploadError("Could not read the image. Please try another file.")
 
     image.thumbnail((EMBED_IMAGE_SIZE, EMBED_IMAGE_SIZE))
