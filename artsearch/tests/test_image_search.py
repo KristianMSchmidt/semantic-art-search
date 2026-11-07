@@ -108,8 +108,21 @@ def test_prepare_image_applies_exif_rotation():
     ],
 )
 def test_prepare_image_rejects_unsupported_files(data):
-    with pytest.raises(ImageUploadError):
+    with pytest.raises(ImageUploadError, match="Please upload a JPEG"):
         prepare_image(data)
+
+
+@pytest.mark.unit
+def test_prepare_image_keeps_other_parsers_away_from_uploads():
+    # Pillow's other parsers have had bugs reachable through the header alone
+    # (e.g. XBM's regex could stall Image.open for minutes), so an upload must
+    # never reach them
+    with patch(
+        "PIL.XbmImagePlugin.XbmImageFile._open",
+        side_effect=AssertionError("XBM parser saw the upload"),
+    ):
+        with pytest.raises(ImageUploadError, match="Please upload a JPEG"):
+            prepare_image(b"#define test_width 1\n#define test_height 1\n")
 
 
 @pytest.mark.unit
