@@ -25,6 +25,7 @@ A caption at the bottom left says what the map shows and links to the About page
 - Clicking a legend item hides or shows that museum, work type or century; all three kinds of filter apply in every colour mode (not with colours off). "Show all" and "Hide all" act on the current colour mode only (Hide all, then click one item to isolate it).
 - Hidden points stay on the map as a pale, unresponsive background (`_buildContextLayer()`), so what's left shows where it sits in the whole collection; `hide_museums=` listing all but one highlights that museum. If the filters leave nothing, it's the same plain map as with colours off. Showing an item again or switching colour mode clears any other mode that hides everything, which can't be undone from the current legend.
 - Filters run on the GPU via deck.gl's `DataFilterExtension` (a per-point 0/1 visibility value, `_visibilityMask()`), so the coloured layers neither draw nor pick hidden points; only the unresponsive background and greyed-out matches show them.
+- Filters never drop the selected artwork: it keeps its ring and panel when hidden, also when the URL's filters hide a linked artwork. With no search it gets `HIGHLIGHT_COLOR`, as with colours off.
 - The chevron next to the colour-mode buttons collapses the legend items; it starts collapsed below 640px wide (phones), and while collapsed still says how many museums/work types/centuries are hidden.
 
 ## Performance

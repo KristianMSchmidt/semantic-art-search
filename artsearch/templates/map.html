@@ -449,9 +449,6 @@ function artMap() {
 
         _filtersChanged() {
             this.tooltip.visible = false;
-            if (this.selectedIndex >= 0 && this._isHidden(this.selectedIndex)) {
-                this.closeDetail();
-            }
             this._render();
             this._updateUrl();
         },
@@ -699,7 +696,8 @@ function artMap() {
             if (this._hiddenMatchesLayer) layers.push(this._hiddenMatchesLayer);
             if (this._searchLayer) layers.push(this._searchLayer);
             if (this.selectedIndex >= 0) {
-                if (this.colorMode === 'none' && !this.search.active) layers.push(this._buildSelectedDotLayer());
+                const paleSelection = this.colorMode === 'none' || this._isHidden(this.selectedIndex);
+                if (paleSelection && !this.search.active) layers.push(this._buildSelectedDotLayer());
                 layers.push(this._buildSelectedLayer());
             }
             return layers;
@@ -716,7 +714,8 @@ function artMap() {
                 .replace('__object__', encodeURIComponent(objectNumber).replace(/%2F/g, '/'));
         },
 
-        // With colours off the selected point would be as grey as the rest, inside its ring.
+        // With colours off or hidden by the legend, the selected point would be as pale as the
+        // rest, inside its ring.
         // Not during a search: selected matches are already highlighted, and a selected
         // non-match mustn't look like one.
         _buildSelectedDotLayer() {
@@ -831,12 +830,6 @@ function artMap() {
                 setTimeout(() => { this.notice = ''; }, 5000);
                 this._updateUrl();
                 return;
-            }
-            // Show the linked artwork even if the URL's filters would hide it
-            if (this._isHidden(idx)) {
-                this.hiddenMuseums = this.hiddenMuseums.filter((i) => i !== this._museumIndices[idx]);
-                this.hiddenWorkTypes = this.hiddenWorkTypes.filter((i) => i !== this._workTypeOf(idx));
-                this.hiddenCenturies = this.hiddenCenturies.filter((i) => i !== this._centuryOf(idx));
             }
             this._select(idx);
             if (!hasView) {
