@@ -7,7 +7,7 @@
 		<link rel="manifest" href="{% static 'site.webmanifest' %}">
 		<link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
 		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0{% block viewport_extra %}{% endblock %}">
 		<meta name="author" content="Kristian Møller Schmidt" />
 		<!-- Artwork thumbnails come from the bucket: connect to it early -->
 		<link rel="preconnect" href="{{ bucket_host }}">
