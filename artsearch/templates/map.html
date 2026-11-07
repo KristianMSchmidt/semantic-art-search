@@ -123,7 +123,8 @@
     <!-- What the map shows. Clear of the zoom controls; gives way to the detail panel, which opens in the same corner. -->
     <p x-show="!loading && !error && !detail.visible" x-cloak
        class="absolute bottom-4 left-4 right-16 z-10 w-fit bg-white/90 backdrop-blur-sm rounded-lg shadow border border-line px-3 py-1.5 text-xs sm:text-sm text-muted">
-        A flat map of semantic space. Each dot is an artwork, placed near similar ones.
+        <span class="hidden sm:inline">A flat map of semantic space.</span>
+        Each dot is an artwork, placed near similar ones.
         <a href="{% url 'about' %}#art-map" class="link-action text-xs sm:text-sm whitespace-nowrap">About this map</a>
     </p>
 
