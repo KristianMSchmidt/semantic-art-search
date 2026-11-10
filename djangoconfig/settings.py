@@ -69,6 +69,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "artsearch.context_processors.bucket_host",
+                "artsearch.context_processors.goatcounter",
             ],
         },
     },

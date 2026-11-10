@@ -37,6 +37,7 @@ class Config(BaseModel):
 
     # Sentry (optional, for production error monitoring)
     sentry_dsn: str | None = None
+    goatcounter_code: str | None = None
 
 
 def create_config():
@@ -79,6 +80,10 @@ def create_config():
 
     # Sentry (optional)
     sentry_dsn = os.getenv("SENTRY_DSN")
+
+    # GoatCounter visitor stats (optional): the site code, e.g. "mysite" for
+    # mysite.goatcounter.com. Unset (dev, tests) means no tracking script
+    goatcounter_code = os.getenv("GOATCOUNTER_CODE") or None
 
     if not qdrant_url:
         raise ValueError("QDRANT_URL is not set")
@@ -140,6 +145,7 @@ def create_config():
         openai_api_key=openai_api_key,
         jina_api_key=jina_api_key,
         sentry_dsn=sentry_dsn,
+        goatcounter_code=goatcounter_code,
     )
 
 

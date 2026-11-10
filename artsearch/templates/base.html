@@ -74,6 +74,16 @@
 				};
 			}
 		</script>
+		{% if goatcounter_code %}
+		<!-- GoatCounter visitor stats (no cookies). Paths are counted without the
+		     query string, so search text isn't recorded as a page. (count.js still
+		     sends location.search as `q`, which GoatCounter only reads for
+		     ref/utm_* campaign tags.) -->
+		<script>
+			window.goatcounter = { path: p => p.split('?')[0] };
+		</script>
+		<script data-goatcounter="https://{{ goatcounter_code }}.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+		{% endif %}
 	</head>
 
 	<body class="bg-paper text-ink font-serif leading-normal tracking-normal">
