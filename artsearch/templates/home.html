@@ -611,6 +611,9 @@
         } else {
           this.depth += 1;
           history.pushState({ artworkViewer: { pageUrl, thumbnail, depth: this.depth } }, '', pageUrl);
+          // One GoatCounter event per artwork opened from the results (not a
+          // page view, so visits aren't inflated); no-op without GoatCounter
+          window.goatcounter?.count?.({ path: 'open-artwork', title: 'Artwork opened in popup', event: true });
         }
         this.pageUrl = pageUrl;
         this.closeZoom();

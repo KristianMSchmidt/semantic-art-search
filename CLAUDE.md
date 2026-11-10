@@ -42,6 +42,7 @@ This project requires unique public artwork identifiers. They must be public-fac
 - **Config**: `artsearch/src/config.py` (Pydantic-based)
 - **Env files**: `.env.dev` (local) or `.env.prod` (server) - never commit these
 - **Dependencies**: Qdrant, PostgreSQL, Linode Object Storage (S3-compatible), Jina API
+- **Visitor stats**: GoatCounter (no cookies), on when `GOATCOUNTER_CODE` is set (prod only; unset in dev and tests). Not loaded for logged-in staff, so the owner's and the `claude` user's visits aren't counted. Paths are sent without query strings; opening an artwork popup counts as the `open-artwork` event. Searches stay in `SearchLog`
 
 ### Docker
 

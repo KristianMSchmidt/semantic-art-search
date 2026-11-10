@@ -813,3 +813,26 @@ def test_art_map_search_rate_limited(mock_qdrant_service):
 
     assert response.status_code == 429
     mock_qdrant_service.search_text.assert_not_called()
+
+
+GOATCOUNTER_SCRIPT = 'data-goatcounter="https://artsite.goatcounter.com/count"'
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "code, staff, expected",
+    [("artsite", False, True), ("artsite", True, False), (None, False, False)],
+    ids=["visitor", "staff-not-counted", "unset"],
+)
+def test_goatcounter_script_only_for_visitors_when_configured(code, staff, expected):
+    """Pages carry the GoatCounter script when a site code is set, except for staff."""
+    from django.contrib.auth.models import User
+
+    client = Client()
+    if staff:
+        client.force_login(User.objects.create_user("owner", is_staff=True))
+    with patch("artsearch.context_processors.config.goatcounter_code", code):
+        html = client.get(reverse("about")).content.decode()
+
+    assert (GOATCOUNTER_SCRIPT in html) is expected

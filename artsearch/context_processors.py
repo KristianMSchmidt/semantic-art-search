@@ -11,3 +11,16 @@ def bucket_host(request: HttpRequest) -> dict[str, str]:
     Must match the host in get_bucket_image_url.
     """
     return {"bucket_host": f"https://{config.aws_bucket_region}.linodeobjects.com"}
+
+
+def goatcounter(request: HttpRequest) -> dict[str, str | None]:
+    """
+    GoatCounter site code for the visitor-stats script in base.html (no cookies,
+    no personal data). None when unset, or for logged-in staff, so the owner's
+    and the `claude` test user's visits aren't counted.
+    """
+    # Requests built without the auth middleware (e.g. RequestFactory) have no user
+    user = getattr(request, "user", None)
+    if user is not None and user.is_staff:
+        return {"goatcounter_code": None}
+    return {"goatcounter_code": config.goatcounter_code}
