@@ -76,7 +76,7 @@
       {% if not result.is_query_artwork %}
       <button
         type="button"
-        title="Find artworks that look similar to this one"
+        title="Find artworks similar to this one"
         class="link-action"
         onclick="insertQuery('{{ result.find_similar_query|escapejs }}')"
         hx-get="{% url 'get-artworks' %}"
